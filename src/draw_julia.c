@@ -223,7 +223,7 @@ void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], 
   }
 }
 
-unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], double p[2], char *plot_type){
+unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], long MAX_D){
 
   double complex sqrt_complex(double complex c){
     double l = sqrt(pow(creal(c), 2) + pow(cimag(c), 2));
@@ -239,11 +239,9 @@ unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], 
   double scopex[2] = {-2, 2};
   double scopey[2] = {-2, 2};
 
-  long MAX_D = 100000000;
-
-  unsigned char *m = malloc(w*h*3*sizeof(unsigned char));
+  unsigned char *m = malloc(w*h*sizeof(unsigned char));
   //turn image white
-  // for (int i = 0; i < w*h*3; i++){m[i] = 255;}
+  // for (int i = 0; i < w*h; i++){m[i] = 255;}
 
   complex C = c[0] + c[1]*I;
 
@@ -256,7 +254,7 @@ unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], 
   struct complexBI *new_queue_ptr = NULL;
   struct complexBI *aux_free = NULL;
 
-  int mallocs = 0, frees = 0;
+  int mallocs = 0, frees = 0, npoints;
 
   z0->p = 0.5 * (1.0 + sqrt_complex(1.0 - 4*C));
   z0->der = sqrt(pow(creal(z0->p), 2) + pow(cimag(z0->p), 2));
@@ -304,12 +302,12 @@ unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], 
         int x2 = (creal(ai2->p)-scopex[0]) / (scopex[1]-scopex[0]) * (w);
         int y1 = (cimag(ai1->p)-scopey[0]) / (scopey[1]-scopey[0]) * (0-h) + h;
         int y2 = (cimag(ai2->p)-scopey[0]) / (scopey[1]-scopey[0]) * (0-h) + h;
-        m[(y1*w + x1)*3    ] = 255;
-        m[(y1*w + x1)*3 + 1] = 255;
-        m[(y1*w + x1)*3 + 2] = 255;
-        m[(y2*w + x2)*3    ] = 255;
-        m[(y2*w + x2)*3 + 1] = 255;
-        m[(y2*w + x2)*3 + 2] = 255;
+        m[(y1*w + x1)    ] = 255;
+        // m[(y1*w + x1)*3 + 1] = 255;
+        // m[(y1*w + x1)*3 + 2] = 255;
+        m[(y2*w + x2)    ] = 255;
+        // m[(y2*w + x2)*3 + 1] = 255;
+        // m[(y2*w + x2)*3 + 2] = 255;
 
         new_queue_ptr->n = ai1;
         new_queue_ptr = ai1;

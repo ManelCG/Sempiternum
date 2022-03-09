@@ -27,7 +27,7 @@ int main(int argc, char *argv[]){
   int h = 1000;
   int w = 1000;
   int A = h*w;
-  double c[2] = {0.36, 0.34};   //If parameter space this is interpreted as Z
+  double c[2] = {0, 1};   //If parameter space this is interpreted as Z
   double Sx[2] = {-2, 2};
   double Sy[2] = {-2, 2};
 
@@ -36,10 +36,10 @@ int main(int argc, char *argv[]){
 
   printf("Drawing julia by backwards iteration...\n");
   start = clock();
-  unsigned char *m = draw_julia_backwards_iteration(N, h, w, c, p, "rec_f");
+  unsigned char *m = draw_julia_backwards_iteration(N, h, w, c, 100000000);
   end = clock();
   printf("Donw. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
-  lodepng_encode24_file("test.png", m, w, h);
+  lodepng_encode_file("test.png", m, w, h, LCT_GREY, 8);
 
   ////rec_f or parameter_space
   //draw_julia_zoom(10000, N, h, w, c, p, "rec_f");
