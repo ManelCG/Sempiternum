@@ -182,12 +182,12 @@ void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], 
 
   printf("%s\n", thumb_f);
 
-  // // Save thumbnail
-  // printf("Drawing Julia...\n");
-  // Julia = draw_julia(N, h, w, c, Sdx, Sdy, plot_type);
-  // printf("Saving Julia...\n");
-  // lodepng_encode24_file(thumb_f, Julia, w, h);
-  // printf("Done\n\n");
+  // Save thumbnail
+  printf("Drawing Julia...\n");
+  Julia = draw_julia(N, h, w, c, Sdx, Sdy, plot_type);
+  printf("Saving Julia...\n");
+  lodepng_encode24_file(thumb_f, Julia, w, h);
+  printf("Done\n\n");
 
   while (i < frames){
     SpanX = SpanOriginal;
@@ -323,13 +323,14 @@ unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], 
 
       aux_free = queue_ptr;
       queue_ptr = queue_ptr->n;
-      if (new_points == 0){
-        break;
-      }
       free(aux_free);
       frees++;
     }
-    printf("%d mallocs y %d frees\n", mallocs, frees);
+    printf("%d mallocs y %d frees with %d new points\n", mallocs, frees, new_points);
+
+    if (new_points == 0){
+      break;
+    }
 
     queue = new_queue;
   }
