@@ -28,20 +28,22 @@ int main(int argc, char *argv[]){
   int N = 1000;   //Max iterations
   int h = 1000;
   int w = 1000;
+  char *plot_type = "rec_f";
   int A = h*w;
   double c[2] = {0.74, 0};   //If parameter space this is interpreted as Z
   double Sx[2] = {-2, 2};
   double Sy[2] = {-2, 2};
 
-  // double p[2] = {-0.743039152, -0.14809243};
+  //Zooming point for zoom function
   double p[2] = {0, 0};
 
-  char *dirname = gen_dir_name(c, "rec_f");
-  char *empty_julia_f = gen_filename(dirname, "Empty_Julia.png");
+  char *out_folder = gen_dir_name(c, "rec_f");
+  char *empty_julia_f = gen_filename(out_folder, "Empty_Julia.png");
+  char *thumb_f = gen_filename((char *) out_folder, "Thumbnail.png");
 
-  printf("%s\n", empty_julia_f);
+  printf("Saving results in: %s\n", out_folder);
 
-  printf("Drawing julia by backwards iteration...\n");
+  printf("Drawing julia by backwards iteration... "); fflush(stdout);
   start = clock();
   unsigned char *m = draw_julia_backwards_iteration(N, h, w, c, 500000);
   end = clock();
@@ -52,11 +54,23 @@ int main(int argc, char *argv[]){
   end = clock();
   printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
 
-  unsigned char *full_julia = draw_thumbnail(N h, w, c, "rec_f");
+
+  printf("Drawing Full Julia set... "); fflush(stdout);
+  start = clock();
+  unsigned char *full_julia = draw_thumbnail(N, h, w, c, plot_type);
+  end = clock();
+  printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
+
+  printf("Saving result... "); fflush(stdout);
+  start = clock();
+  lodepng_encode24_file(thumb_f, full_julia, w, h);
+  end = clock();
+  printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
 
   ////rec_f or parameter_space
   //draw_julia_zoom(0, N, h, w, c, p, "rec_f");
-  //end_g = clock();
-  //printf("Finished whole program execution. Took %f seconds\n", ((double)(end_g - start_g))/CLOCKS_PER_SEC);
+
+  end_g = clock();
+  printf("Finished whole program execution. Took %f seconds\n", ((double)(end_g - start_g))/CLOCKS_PER_SEC);
 
 }
