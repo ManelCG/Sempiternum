@@ -30,12 +30,12 @@ int main(int argc, char *argv[]){
   int w = 1920;
   char *plot_type = "rec_f";
   int A = h*w;
-  double c[2] = {0.74, 0};   //If parameter space this is interpreted as Z
+  double c[2] = {-1, 0};   //If parameter space this is interpreted as Z
   double Sx[2] = {-2, 2};
   double Sy[2] = {-2, 2};
 
   //Zooming point for zoom function
-  double p[2] = {0, 0};
+  double p[2] = {0, 0.7122655};
 
   char *out_folder = gen_dir_name(c, "rec_f");
   char *empty_julia_f = gen_filename(out_folder, "Empty_Julia.png");
@@ -80,8 +80,8 @@ int main(int argc, char *argv[]){
   end = clock();
   printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
 
-  ////rec_f or parameter_space
-  //draw_julia_zoom(0, N, h, w, c, p, "rec_f");
+  //rec_f or parameter_space
+  draw_julia_zoom(10, N, h, w, c, p, 0.05, "rec_f");
 
   end_g = clock();
   printf("Finished whole program execution. Took %f seconds\n", ((double)(end_g - start_g))/CLOCKS_PER_SEC);

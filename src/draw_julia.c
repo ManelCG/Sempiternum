@@ -277,7 +277,7 @@ unsigned char *draw_thumbnail(int N, int h, int w, double c[2], char *plot_type)
   return Julia;
 }
 
-void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], char *plot_type){
+void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], double zoom_ratio, char *plot_type){
   const char *out_folder = gen_dir_name(c, plot_type);
 
   int i = 0;
@@ -320,7 +320,7 @@ void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], 
     Sy[1] = p[1] + SpanY/2;
 
     julia_out = malloc(1024);
-    snprintf(julia_out, 1024, "%s/[%03d]_[x]_%f_to_%f_[y]_%f_to_%f.png", out_folder, i, Sx[0], Sx[1], Sy[0], Sy[1]);
+    snprintf(julia_out, 1024, "%s/%03d.png", out_folder, i);
 
     printf("%s\n", julia_out);
 
@@ -338,7 +338,7 @@ void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], 
 
     free(julia_out);
     i++;
-    SpanOriginal *= 0.9;
+    SpanOriginal *= zoom_ratio;
   }
 }
 
