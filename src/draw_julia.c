@@ -11,6 +11,7 @@
 
 #include <lodepng.h>
 
+#include <file_io.h>
 #include <draw_julia.h>
 
 // #define DEBUG_DRAW_JULIA_C
@@ -150,17 +151,7 @@ unsigned char *draw_julia(int N, int h, int w, double c[2], double Sx[2], double
 }
 
 void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], char *plot_type){
-  const char *rootd = "/home/hrad/Universidad/4o/TFG/sketch_code/beta1";
-  char *out_folder = malloc(300);
-  snprintf(out_folder, 300, "%s/out/%s_%f+%fi_VIDEO_FRAMES",rootd, plot_type, c[0], c[1]);
-    // printf("%s\n", out_folder);
-
-  DIR *d = opendir(out_folder);
-  if (d){
-    closedir(d);
-  } else {
-    mkdir(out_folder, 0755);
-  }
+  const char *out_folder = gen_dir_name(c, plot_type);
 
   int i = 0;
   double ratio = 1;
@@ -174,13 +165,11 @@ void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], 
 
   unsigned char *Julia;
   char *julia_out;
-  char *thumb_f = malloc(1024);
-
-  time_t start, end;
-
-  snprintf(thumb_f, 1024,  "%s/%s", out_folder, "Thumbnail.png");
+  char *thumb_f = gen_filename((char *) out_folder, "Thumbnail.png");
 
   printf("%s\n", thumb_f);
+
+  time_t start, end;
 
   // Save thumbnail
   printf("Drawing Julia...\n");
@@ -200,7 +189,7 @@ void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], 
     Sy[0] = p[1] - SpanY/2;
     Sy[1] = p[1] + SpanY/2;
 
-    julia_out = malloc(1024);
+    julia_out_f = malloc(1024);
     snprintf(julia_out, 1024, "%s/[%03d]_[x]_%f_to_%f_[y]_%f_to_%f.png", out_folder, i, Sx[0], Sx[1], Sy[0], Sy[1]);
 
     printf("%s\n", julia_out);
