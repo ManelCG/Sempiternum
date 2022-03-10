@@ -189,7 +189,7 @@ void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], 
     Sy[0] = p[1] - SpanY/2;
     Sy[1] = p[1] + SpanY/2;
 
-    julia_out_f = malloc(1024);
+    julia_out = malloc(1024);
     snprintf(julia_out, 1024, "%s/[%03d]_[x]_%f_to_%f_[y]_%f_to_%f.png", out_folder, i, Sx[0], Sx[1], Sy[0], Sy[1]);
 
     printf("%s\n", julia_out);
@@ -236,6 +236,7 @@ unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], 
 
   //queue->n = z0 in first iteration
   struct complexBI *z0 = malloc(sizeof(struct complexBI));
+  struct complexBI *z1 = malloc(sizeof(struct complexBI));
   struct complexBI *queue = malloc(sizeof(struct complexBI));
   struct complexBI *new_queue = malloc(sizeof(struct complexBI));
 
@@ -247,8 +248,12 @@ unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], 
 
   z0->p = 0.5 * (1.0 + sqrt_complex(1.0 - 4*C));
   z0->der = sqrt(pow(creal(z0->p), 2) + pow(cimag(z0->p), 2));
-  z0->n = NULL;
+  z0->n = z1;
   z0->disregard = false;
+  z1->p = 0.5 * (1.0 - sqrt_complex(1.0 - 4*C));
+  z1->der = sqrt(pow(creal(z0->p), 2) + pow(cimag(z0->p), 2));
+  z1->n = NULL;
+  z1->disregard = false;
 
   queue->n = z0;
 
@@ -291,12 +296,16 @@ unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], 
         int x2 = (creal(ai2->p)-scopex[0]) / (scopex[1]-scopex[0]) * (w);
         int y1 = (cimag(ai1->p)-scopey[0]) / (scopey[1]-scopey[0]) * (0-h) + h;
         int y2 = (cimag(ai2->p)-scopey[0]) / (scopey[1]-scopey[0]) * (0-h) + h;
-        m[(y1*w + x1)    ] = 255;
-        // m[(y1*w + x1)*3 + 1] = 255;
-        // m[(y1*w + x1)*3 + 2] = 255;
-        m[(y2*w + x2)    ] = 255;
-        // m[(y2*w + x2)*3 + 1] = 255;
-        // m[(y2*w + x2)*3 + 2] = 255;
+        if (m[(y1*w + x1)] == 255){
+          ai1->disregard = true;
+        } else {
+          m[(y1*w + x1)] = 255;
+        }
+        if (m[(y2*w + x2)] == 255){
+          ai2->disregard = true;
+        } else {
+          m[(y2*w + x2)] = 255;
+        }
 
         new_queue_ptr->n = ai1;
         new_queue_ptr = ai1;
