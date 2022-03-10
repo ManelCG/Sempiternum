@@ -342,7 +342,7 @@ void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], 
   }
 }
 
-unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], long MAX_D){
+unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], long MAX_D, _Bool revisit){
 
   double complex sqrt_complex(double complex c){
     double l = sqrt(pow(creal(c), 2) + pow(cimag(c), 2));
@@ -435,12 +435,12 @@ unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], 
         int x2 = (creal(ai2->p)-scopex[0]) / (scopex[1]-scopex[0]) * (w);
         int y1 = (cimag(ai1->p)-scopey[0]) / (scopey[1]-scopey[0]) * (0-h) + h;
         int y2 = (cimag(ai2->p)-scopey[0]) / (scopey[1]-scopey[0]) * (0-h) + h;
-        if (m[(y1*w + x1)] == 255){
+        if (!revisit && m[(y1*w + x1)] == 255){
           ai1->disregard = true;
         } else {
           m[(y1*w + x1)] = 255;
         }
-        if (m[(y2*w + x2)] == 255){
+        if (!revisit && m[(y2*w + x2)] == 255){
           ai2->disregard = true;
         } else {
           m[(y2*w + x2)] = 255;

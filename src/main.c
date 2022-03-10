@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include <math.h>
+#include <stdbool.h>
 
 #include <lodepng.h>
 #include <file_io.h>
@@ -25,12 +26,13 @@ int main(int argc, char *argv[]){
   start_g = clock();
   printf("Started whole program clock\n");
 
-  int N = 1000;   //Max iterations
-  int h = 1080;
-  int w = 1920;
+  int N = 100;   //Max iterations
+                 // 4K = 3840 × 2160
+  int h = 2160;
+  int w = 3840;
   char *plot_type = "rec_f";
   int A = h*w;
-  double c[2] = {-1, 0};   //If parameter space this is interpreted as Z
+  double c[2] = {0, 1};   //If parameter space this is interpreted as Z
   double Sx[2] = {-2, 2};
   double Sy[2] = {-2, 2};
 
@@ -46,7 +48,7 @@ int main(int argc, char *argv[]){
 
   printf("Drawing julia by BI...      "); fflush(stdout);
   start = clock();
-  unsigned char *empty_julia = draw_julia_backwards_iteration(N, h, w, c, 500000);
+  unsigned char *empty_julia = draw_julia_backwards_iteration(N, h, w, c, 500000, true);
   end = clock();
   printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
   printf("Saving empty Julia set...   "); fflush(stdout);
@@ -80,8 +82,8 @@ int main(int argc, char *argv[]){
   end = clock();
   printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
 
-  //rec_f or parameter_space
-  draw_julia_zoom(10, N, h, w, c, p, 0.05, "rec_f");
+  ////rec_f or parameter_space
+  //draw_julia_zoom(10, N, h, w, c, p, 0.05, "rec_f");
 
   end_g = clock();
   printf("Finished whole program execution. Took %f seconds\n", ((double)(end_g - start_g))/CLOCKS_PER_SEC);

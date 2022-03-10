@@ -16,7 +16,7 @@ unsigned char *draw_julia(int N, int h, int w, double c[2], double Sx[2], double
 unsigned char *draw_thumbnail(int N, int h, int w, double c[2], char *plot_type);
 void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], double zoom_ratio, char *plot_type);
 
-unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], long MAX_D);
+unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], long MAX_D, _Bool revisit);
 
 unsigned char *merge_sets(unsigned char *full, unsigned char *empty, int h, int w);
 
