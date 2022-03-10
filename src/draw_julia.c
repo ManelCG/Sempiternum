@@ -241,7 +241,6 @@ unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], 
 
   //queue->n = z0 in first iteration
   struct complexBI *z0 = malloc(sizeof(struct complexBI));
-  struct complexBI *z1 = malloc(sizeof(struct complexBI));
   struct complexBI *queue = malloc(sizeof(struct complexBI));
   struct complexBI *new_queue = malloc(sizeof(struct complexBI));
 
@@ -253,12 +252,8 @@ unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], 
 
   z0->p = 0.5 * (1.0 + sqrt_complex(1.0 - 4*C));
   z0->der = sqrt(pow(creal(z0->p), 2) + pow(cimag(z0->p), 2));
-  z0->n = z1;
+  z0->n = NULL;
   z0->disregard = false;
-  z1->p = 0.5 * (1.0 - sqrt_complex(1.0 - 4*C));
-  z1->der = sqrt(pow(creal(z0->p), 2) + pow(cimag(z0->p), 2));
-  z1->n = NULL;
-  z1->disregard = false;
 
   queue->n = z0;
 
