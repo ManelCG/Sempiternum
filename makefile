@@ -10,10 +10,10 @@ LDIR=lib
 
 LIBS = -lm
 
-_DEPS = lodepng.h draw_julia.h opencl_funcs.h
+_DEPS = lodepng.h draw_julia.h opencl_funcs.h file_io.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = main.o lodepng.o draw_julia.o opencl_funcs.o
+_OBJ = main.o lodepng.o draw_julia.o opencl_funcs.o file_io.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
