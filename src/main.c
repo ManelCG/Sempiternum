@@ -17,8 +17,6 @@
 #include <draw_julia.h>
 #include <opencl_funcs.h>
 
-
-
 int main(int argc, char *argv[]){
 
   //Profiling info vars
@@ -26,18 +24,18 @@ int main(int argc, char *argv[]){
   start_g = clock();
   printf("Started whole program clock\n");
 
-  int N = 100;   //Max iterations
+  int N = 1000;   //Max iterations
                  // 4K = 3840 × 2160
-  int h = 2160;
   int w = 3840;
+  int h = 2160;
   char *plot_type = "rec_f";
   int A = h*w;
-  double c[2] = {0, 1};   //If parameter space this is interpreted as Z
+  double c[2] = {0.36, 0.34};   //If parameter space this is interpreted as Z
   double Sx[2] = {-2, 2};
   double Sy[2] = {-2, 2};
 
   //Zooming point for zoom function
-  double p[2] = {0, 0.7122655};
+  double p[2] = {0.36, 0.34};
 
   char *out_folder = gen_dir_name(c, "rec_f");
   char *empty_julia_f = gen_filename(out_folder, "Empty_Julia.png");
@@ -48,7 +46,7 @@ int main(int argc, char *argv[]){
 
   printf("Drawing julia by BI...      "); fflush(stdout);
   start = clock();
-  unsigned char *empty_julia = draw_julia_backwards_iteration(N, h, w, c, 500000, true);
+  unsigned char *empty_julia = draw_julia_backwards_iteration(N, h, w, c, 100000, true);
   end = clock();
   printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
   printf("Saving empty Julia set...   "); fflush(stdout);

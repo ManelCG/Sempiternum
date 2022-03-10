@@ -3,12 +3,12 @@ SDIR = src
 
 IDIR = include
 CC = gcc
-CFLAGS = -I$(IDIR) -lOpenCL -lm
+CFLAGS = -I$(IDIR)
 
 ODIR=.obj
 LDIR=lib
 
-LIBS = -lm
+LIBS = -lm -lOpenCL
 
 _DEPS = lodepng.h draw_julia.h opencl_funcs.h file_io.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))

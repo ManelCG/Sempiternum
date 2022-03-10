@@ -15,7 +15,7 @@
 #include <file_io.h>
 #include <draw_julia.h>
 
-#define DEBUG_DRAW_JULIA_C
+// #define DEBUG_DRAW_JULIA_C
 
 
 
@@ -114,6 +114,21 @@ unsigned char *merge_sets(unsigned char *full, unsigned char *empty, int h, int 
                       NULL, NULL);
 
 
+  clFlush(prog->command_queue);
+  clFinish(prog->command_queue);
+  clReleaseCommandQueue(prog->command_queue);
+  clReleaseKernel(prog->kernel);
+  clReleaseProgram(prog->program);
+  clReleaseDevice(prog->device);
+  clReleaseContext(prog->context);
+  clReleaseMemObject(mem_ret);
+  clReleaseMemObject(mem_full);
+  clReleaseMemObject(mem_empty);
+  clReleaseMemObject(mem_w);
+  clReleaseMemObject(mem_h);
+
+  free(prog->src);
+  free(prog);
 
   return r;
 }

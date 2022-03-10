@@ -33,9 +33,9 @@ __kernel void rec_f(__global unsigned char *m,
     if (z_abs > R){
       double ni = log10((double) i);
       double n = log10((double) N);
-      m[(y*w + x)*3] = 255;
-      m[(y*w + x)*3+1] = (int) floor( ((double) ni / (double) n) * 255);
-      m[(y*w + x)*3+2] = i % 256;
+      m[(y*w + x)*3+2] = 255;
+      m[(y*w + x)*3+0] = (int) floor( ((double) ni / (double) n) * 255);
+      m[(y*w + x)*3+1] = i % 256;
       break;
     }
   }
