@@ -254,7 +254,22 @@ unsigned char *draw_julia(int N, int h, int w, double c[2], double Sx[2], double
 unsigned char *draw_thumbnail(int N, int h, int w, double c[2], char *plot_type){
   double c_abs = pow(pow(c[0], 2) + pow(c[1], 2), 0.5);
   double SpanThumbnail = c_abs > 2? c_abs : 2;
-  double Sdx[2] = {-SpanThumbnail, SpanThumbnail}, Sdy[2] = {-SpanThumbnail, SpanThumbnail};
+  // double Sdx[2] = {-SpanThumbnail, SpanThumbnail}, Sdy[2] = {-SpanThumbnail, SpanThumbnail};
+
+  double Sdx[2], Sdy[2];
+  if (w >= h){
+    double ratio = (double) w / (double) h;
+    Sdy[0] = -SpanThumbnail;
+    Sdy[1] = SpanThumbnail;
+    Sdx[0] = -SpanThumbnail * ratio;
+    Sdx[1] =  SpanThumbnail * ratio;
+  } else {
+    double ratio = (double) h / (double) w;
+    Sdx[0] = -SpanThumbnail;
+    Sdx[1] = SpanThumbnail;
+    Sdy[0] = -SpanThumbnail * ratio;
+    Sdy[1] =  SpanThumbnail * ratio;
+  }
 
   unsigned char *Julia;
 
@@ -266,13 +281,18 @@ void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], 
   const char *out_folder = gen_dir_name(c, plot_type);
 
   int i = 0;
-  double ratio = 1;
+
+  double ratio;
+  if (w >= h){
+    ratio = (double) w / (double) h;
+  } else {
+    ratio = (double) h / (double) w;
+  }
+
   double c_abs = pow(pow(c[0], 2) + pow(c[1], 2), 0.5);
   double SpanOriginal = 4;
-  double SpanThumbnail = c_abs > 2? c_abs : 2;
   printf("%f\n", SpanOriginal);
   double Sx[2], Sy[2];
-  double Sdx[2] = {-SpanThumbnail, SpanThumbnail}, Sdy[2] = {-SpanThumbnail, SpanThumbnail};
   double SpanX, SpanY;
 
   unsigned char *Julia;
@@ -284,8 +304,13 @@ void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], 
   time_t start, end;
 
   while (i < frames){
-    SpanX = SpanOriginal;
-    SpanY = SpanX * ratio;
+    if (w >= h){
+      SpanY = SpanOriginal;
+      SpanX = SpanY * ratio;
+    } else {
+      SpanX = SpanOriginal;
+      SpanY = SpanX * ratio;
+    }
 
     printf("%f, %f\n", SpanX, SpanY);
 
@@ -330,8 +355,20 @@ unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], 
     return r;
   }
 
-  double scopex[2] = {-2, 2};
-  double scopey[2] = {-2, 2};
+  double scopex[2], scopey[2];
+  if (w >= h){
+    double ratio = (double) w / (double) h;
+    scopey[0] = -2;
+    scopey[1] = 2;
+    scopex[0] = -2 * ratio;
+    scopex[1] =  2 * ratio;
+  } else {
+    double ratio = (double) h / (double) w;
+    scopex[0] = -2;
+    scopex[1] = 2;
+    scopey[0] = -2 * ratio;
+    scopey[1] =  2 * ratio;
+  }
 
   unsigned char *m = malloc(w*h*sizeof(unsigned char));
   //turn image white
