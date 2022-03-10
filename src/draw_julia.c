@@ -15,7 +15,7 @@
 #include <file_io.h>
 #include <draw_julia.h>
 
-//#define DEBUG_DRAW_JULIA_C
+#define DEBUG_DRAW_JULIA_C
 
 
 
@@ -450,7 +450,7 @@ unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], 
         new_queue_ptr = ai1;
         new_queue_ptr->n = ai2;
         new_queue_ptr = ai2;
-        if (ai1->der > MAX_D){
+        if (MAX_D != 0 && ai1->der > MAX_D){
           ai1->disregard = true;
           new_points --;
           ai2->disregard = true;
