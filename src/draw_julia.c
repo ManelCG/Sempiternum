@@ -150,6 +150,17 @@ unsigned char *draw_julia(int N, int h, int w, double c[2], double Sx[2], double
   return m;
 }
 
+unsigned char *draw_thumbnail(int N, int h, int w, double c[2], char *plot_type){
+  double c_abs = pow(pow(c[0], 2) + pow(c[1], 2), 0.5);
+  double SpanThumbnail = c_abs > 2? c_abs : 2;
+  double Sdx[2] = {-SpanThumbnail, SpanThumbnail}, Sdy[2] = {-SpanThumbnail, SpanThumbnail};
+
+  unsigned char *Julia;
+
+  Julia = draw_julia(N, h, w, c, Sdx, Sdy, plot_type);
+  return Julia;
+}
+
 void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], char *plot_type){
   const char *out_folder = gen_dir_name(c, plot_type);
 
@@ -170,13 +181,6 @@ void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], 
   printf("%s\n", thumb_f);
 
   time_t start, end;
-
-  // Save thumbnail
-  printf("Drawing Julia...\n");
-  Julia = draw_julia(N, h, w, c, Sdx, Sdy, plot_type);
-  printf("Saving Julia...\n");
-  lodepng_encode24_file(thumb_f, Julia, w, h);
-  printf("Done\n\n");
 
   while (i < frames){
     SpanX = SpanOriginal;

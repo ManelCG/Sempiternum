@@ -25,11 +25,11 @@ int main(int argc, char *argv[]){
   start_g = clock();
   printf("Started whole program clock\n");
 
-  int N = 100;   //Max iterations
+  int N = 1000;   //Max iterations
   int h = 1000;
   int w = 1000;
   int A = h*w;
-  double c[2] = {0, 1};   //If parameter space this is interpreted as Z
+  double c[2] = {0.74, 0};   //If parameter space this is interpreted as Z
   double Sx[2] = {-2, 2};
   double Sy[2] = {-2, 2};
 
@@ -39,16 +39,24 @@ int main(int argc, char *argv[]){
   char *dirname = gen_dir_name(c, "rec_f");
   char *empty_julia_f = gen_filename(dirname, "Empty_Julia.png");
 
+  printf("%s\n", empty_julia_f);
+
   printf("Drawing julia by backwards iteration...\n");
   start = clock();
-  unsigned char *m = draw_julia_backwards_iteration(N, h, w, c, 100000);
+  unsigned char *m = draw_julia_backwards_iteration(N, h, w, c, 500000);
   end = clock();
   printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
+  printf("Saving empty Julia set... "); fflush(stdout);
+  start = clock();
   lodepng_encode_file(empty_julia_f, m, w, h, LCT_GREY, 8);
+  end = clock();
+  printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
 
-  //rec_f or parameter_space
-  draw_julia_zoom(0, N, h, w, c, p, "rec_f");
-  end_g = clock();
-  printf("Finished whole program execution. Took %f seconds\n", ((double)(end_g - start_g))/CLOCKS_PER_SEC);
+  unsigned char *full_julia = draw_thumbnail(N h, w, c, "rec_f");
+
+  ////rec_f or parameter_space
+  //draw_julia_zoom(0, N, h, w, c, p, "rec_f");
+  //end_g = clock();
+  //printf("Finished whole program execution. Took %f seconds\n", ((double)(end_g - start_g))/CLOCKS_PER_SEC);
 
 }
