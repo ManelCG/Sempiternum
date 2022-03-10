@@ -5,9 +5,9 @@
 struct OpenCL_Program *get_opencl_info(){
   struct OpenCL_Program *prog = malloc(sizeof (struct OpenCL_Program));
 
-#ifdef DEBUG_OPENCL_FUNCS_C
+  #ifdef DEBUG_OPENCL_FUNCS_C
   printf("Getting OpenCL info...\n");
-#endif //DEBUG_OPENCL_FUNCS_C
+  #endif //DEBUG_OPENCL_FUNCS_C
   cl_int err_num;
   char str_buffer[1024];
   cl_uint num_platforms_available;
@@ -29,29 +29,29 @@ struct OpenCL_Program *get_opencl_info(){
   }
 
   for (int i = 0; i < num_platforms_available -1; i++){
-#ifdef DEBUG_OPENCL_FUNCS_C
+    #ifdef DEBUG_OPENCL_FUNCS_C
     printf("Platform %d\n", i);
-#endif //DEBUG_OPENCL_FUNCS_C
+    #endif //DEBUG_OPENCL_FUNCS_C
 
     clGetPlatformInfo(cl_platforms[i], CL_PLATFORM_NAME, sizeof(str_buffer), &str_buffer, NULL);
-#ifdef DEBUG_OPENCL_FUNCS_C
+    #ifdef DEBUG_OPENCL_FUNCS_C
     printf("Platform name: %s\n", str_buffer);
 
 
     clGetPlatformInfo(cl_platforms[i], CL_PLATFORM_VENDOR, sizeof(str_buffer), &str_buffer, NULL);
     printf("Platform vendor: %s\n", str_buffer);
-#endif //DEBUG_OPENCL_FUNCS_C
+    #endif //DEBUG_OPENCL_FUNCS_C
 
     cl_uint num_devices_available;
     clGetDeviceIDs(cl_platforms[i], CL_DEVICE_TYPE_ALL, 0, NULL, &num_devices_available);
-#ifdef DEBUG_OPENCL_FUNCS_C
+    #ifdef DEBUG_OPENCL_FUNCS_C
     printf("Num devices available: %d\n", num_devices_available);
-#endif //DEBUG_OPENCL_FUNCS_C
+    #endif //DEBUG_OPENCL_FUNCS_C
 
     clGetDeviceIDs(cl_platforms[i], CL_DEVICE_TYPE_ALL, num_devices_available, cl_devices, NULL);
     //Get info of device
 
-#ifdef DEBUG_OPENCL_FUNCS_C
+    #ifdef DEBUG_OPENCL_FUNCS_C
     for (int j = 0; j < num_devices_available; j++){
       printf("Getting info for device %d\n", j);
 
@@ -74,7 +74,7 @@ struct OpenCL_Program *get_opencl_info(){
 
       printf("\n");
     }
-#endif //DEBUG_OPENCL_FUNCS_C
+    #endif //DEBUG_OPENCL_FUNCS_C
 
     prog->device = cl_devices[0];
 

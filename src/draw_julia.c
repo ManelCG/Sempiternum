@@ -15,10 +15,110 @@
 #include <file_io.h>
 #include <draw_julia.h>
 
-// #define DEBUG_DRAW_JULIA_C
+//#define DEBUG_DRAW_JULIA_C
+
+
+
+unsigned char *merge_sets(unsigned char *full, unsigned char *empty, int h, int w){
+  unsigned char *r = malloc(w*h*3);
+
+  struct OpenCL_Program *prog = get_opencl_info();
+  FILE *fp;
+  char *filename = "opencl/merge_sets.c";
+
+  fp = fopen(filename, "r");
+  if (!fp){
+    fprintf(stderr, "Failed to load kernel.\n");
+    exit(1);
+  }
+
+  prog->src = (char *) calloc(MAX_SOURCE_SIZE, 1);
+  prog->src_size = fread(prog->src, 1, MAX_SOURCE_SIZE, fp);
+
+  fclose(fp);
+
+  #ifdef DEBUG_DRAW_JULIA_C
+  printf("Executing:\n------------------------\n%s\n------------------------\n", prog->src);
+  #endif
+
+  prog->context = clCreateContext(NULL, 1, &(prog->device), NULL, NULL, &(prog->ret));
+
+  #ifdef DEBUG_DRAW_JULIA_C
+  printf("OpenCL context created. Return code: %d\n", prog->ret);
+  #endif
+
+  prog->command_queue = clCreateCommandQueue(prog->context, prog->device, 0, &(prog->ret));
+  #ifdef DEBUG_DRAW_JULIA_C
+  printf("OpenCL CommandQueue created. Return code: %d\n", prog->ret);
+  #endif
+
+
+  cl_mem mem_empty = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
+                              w*h, NULL, &(prog->ret));
+  cl_mem mem_full = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
+                              w*h*3, NULL, &(prog->ret));
+  cl_mem mem_h = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
+                              sizeof(int), NULL, &(prog->ret));
+  cl_mem mem_w = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
+                              sizeof(int), NULL, &(prog->ret));
+  cl_mem mem_ret = clCreateBuffer(prog->context, CL_MEM_WRITE_ONLY,
+                              w*h*3, NULL, &(prog->ret));
+
+  clEnqueueWriteBuffer(prog->command_queue, mem_empty, CL_TRUE, 0, w*h*sizeof(unsigned char), empty , 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_full, CL_TRUE, 0, w*h*3*sizeof(unsigned char), full , 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_h, CL_TRUE, 0, sizeof(int), &h, 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_w, CL_TRUE, 0, sizeof(int), &w, 0, NULL, NULL);
+
+  prog->program = clCreateProgramWithSource(prog->context,
+                                            1,
+                                            (const char **)  &(prog->src),
+                                            (const size_t *) &(prog->src_size),
+                                            &(prog->ret));
+  #ifdef DEBUG_DRAW_JULIA_C
+  printf("Building %s... ", filename);
+  #endif
+  fflush(stdout);
+  clBuildProgram(prog->program, 1, &(prog->device), NULL, NULL, NULL);
+
+  prog->kernel = clCreateKernel(prog->program, "merge", &(prog->ret));
+
+  #ifdef DEBUG_DRAW_JULIA_C
+  printf("OpenCL Kernel created. Return code: %d\n\n", prog->ret);
+  #endif
+
+  clSetKernelArg(prog->kernel, 0, sizeof(mem_ret),  (void *)&mem_ret);
+  clSetKernelArg(prog->kernel, 1, sizeof(mem_empty),  (void *)&mem_empty);
+  clSetKernelArg(prog->kernel, 2, sizeof(mem_full),  (void *)&mem_full);
+  clSetKernelArg(prog->kernel, 3, sizeof(mem_h),  (void *)&mem_h);
+  clSetKernelArg(prog->kernel, 4, sizeof(mem_w),  (void *)&mem_w);
+
+  fflush(stdout);
+
+  const size_t worksize[] = {h, w};
+
+  cl_int status;
+
+  status = clEnqueueNDRangeKernel(prog->command_queue,
+                         prog->kernel, 2, NULL,
+                         worksize,
+                         NULL,
+                         0, NULL, NULL);
+
+  clEnqueueReadBuffer(prog->command_queue,
+                      mem_ret,
+                      CL_TRUE,
+                      0,
+                      w*h*3,
+                      r,
+                      0,
+                      NULL, NULL);
+
+
+
+  return r;
+}
 
 unsigned char *draw_julia(int N, int h, int w, double c[2], double Sx[2], double Sy[2], char *plot_type){
-
   //Make h and w even
   h = (h%2 == 0)? h: h+1;
   w = (w%2 == 0)? w: w+1;
