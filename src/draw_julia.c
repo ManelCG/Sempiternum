@@ -11,6 +11,7 @@
 
 #include <lodepng.h>
 
+
 #include <file_io.h>
 #include <draw_julia.h>
 
@@ -264,7 +265,9 @@ unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], 
   //N iters
   for (int i = 0; i < N; i++){
     int new_points = 0;
+    #ifdef DEBUG_DRAW_JULIA_C
     printf("Iter number %d\n", i);
+    #endif
     int j = 0;
 
     //Generate antiimages
@@ -328,7 +331,9 @@ unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], 
       free(aux_free);
       frees++;
     }
+    #ifdef DEBUG_DRAW_JULIA_C
     printf("%d mallocs y %d frees with %d new points\n", mallocs, frees, new_points);
+    #endif
 
     if (new_points == 0){
       break;
