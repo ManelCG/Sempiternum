@@ -3,21 +3,14 @@
 
 #include <math.h>
 
+#include <ComplexPlane.h>
 #include <draw_julia.h>
 
-struct ComplexPlane{
-  unsigned char *plot;
-  unsigned char *drawn_plot;
-  char *plot_type;
-  double z[2];
-  double center[2];
-  double Sx[2], Sy[2];
-  int w, h, N, N_line;
-};
+
 struct ComplexPlane *complex_plane = NULL;
 
-
 void draw_main_window(GtkWidget *widget, gpointer data);
+void gen_default_mandelbrot(GtkWidget *widget);
 
 void gen_default_mandelbrot(GtkWidget *widget){
   int w, h;
@@ -80,8 +73,6 @@ void draw_default_mandelbrot(GtkWidget *widget){
   draw_main_window(widget, NULL);
 }
 
-
-
 void destroy(GtkWidget *w, gpointer data){
   gtk_main_quit();
 }
@@ -93,127 +84,6 @@ void clear_container(GtkWidget *window){
     gtk_widget_destroy(GTK_WIDGET(iter->data));
   }
   g_list_free(children);
-}
-
-void draw_line(unsigned char *m, int x0, int y0, int x1, int y1, int w, int h){
-  void plot_px(unsigned char *m, int x, int y, double c, int w, int h){
-    int br = (int) floor(c*255);
-    if (x >= 0 && x < w && y >= 0 && y < h){
-      m[(y*w + x)*3 + 0] = br;
-      m[(y*w + x)*3 + 1] = br;
-      m[(y*w + x)*3 + 2] = br;
-    }
-  }
-  int ipart(double x){return floor(x);}
-  double round(double x){return ((double) ipart(x) + 0.5);}
-  double fpart(double x){return (x - floor(x));}
-  double rfpart(double x){return (1.0 - fpart(x));}
-
-  _Bool steep = (abs(y1-y0) > abs(x1-x0));
-  int aux;
-  double gradient, dx, dy;
-  if (steep){
-    aux = x0; x0 = y0; y0 = aux;
-    aux = x1; x1 = y1; y1 = aux;
-  }
-  if (x0 > x1){
-    aux = x0; x0 = x1; x1 = aux;
-    aux = y0; y0 = y1; y1 = aux;
-  }
-  dx = x1 - x0; dy = y1 - y0;
-  if (dx == 0){
-    gradient = 1;
-  } else {
-    gradient = dy/dx;
-  }
-
-  //First endpoint
-  double xend, yend, xgap, xpxl1, ypxl1;
-  xend = round((double) x0);
-  yend = (double) y0 + gradient * (xend - x0);
-  xgap = rfpart((double)x0 + 0.5);
-  xpxl1 = xend;
-  ypxl1 = ipart(yend);
-
-  if (steep){
-    plot_px(m, (int)floor(ypxl1),   (int)floor(xpxl1), rfpart(yend)*xgap, w, h);
-    plot_px(m, (int)floor(ypxl1)+1, (int)floor(xpxl1),  fpart(yend)*xgap, w, h);
-  } else {
-    plot_px(m, (int)floor(xpxl1), (int)floor(ypxl1),   rfpart(yend)*xgap, w, h);
-    plot_px(m, (int)floor(xpxl1), (int)floor(ypxl1)+1,  fpart(yend)*xgap, w, h);
-  }
-
-  double intery = yend + gradient;
-  double xpxl2, ypxl2;
-  xend = round((double) x1);
-  yend = (double) y1 + gradient * (xend - x1);
-  xgap = fpart((double)x1 + 0.5);
-  xpxl2 = xend;
-  ypxl2 = ipart(yend);
-
-  if (steep){
-    plot_px(m, (int)floor(ypxl2),   (int)floor(xpxl2), rfpart(yend)*xgap, w, h);
-    plot_px(m, (int)floor(ypxl2)+1, (int)floor(xpxl2),  fpart(yend)*xgap, w, h);
-  } else {
-    plot_px(m, (int)floor(xpxl2), (int)floor(ypxl2),   rfpart(yend)*xgap, w, h);
-    plot_px(m, (int)floor(xpxl2), (int)floor(ypxl2)+1,  fpart(yend)*xgap, w, h);
-  }
-
-  if (steep){
-    for (int i = (int)floor(xpxl1)+1; i < (int)floor(xpxl2)-1; i++){
-      plot_px(m, ipart(intery), i, rfpart(intery), w, h);
-      plot_px(m, ipart(intery)+1, i, fpart(intery), w, h);
-      intery += gradient;
-    }
-  } else {
-    for (int i = (int)floor(xpxl1)+1; i < (int)floor(xpxl2)-1; i++){
-      plot_px(m, i, ipart(intery), rfpart(intery), w, h);
-      plot_px(m, i, ipart(intery)+1, fpart(intery), w, h);
-      intery += gradient;
-    }
-  }
-
-}
-
-void draw_sequence_lines(struct ComplexPlane *C, double point[2], int w, int h){
-  double c[2], p[2], old_p[2];
-  int x, y, oldx, oldy;
-  if (strcmp(C->plot_type, "parameter_space") == 0){
-    p[0] = C->z[0];
-    p[1] = C->z[1];
-    c[0] = point[0];
-    c[1] = point[1];
-    x = (int) floor((p[0] - C->Sx[0])/(C->Sx[1]-C->Sx[0]) * w);
-    y = (int) floor((-(p[1]-((C->Sy[0]+C->Sy[1])/2)) - C->Sy[0])/(C->Sy[1]-C->Sy[0]) * h);
-  } else if (strcmp(C->plot_type, "rec_f") == 0){
-    p[0] = point[0];
-    p[1] = point[1];
-    c[0] = C->z[0];
-    c[1] = C->z[1];
-    x = (int) floor((p[0] - C->Sx[0])/(C->Sx[1]-C->Sx[0]) * w);
-    y = (int) floor((-(p[1]-((C->Sy[0]+C->Sy[1])/2)) - C->Sy[0])/(C->Sy[1]-C->Sy[0]) * h);
-    C->drawn_plot[(y*C->w + x)*3 + 0] = 255;
-    C->drawn_plot[(y*C->w + x)*3 + 1] = 255;
-    C->drawn_plot[(y*C->w + x)*3 + 2] = 255;
-  }
-
-  for (int i = 0; i < C->N_line; i++){
-    old_p[0] = p[0]; old_p[1] = p[1];
-    oldx = x;        oldy = y;
-
-    double aux = (pow(p[0], 2) - pow(p[1], 2)) + c[0];
-    p[1] = 2*p[0]*p[1] + c[1];
-    p[0] = aux;
-
-    x = (int) floor((p[0] - C->Sx[0])/(C->Sx[1]-C->Sx[0]) * w);
-    y = (int) floor((-(p[1]-((C->Sy[0]+C->Sy[1])/2)) - C->Sy[0])/(C->Sy[1]-C->Sy[0]) * h);
-
-    draw_line(complex_plane->drawn_plot, x, y, oldx, oldy, w, h);
-    if (x >= C->w || y >= C->h){
-      break;
-    }
-  }
-
 }
 
 void draw_sequence(GtkWidget *window, GdkEventButton *event, gpointer data){
