@@ -10,10 +10,10 @@ LDIR=lib
 
 LIBS = -lm -lOpenCL
 
-_DEPS = lodepng.h draw_julia.h opencl_funcs.h file_io.h
+_DEPS = lodepng.h draw_julia.h opencl_funcs.h file_io.h ComplexPlane.h image_manipulation.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = lodepng.o draw_julia.o opencl_funcs.o file_io.o
+_OBJ = lodepng.o draw_julia.o opencl_funcs.o file_io.o ComplexPlane.o image_manipulation.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 _OBJ_cli = main.o
