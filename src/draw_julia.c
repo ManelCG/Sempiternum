@@ -134,10 +134,6 @@ unsigned char *merge_sets(unsigned char *full, unsigned char *empty, int h, int 
 }
 
 unsigned char *draw_julia(int N, int h, int w, double c[2], double Sx[2], double Sy[2], char *plot_type){
-  //Make h and w even
-  h = (h%2 == 0)? h: h+1;
-  w = (w%2 == 0)? w: w+1;
-
   unsigned char *m = calloc(h*w*3*sizeof(char), 1);
 
   //Perform OpenCL program

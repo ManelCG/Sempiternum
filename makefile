@@ -3,7 +3,7 @@ SDIR = src
 
 IDIR = include
 CC = gcc
-CFLAGS = -I$(IDIR)
+CFLAGS = -I$(IDIR) `pkg-config --cflags --libs gtk+-3.0`
 
 ODIR=.obj
 LDIR=lib
@@ -13,14 +13,25 @@ LIBS = -lm -lOpenCL
 _DEPS = lodepng.h draw_julia.h opencl_funcs.h file_io.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = main.o lodepng.o draw_julia.o opencl_funcs.o file_io.o
+_OBJ = lodepng.o draw_julia.o opencl_funcs.o file_io.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
+
+_OBJ_cli = main.o
+OBJ_cli = $(patsubst %,$(ODIR)/%,$(_OBJ_cli))
+
+_OBJ_GUI = GUI.o
+OBJ_GUI = $(patsubst %,$(ODIR)/%,$(_OBJ_GUI))
+
 
 $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
 	mkdir -p $(ODIR)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-main: $(OBJ)
+main: $(OBJ) $(OBJ_cli)
+	mkdir -p $(BDIR)
+	$(CC) -o $(BDIR)/$@ $^ $(CFLAGS) $(LIBS)
+
+GUI: $(OBJ) $(OBJ_GUI)
 	mkdir -p $(BDIR)
 	$(CC) -o $(BDIR)/$@ $^ $(CFLAGS) $(LIBS)
 
@@ -29,4 +40,4 @@ clean:
 	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~
 
 .PHONY: all
-all: main clean
+all: main GUI clean
