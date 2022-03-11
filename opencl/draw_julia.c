@@ -65,7 +65,8 @@ __kernel void parameter_space(__global unsigned char *m,
   //Map x and y to range between -R and R
   double newx = (double) x / (double) w;
   newx = newx * (Sx[1] - Sx[0]) + Sx[0];
-  double newy = (double) y / (double) h;
+  double newy = -(y - h);
+  newy = (double) newy / (double) h;
   newy = newy * (Sy[1] - Sy[0]) + Sy[0];
   double c[2] = {newx, newy};
   double c_abs;
