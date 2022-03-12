@@ -43,3 +43,19 @@ char *gen_filename(char *dirname, char *filename){
 
   return f;
 }
+
+char *get_root_folder(char *exec_path){
+  char *p = realpath(exec_path, NULL);
+  int n_slashes = 0;
+
+  for (int i = strlen(p); i >= 0; i--){
+    if (p[i] == '/'){
+      n_slashes++;
+    }
+    if (n_slashes == 2){
+      break;
+    }
+    p[i] = '\0';
+  }
+  return p;
+}
