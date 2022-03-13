@@ -8,6 +8,8 @@ struct ComplexPlane{
   double z[2];
   double center[2];
   double Sx[2], Sy[2];
+  double SpanX;
+  double SpanY;
   int w, h, N, N_line;
 };
 

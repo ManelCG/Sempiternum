@@ -13,6 +13,8 @@
 struct ComplexPlane *complex_plane = NULL;
 struct ComplexPlane *thumbnail = NULL;
 
+struct OpenCL_Program *opencl;
+
 GtkWidget *input_N;
 GtkWidget *input_N_line;
 GtkWidget *input_z0;
@@ -26,6 +28,8 @@ GtkWidget *input_plot_type;
 GtkWidget *input_thumbN;
 GtkWidget *check_draw_thumb;
 _Bool draw_thumbnails_bool = true;
+
+
 GtkWidget *check_draw_lines;
 _Bool draw_lines_bool = true;
 
@@ -158,7 +162,8 @@ void gen_plot(GtkWidget *widget, _Bool gen_default){
                                 complex_plane->z,
                                 complex_plane->Sx,
                                 complex_plane->Sy,
-                                complex_plane->plot_type);
+                                complex_plane->plot_type,
+                                &opencl, !opencl->init);
 }
 
 void draw_from_options(GtkWidget *widget){
@@ -212,9 +217,9 @@ void draw_thumbnail_gui(GtkWidget *widget, double x, double y){
   gtk_widget_destroy(thumb_img);
   thumbnail->z[0] = x; thumbnail->z[1] = y;
   if (strcmp(complex_plane->plot_type, "parameter_space") == 0){
-    thumbnail->plot = draw_thumbnail(thumbnail->N, thumbnail->h, thumbnail->w, thumbnail->z, "rec_f");
+    thumbnail->plot = draw_thumbnail(thumbnail->N, thumbnail->h, thumbnail->w, thumbnail->z, "rec_f", &opencl, !opencl->init);
   } else if (strcmp(complex_plane->plot_type, "rec_f") == 0){
-    thumbnail->plot = draw_thumbnail(thumbnail->N, thumbnail->h, thumbnail->w, thumbnail->z, "parameter_space");
+    thumbnail->plot = draw_thumbnail(thumbnail->N, thumbnail->h, thumbnail->w, thumbnail->z, "parameter_space", &opencl, !opencl->init);
   }
   GdkPixbuf *thumbBuf = gdk_pixbuf_new_from_data(
       thumbnail->plot,
@@ -259,8 +264,8 @@ void cp_mouse_handler(GtkWidget *widget, GdkEventButton *event, gpointer data){
       break;
     case 1:
       plot_zoom(widget, 0.5, point_clicked);
-      draw_lines_bool = false;
-      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_draw_lines), draw_lines_bool);
+      // draw_lines_bool = false;
+      // gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_draw_lines), draw_lines_bool);
       break;
     case 2:
       char buffer[500];
@@ -369,6 +374,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(input_plot_type), NULL, "rec_f");
   gtk_combo_box_set_active(GTK_COMBO_BOX(input_plot_type), 0);
 
+  //Create boxes
   hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 20);
   options_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
@@ -381,11 +387,8 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   span_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 
   plot_options_label = gtk_label_new("Plot options");
-  point_label_text = gtk_label_new("c or z parameter");
-  center_label_text = gtk_label_new("Central point of plot");
-  span_label_text = gtk_label_new("Spanning points of plot");
 
-  //Generate complex_plane set
+  //Generate complex_plane
   if (complex_plane == NULL){
     complex_plane = malloc(sizeof(struct ComplexPlane));
     complex_plane->plot = NULL;
@@ -556,6 +559,9 @@ void draw_main_window(GtkWidget *widget, gpointer data){
 int main (int argc, char *argv[]) {
   //cd to root folder
   chdir(get_root_folder(argv[0]));
+
+  opencl = malloc(sizeof(struct OpenCL_Program));
+  opencl->init = false;
 
   gtk_init (&argc, &argv);
 

@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 
 struct OpenCL_Program{
@@ -24,6 +25,8 @@ struct OpenCL_Program{
 
   char *src;
   size_t src_size;
+
+  _Bool init;
 };
 
 struct OpenCL_Program *get_opencl_info();

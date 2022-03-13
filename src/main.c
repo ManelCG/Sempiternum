@@ -58,7 +58,7 @@ int main(int argc, char *argv[]){
 
   printf("Drawing Full Julia set...   "); fflush(stdout);
   start = clock();
-  unsigned char *full_julia = draw_thumbnail(N, h, w, c, plot_type);
+  unsigned char *full_julia = draw_thumbnail(N, h, w, c, plot_type, NULL, true);
   end = clock();
   printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
 
