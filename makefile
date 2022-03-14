@@ -31,7 +31,7 @@ main: $(OBJ) $(OBJ_cli)
 	mkdir -p $(BDIR)
 	$(CC) -o $(BDIR)/$@ $^ $(CFLAGS) $(LIBS)
 
-GUI: $(OBJ) $(OBJ_GUI)
+JuliaViewerGUI: $(OBJ) $(OBJ_GUI)
 	mkdir -p $(BDIR)
 	$(CC) -o $(BDIR)/$@ $^ $(CFLAGS) $(LIBS)
 
@@ -40,4 +40,4 @@ clean:
 	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~
 
 .PHONY: all
-all: main GUI clean
+all: main JuliaViewerGUI clean
