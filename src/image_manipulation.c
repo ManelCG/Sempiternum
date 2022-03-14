@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdbool.h>
 #include <image_manipulation.h>
 #include <stdlib.h>
 
@@ -8,9 +9,9 @@ void draw_line(unsigned char *m, int x0, int y0, int x1, int y1, int w, int h){
   void plot_px(unsigned char *m, int x, int y, double c, int w, int h){
     int br = (int) floor(c*255);
     if (x >= 0 && x < w && y >= 0 && y < h){
-      m[(y*w + x)*3 + 0] = br;
-      m[(y*w + x)*3 + 1] = br;
-      m[(y*w + x)*3 + 2] = br;
+      m[(y*w + x)*3 + 0] = fmin(br + m[(y*w + x)*3 + 0] + (x%256)/5, 255);
+      m[(y*w + x)*3 + 1] = fmin(br + m[(y*w + x)*3 + 1] + (y%256)/5, 255);
+      m[(y*w + x)*3 + 2] = fmin(br + m[(y*w + x)*3 + 2] + (x%256)/5, 255);
     }
   }
   int ipart(double x){return floor(x);}
@@ -81,7 +82,41 @@ void draw_line(unsigned char *m, int x0, int y0, int x1, int y1, int w, int h){
       intery += gradient;
     }
   }
+}
 
+_Bool LiangBarsky(int edgeL, int edgeR, int edgeB, int edgeT,
+                  int x0, int y0, int x1, int y1,
+                  int *x0r, int *y0r, int *x1r, int *y1r){
+  double t0 = 0, t1 = 1;
+  double xdelta = x1 - x0;
+  double ydelta = y1 - y0;
+  double p, q, r;
+
+  for (int edge = 0; edge < 4; edge ++){
+    switch (edge){
+      case 0: p = -xdelta; q = -(edgeL - x0); break;
+      case 1: p =  xdelta; q =  (edgeR - x0); break;
+      case 2: p = -ydelta; q = -(edgeB - y0); break;
+      case 3: p =  ydelta; q =  (edgeT - y0); break;
+    }
+
+    printf("p %f, q %f\n", p, q);
+    if (p == 0 && q < 0) { return false; }
+    r = q/p;
+    if (p < 0){
+      if (r > t1) { continue; }
+      else if (r > t0) { t0 = r; }
+    } else if (p > 0){
+      if (r < t0) { continue; }
+      else if (r < t1) { t1 = r; }
+    }
+  }
+
+  *x0r = x0 + t0*xdelta;
+  *y0r = y0 + t0*ydelta;
+  *x1r = x0 + t1*xdelta;
+  *y1r = y0 + t1*ydelta;
+  return true;
 }
 
 unsigned char *merge_sets(unsigned char *full, unsigned char *empty, int h, int w){

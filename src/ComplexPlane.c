@@ -21,9 +21,6 @@ void draw_sequence_lines(struct ComplexPlane *C, double point[2], int w, int h){
     c[1] = C->z[1];
     x = (int) floor((p[0]                              - C->Sx[0])/(C->Sx[1]-C->Sx[0]) * w);
     y = (int) floor((-(p[1]-C->center[1] - ((C->Sy[0]+C->Sy[1])/2)) - C->Sy[0])/(C->Sy[1]-C->Sy[0]) * h);
-    C->drawn_plot[(y*C->w + x)*3 + 0] = 255;
-    C->drawn_plot[(y*C->w + x)*3 + 1] = 255;
-    C->drawn_plot[(y*C->w + x)*3 + 2] = 255;
   }
 
   for (int i = 0; i < C->N_line; i++){
@@ -38,7 +35,8 @@ void draw_sequence_lines(struct ComplexPlane *C, double point[2], int w, int h){
     y = (int) floor((-(p[1]-C->center[1]-((C->Sy[0]+C->Sy[1])/2)) - C->Sy[0])/(C->Sy[1]-C->Sy[0]) * h);
 
     draw_line(C->drawn_plot, x, y, oldx, oldy, w, h);
-    if (x >= C->w || y >= C->h){
+    if (x >= C->w*2 || y >= C->h*2 ||
+        x < -C->w   || y < -C->h   ){
       break;
     }
   }
