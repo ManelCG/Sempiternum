@@ -5,7 +5,7 @@
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #include <CL/cl.h>
 
-#define MAX_SOURCE_SIZE (0x001000)
+#define MAX_SOURCE_SIZE (0x100000)
 #define CORES 16
 
 #include <stdio.h>

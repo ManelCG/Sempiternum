@@ -14,6 +14,7 @@ struct complexBI{
 };
 
 unsigned char *draw_julia(int N, int h, int w, double c[2], double Sx[2], double Sy[2], char *plot_type, struct OpenCL_Program **cl_prog, _Bool init_new_cl);
+unsigned char *draw_julia_polynomial(int N, int h, int w, int order, complex double *polynomial, double Sx[2], double Sy[2], char *plot_type, struct OpenCL_Program **cl_prog, _Bool init_new_cl);
 unsigned char *draw_thumbnail(int N, int h, int w, double c[2], char *plot_type, struct OpenCL_Program **cl_prog, _Bool init_new);
 void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], double zoom_ratio, char *plot_type);
 

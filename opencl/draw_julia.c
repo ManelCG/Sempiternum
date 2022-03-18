@@ -92,3 +92,79 @@ __kernel void parameter_space(__global unsigned char *m,
     }
   }
 }
+
+void complex_mul(double a0, double b0, double a1, double b1, double *ar, double *br){
+  *ar = (a0 * a1) - (b0 * b1);
+  *br = (a0 * b1) + (b0 * a1);
+}
+
+__kernel void polynomial(__global unsigned char *m,
+                         __global int *Np,
+                         __global int *hp,
+                         __global int *wp,
+                         __global int *orderp,
+                         __global double *polynomial_real,
+                         __global double *polynomial_imag,
+                         __global double *Sx,
+                         __global double *Sy) {
+//  // double c_abs = native_sqrt(pow(c[0], 2) +  pow(c[1],2));
+//  // double R = (c_abs > 2)? c_abs: 2;
+
+  int h = *hp, w = *wp, N = *Np;
+  int order = *orderp;
+
+
+  const int y = get_global_id(0);
+  const int x = get_global_id(1);
+
+  //Map x and y to range between -R and R
+  double newx = (double) x / (double) w;
+  newx = newx * (Sx[1] - Sx[0]) + Sx[0];
+  double newy = -(y - h);
+  newy = (double) newy / (double) h;
+  newy = newy * (Sy[1] - Sy[0]) + Sy[0];
+  double z[2] = {newx, newy};
+  double z_abs;
+  double aux;
+
+
+  for (int i = 0; i < N; i++){
+    double auxr = 0, auxi = 0, auxz0 = 0, auxz1 = 0, auxr2 = 0, auxi2 = 0;
+
+    for (int j = order; j >= 0; j--){
+      if (j == order){  // Add C
+        auxz0 = polynomial_real[j];
+        auxz1 = polynomial_imag[j];
+      } else if (j == order-1){ //z^1 -> add a*Z
+        if (polynomial_real[j] != polynomial_imag[j] != 0){
+          complex_mul(z[0], z[1], polynomial_real[j], polynomial_imag[j], &auxr2, &auxi2);
+          auxz0 += auxr2;
+          auxz1 += auxi2;
+        }
+      } else {  //Exponentiate
+        if (polynomial_real[j] != polynomial_imag[j] != 0){
+          auxr = z[0];
+          auxi = z[1];
+          for (int k = 0; k < order-j-1; k++){  //If order = 3; j = 0; order-j = 3; 0 < k < 2 -> multiply twice
+            complex_mul(auxr, auxi, z[0], z[1], &auxr2, &auxi2);
+            auxr = auxr2; auxi = auxi2;
+          }
+          complex_mul(auxr, auxi, polynomial_real[j], polynomial_imag[j], &auxr2, &auxi2);
+          auxz0 += auxr2; auxz1 += auxi2;
+        }
+      }
+    }
+
+    z[0] = auxz0;
+    z[1] = auxz1;
+    z_abs = native_sqrt(pow(z[0], 2) + pow(z[1], 2));
+    if (z_abs > 10){
+      double ni = log10((double) i);
+      double n = log10((double) N);
+      m[(y*w + x)*3+0] = 255;
+      m[(y*w + x)*3+1] = (int) floor( ((double) ni / (double) n) * 255);
+      m[(y*w + x)*3+2] = i % 256;
+      break;
+    }
+  }
+}
