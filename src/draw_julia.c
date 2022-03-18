@@ -324,6 +324,36 @@ unsigned char *draw_julia(int N, int h, int w, double c[2], double Sx[2], double
   return m;
 }
 
+unsigned char *draw_thumbnail_polynomial(int N, int h, int w, int order, complex double *polynomial, char *plot_type, struct OpenCL_Program **cl_prog, _Bool init_new){
+  double c[2];
+  c[0] = creal(polynomial[order]); c[1] = cimag(polynomial[order]);
+  double c_abs = pow(pow(c[0], 2) + pow(c[1], 2), 0.5);
+  double SpanThumbnail = c_abs > 2? c_abs : 2;
+  // double Sdx[2] = {-SpanThumbnail, SpanThumbnail}, Sdy[2] = {-SpanThumbnail, SpanThumbnail};
+
+  double Sdx[2], Sdy[2];
+  if (w >= h){
+    double ratio = (double) w / (double) h;
+    Sdy[0] = -SpanThumbnail;
+    Sdy[1] = SpanThumbnail;
+    Sdx[0] = -SpanThumbnail * ratio;
+    Sdx[1] =  SpanThumbnail * ratio;
+  } else {
+    double ratio = (double) h / (double) w;
+    Sdx[0] = -SpanThumbnail;
+    Sdx[1] = SpanThumbnail;
+    Sdy[0] = -SpanThumbnail * ratio;
+    Sdy[1] =  SpanThumbnail * ratio;
+  }
+
+  unsigned char *Julia;
+
+  Julia = draw_julia_polynomial(N, h, w, order, polynomial, Sdx, Sdy, plot_type, cl_prog, init_new);
+// unsigned char *draw_julia_polynomial(int N, int h, int w, int order, complex double *polynomial, double Sx[2], double Sy[2], char *plot_type, struct OpenCL_Program **cl_prog, _Bool init_new_cl){
+  return Julia;
+}
+
+
 unsigned char *draw_thumbnail(int N, int h, int w, double c[2], char *plot_type, struct OpenCL_Program **cl_prog, _Bool init_new){
   double c_abs = pow(pow(c[0], 2) + pow(c[1], 2), 0.5);
   double SpanThumbnail = c_abs > 2? c_abs : 2;

@@ -271,6 +271,11 @@ void gen_plot(GtkWidget *widget, _Bool gen_default, gpointer data){
                                                     &(widgets->opencl), !widgets->opencl->init);
       }
       break;
+    case 2:
+      if (polynomial_order != -1){
+        printf("WIP Newton's method\n");
+      }
+      break;
   }
 
 }
@@ -338,22 +343,45 @@ void draw_thumbnail_gui(GtkWidget *widget, double x, double y, gpointer data){
   widgets->thumbnail->N = N_thumb;
   gtk_widget_destroy(thumb_img);
   widgets->thumbnail->z[0] = x; widgets->thumbnail->z[1] = y;
-  if (strcmp(widgets->complex_plane->plot_type, "parameter_space") == 0){
-    widgets->thumbnail->plot = draw_thumbnail(widgets->thumbnail->N,
-                                              widgets->thumbnail->h,
-                                              widgets->thumbnail->w,
-                                              widgets->thumbnail->z,
-                                              "rec_f",
-                                              &(widgets->opencl), !(widgets->opencl->init));
-  } else if (strcmp(widgets->complex_plane->plot_type, "rec_f") == 0){
-    widgets->thumbnail->plot = draw_thumbnail(widgets->thumbnail->N,
-                                              widgets->thumbnail->h,
-                                              widgets->thumbnail->w,
-                                              widgets->thumbnail->z,
-                                              "parameter_space",
-                                              &(widgets->opencl),
-                                              !widgets->opencl->init);
+  switch(function_type){
+    case 0:
+      if (strcmp(widgets->complex_plane->plot_type, "parameter_space") == 0){
+        widgets->thumbnail->plot = draw_thumbnail(widgets->thumbnail->N,
+                                                  widgets->thumbnail->h,
+                                                  widgets->thumbnail->w,
+                                                  widgets->thumbnail->z,
+                                                  "rec_f",
+                                                  &(widgets->opencl), !(widgets->opencl->init));
+      } else if (strcmp(widgets->complex_plane->plot_type, "rec_f") == 0){
+        widgets->thumbnail->plot = draw_thumbnail(widgets->thumbnail->N,
+                                                  widgets->thumbnail->h,
+                                                  widgets->thumbnail->w,
+                                                  widgets->thumbnail->z,
+                                                  "parameter_space",
+                                                  &(widgets->opencl),
+                                                  !widgets->opencl->init);
+      }
+      break;
+    case 1:
+      if (polynomial_order != -1){
+        complex double *polynomial_th = malloc(sizeof(complex double) * (polynomial_order + 1));
+        for (int i = 0; i < polynomial_order; i++){
+          polynomial_th[i] = polynomial[i];
+        }
+        polynomial_th[polynomial_order] = x + y*I;
+        widgets->thumbnail->plot = draw_thumbnail_polynomial(widgets->thumbnail->N,
+                                                             widgets->thumbnail->h,
+                                                             widgets->thumbnail->w,
+                                                             polynomial_order,
+                                                             polynomial_th,
+                                                             "rec_f",
+                                                             &(widgets->opencl),
+                                                             !widgets->opencl->init);
+      } else {
+        widgets->thumbnail->plot = calloc(widgets->thumbnail->w * widgets->thumbnail->h * 3, 1);
+      }
   }
+
   GdkPixbuf *thumbBuf = gdk_pixbuf_new_from_data(
       widgets->thumbnail->plot,
       GDK_COLORSPACE_RGB,
@@ -721,6 +749,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   //Plot type box
   gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(main_data->combo_function_type), NULL, "Quadratic");
   gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(main_data->combo_function_type), NULL, "Polynomial");
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(main_data->combo_function_type), NULL, "Newton's Algorithm");
   gtk_combo_box_set_active(GTK_COMBO_BOX(main_data->combo_function_type), function_type);
   g_signal_connect(main_data->combo_function_type, "changed", G_CALLBACK(combo_function_type_handler), main_data);
   gtk_widget_set_tooltip_text(main_data->combo_function_type, "Set type of function to plot");
@@ -735,10 +764,6 @@ void draw_main_window(GtkWidget *widget, gpointer data){
 
 
   //Draw/Clear box
-  // button_apply_changes = gtk_button_new_with_label("Apply changes");
-  // gtk_widget_set_tooltip_text(button_apply_changes, "Apply changes to backend without regenerating plot");
-  // gtk_box_pack_start(GTK_BOX(draw_apply_box), button_apply_changes, true, true, 0);
-  // g_signal_connect(button_apply_changes, "clicked", G_CALLBACK(apply_changes), NULL);
   button_draw = gtk_button_new_with_label("Draw");
   button_clear = gtk_button_new_with_label("Clear");
   gtk_widget_set_tooltip_text(button_draw, "Draw plane from options specified");
@@ -786,6 +811,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
       g_signal_connect(button_mandelbrot, "clicked", G_CALLBACK(draw_default_mandelbrot), (gpointer) main_data);
       break;
     case 1:   //Polynomial
+    case 2:
       polynomial_config_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
       polynomial_order_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 
@@ -913,6 +939,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
      gtk_box_pack_start(GTK_BOX(vbox), button_mandelbrot, true, false, 0);
      break;
    case 1:
+   case 2:
      gtk_box_pack_start(GTK_BOX(vbox), polynomial_config_vbox, true, false, 0);
      break;
  }
