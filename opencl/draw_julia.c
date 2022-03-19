@@ -44,6 +44,11 @@ __kernel void rec_f(__global unsigned char *m,
       break;
     }
   }
+  if (z_abs <= R){
+      m[(y*w + x)*3+0] = 0;
+      m[(y*w + x)*3+1] = 0;
+      m[(y*w + x)*3+2] = 0;
+  }
 }
 
 __kernel void parameter_space(__global unsigned char *m,
@@ -91,6 +96,11 @@ __kernel void parameter_space(__global unsigned char *m,
       break;
     }
   }
+  if (z_abs <= R){
+      m[(y*w + x)*3+0] = 0;
+      m[(y*w + x)*3+1] = 0;
+      m[(y*w + x)*3+2] = 0;
+  }
 }
 
 void complex_mul(double a0, double b0, double a1, double b1, double *ar, double *br){
@@ -105,6 +115,7 @@ __kernel void polynomial(__global unsigned char *m,
                          __global int *orderp,
                          __global double *polynomial_real,
                          __global double *polynomial_imag,
+                         // __global int *parameter,
                          __global double *Sx,
                          __global double *Sy) {
 //  // double c_abs = native_sqrt(pow(c[0], 2) +  pow(c[1],2));
@@ -166,5 +177,10 @@ __kernel void polynomial(__global unsigned char *m,
       m[(y*w + x)*3+2] = i % 256;
       break;
     }
+  }
+  if (z_abs <= 10){
+      m[(y*w + x)*3+0] = 0;
+      m[(y*w + x)*3+1] = 0;
+      m[(y*w + x)*3+2] = 0;
   }
 }
