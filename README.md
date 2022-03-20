@@ -12,34 +12,52 @@ given an arbitrary starting point z. When plotting polynomial functions, any com
 
 ## Usage
 
+### Main basic functionality
 
+When program is first started, user will be greated with the following main window:
 
-## API
+<img src="assets/interface_screenshots/main_window.png"> 
 
-In order to plot the K<sub>c</sub> sets, the following function implements the so-called 'Scaping Algorithm':
+In it we can see the Mandelbrot set resulting from the iteration of the quadratic complex function Q<sub>c</sub> (z) = z<sup>2</sup> + c, where z is fixed to be (0 + 0i) and c is moved across the complex plane. By moving our mouse across the plot, we can see the different orbits of z = (0 + 0i) across the plane, for the point c targeted by our cursor. Also, we can see in the bottom right of the window the dynamic plane resulting by fixing c to the selected point and by taking z as our parameter. These thumbnail plots are generated dynamically as we move our cursor. 
 
-```unsigned char *draw_julia(int N, int h, int w, double c[2], double Sx[2], double Sy[2], char *plot_type)```
+The functionality of showing the orbits as well as the dynamically generated thumbnails can be turned on or off by the user, if the computer running the program is not powerful enough, or for other reasons.
 
-Where ```N``` is the number of iterations of the Q<sub>c</sub> function, ```c``` is a tuple containing the real and imaginaty value of c,
-```Sx``` and ```Sy``` are the ranges of numbers that will appear in the plot (allowing the user to zoom in on these sets), and ```plot_type``` can be ```rec_f``` or ```parameter_space```.
-This will return a matrix of ```h*w*3``` bytes, corresponding to an RGB image of bitdepth 24. The image can then be encoded with the ```lodepng.h``` library, included in the source code.
+<img src="assets/interface_screenshots/thumbnails_and_orbits.png"> 
 
-In order to have an easier interfacing with this function, the program also implements the function
+The white lines on the parameter space plot are the orbits of the fixed point z = (0 + 0i) for the targeted point c. Thus, all orbits in this parameter space come from the point (0 + 0i). If the user choses to change this z value, then the same will apply for said value. All orbits will begin on the point z selected by the user.
 
-```void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], char *plot_type)```
+If we right-click on any point of the parameter space plot, the point c will be selected and the program will plot the corresponding dynamic function of Q<sub>c</sub> (z) = z<sup>2</sup> + c, where we take z as our parameter.
 
-Which will generate ```frames+1``` images of the function (It will generate a ```Thumbnail.png``` image that shows the whole
-plot of the function, as well as ```frames``` frames, each one progressively zooming on the point p.
-This function doesn't return any values, as it will automatically generate an ```out/``` folder, and store all
-resulting images by using the ```lodepng.h``` library.
+<img src="assets/interface_screenshots/orbits_of_dynamic_plane.png"> 
 
-In order to generate the J<sub>c</sub> sets, the function
+The white lines seen on the plot are the orbits of the point z targeted by the mouse, with the parameter c fixed in some value. Thus, all orbits start from the mouse position while using the dynamic function plotting mode.
 
-`unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], long MAX_D)`
+We can also select to plot any arbitrary polynomial function, not only this Quadratic family. With them, the functionality is the same, we just have to specify the parameters of said polynomial, or leave them blank for a value of 0, as we can see in the next image. When in polynomial mode, the plotting parameter can be specified by a drop-down menu. Then, when we point with our cursor to the plane, the point where the cursor is will be taken as such parameter, and the result will be plotted in the thumbnail area, plotting by the parameter specfied in the thumbnail options drop-down menu. This functionality can be seen in next picture.
 
-is implemented, which draws the boundaries of the K<sub>c</sub> sets, that is, J<sub>c</sub>, by using the backwards-iteration method
-with derivative value control. This function performs `N` iterations taking `c` as c, and cuts successors of any point
-whose derivative is larger than `MAX_D`. Then returns a matrix of size `h*w`, which corresponds to a black and white image of the set.
+<img src="assets/interface_screenshots/4th_degree_parameter_space.png"> 
+
+In this picture we can see the parameter space obtained for the polynomial p(z) = z<sup>4</sup> + c, where z = (0 + 0i) and c is taken as parameter. In the thumbnail screen we can see we are plotting taking z as parameter, and fixing c to the value pointed by our cursor. Again, this value can be selected by right-clicking, so the thumbnail plot will ocupy the big plot space, and the plotting parameters specified will be interchanged.
+
+In this polynomial mode, the orbits can also be shown, however, they were turned off at the time of taking the screenshot to make the image clearer.
+
+In the next picture we can see the result of fixing some point as c and plotting for z
+
+<img src="assets/interface_screenshots/different_parameter_spaces.png"> 
+
+In the thumbnails section we can also see the result of taking a<sub>1</sub> as parameter, for the z value selected by the mouse cursor.
+
+### More functionalities
+
+The GUI includes as well different entry boxes that allow the user to tweak the options of the plotting algorithm, such as the number of iterations desired (more iterations take considerably longer to generate but also give more detail as we zoom in these sets), as well as the ability to select the point where the program should center the plot, the span in the X and Y directions that we want to plot, and the values for z and or c.
+
+With the central mouse button we can select any point of the plot as the center, and replot everything, centered in said point.
+
+The interface also includes zoom in and zoom out buttons, which zoom by a factor of 0.5 and 1.5 respectively. Also, the user can click and drag in the plot, selecting a region of the plane, to zoom in on said region. This functionality can be seen in the next screenshots:
+
+<img src="assets/interface_screenshots/drag_zoom_box.png"> 
+
+<img src="assets/interface_screenshots/after_drag_zoom_box.png"> 
+
 
 ## Results
 
@@ -61,15 +79,8 @@ backwards iteration method is needded.
 
 ## Further development
 
-As it is by now, the Backwards Iteration function can be a little difficult to operate, because chosing the appropiate
-value for MAX_D for the desired results, computational time and memory consumption is not straight-forward.
-This is why this function will be developed further in the near future. Also, a function will be implemented to
-merge the results of both algorithms, in order to show these interior-less Julia sets with the colorful benefits
-that the Scaping Algorithm brings.
+The Quadratic Family plot generator functions have been optimized considerably. The next step will be to optimize the calculation of the polynomials. Furthermore, the ability to plot different numerical methods such as the Newton's method will be implemented. This is already a work in progress.
 
-Once these functionalities are added, there will be implemented a way to parse 'natural mathematic language' polynomials,
-so that the program will be able to plot any arbitrary polynomial and its dynamics.
+Also, there will be added a way of generating zooming videos on the points selected by the user.
 
-In the far future, a straight-forward graphical user interface will be created, where the user will be able to
-input al of the needed parameters, and see the representation of these sets, zoom in with their mouse or keyboard,
-in addition to being able to chose the c parameter just by clicking on the corresponding value in the representation of the Parameter Space.
+Backwards iteration will be added to the GUI, both for quadratic functions as well as for polynomials. However, backwards iteration is not yet implemented for polynomials, and will not be done in the near future.
