@@ -115,12 +115,13 @@ __kernel void polynomial(__global unsigned char *m,
                          __global int *orderp,
                          __global double *polynomial_real,
                          __global double *polynomial_imag,
-                         // __global int *parameter,
+                         __global int *parameter_p,
                          __global double *Sx,
                          __global double *Sy) {
 //  // double c_abs = native_sqrt(pow(c[0], 2) +  pow(c[1],2));
 //  // double R = (c_abs > 2)? c_abs: 2;
 
+  int parameter = *parameter_p;
   int h = *hp, w = *wp, N = *Np;
   int order = *orderp;
 
@@ -134,7 +135,8 @@ __kernel void polynomial(__global unsigned char *m,
   double newy = -(y - h);
   newy = (double) newy / (double) h;
   newy = newy * (Sy[1] - Sy[0]) + Sy[0];
-  double z[2] = {newx, newy};
+  double param[2] = {newx, newy};
+  double z[2] = {polynomial_real[order+1], polynomial_imag[order+1]};
   double z_abs;
   double aux;
 
@@ -144,31 +146,76 @@ __kernel void polynomial(__global unsigned char *m,
 
     for (int j = order; j >= 0; j--){
       if (j == order){  // Add C
-        auxz0 = polynomial_real[j];
-        auxz1 = polynomial_imag[j];
-      } else if (j == order-1){ //z^1 -> add a*Z
-        if (polynomial_real[j] != polynomial_imag[j] != 0){
-          complex_mul(z[0], z[1], polynomial_real[j], polynomial_imag[j], &auxr2, &auxi2);
+        if (parameter == order){  //c is my parameter (param[0])
+          auxz0 = param[0];
+          auxz1 = param[1];
+        } else {    //param[0] is somewhere else
+          auxz0 = polynomial_real[j];
+          auxz1 = polynomial_imag[j];
+        }
+      } else if (j == order-1){ //param^1 -> add a*Z
+        if (parameter == order + 1){  //param is my z
+          if ((polynomial_real[j] != 0) || (polynomial_imag[j] != 0)){
+            complex_mul(param[0], param[1], polynomial_real[j], polynomial_imag[j], &auxr2, &auxi2);
+            auxz0 += auxr2;
+            auxz1 += auxi2;
+          }
+        } else if (parameter == j){ //param is a
+          complex_mul(param[0], param[1], z[0], z[1], &auxr2, &auxi2);
           auxz0 += auxr2;
           auxz1 += auxi2;
+        } else {  //param is somewhere else
+          if ((polynomial_real[j] != 0) || (polynomial_imag[j] != 0)){
+            complex_mul(polynomial_real[j], polynomial_imag[j], z[0], z[1], &auxr2, &auxi2);
+            auxz0 += auxr2;
+            auxz1 += auxi2;
+          }
         }
       } else {  //Exponentiate
-        if (polynomial_real[j] != polynomial_imag[j] != 0){
+        if (parameter == order + 1){  //param is z
+          if ((polynomial_real[j] != 0) || (polynomial_imag[j] != 0)){
+            auxr = param[0];
+            auxi = param[1];
+            for (int k = 0; k < order-j-1; k++){  //If order = 3; j = 0; order-j = 3; 0 < k < 2 -> multiply twice
+              complex_mul(auxr, auxi, param[0], param[1], &auxr2, &auxi2);
+              auxr = auxr2; auxi = auxi2;
+            }
+            complex_mul(auxr, auxi, polynomial_real[j], polynomial_imag[j], &auxr2, &auxi2);
+            auxz0 += auxr2; auxz1 += auxi2;
+          }
+        } else if (parameter == j){ //param is a
           auxr = z[0];
           auxi = z[1];
           for (int k = 0; k < order-j-1; k++){  //If order = 3; j = 0; order-j = 3; 0 < k < 2 -> multiply twice
             complex_mul(auxr, auxi, z[0], z[1], &auxr2, &auxi2);
             auxr = auxr2; auxi = auxi2;
           }
-          complex_mul(auxr, auxi, polynomial_real[j], polynomial_imag[j], &auxr2, &auxi2);
+          complex_mul(auxr, auxi, param[j], param[j], &auxr2, &auxi2);
           auxz0 += auxr2; auxz1 += auxi2;
+        } else {  //param is somewhere else
+          if ((polynomial_real[j] != 0) || (polynomial_imag[j] != 0)){
+            auxr = z[0];
+            auxi = z[1];
+            for (int k = 0; k < order-j-1; k++){  //If order = 3; j = 0; order-j = 3; 0 < k < 2 -> multiply twice
+              complex_mul(auxr, auxi, z[0], z[1], &auxr2, &auxi2);
+              auxr = auxr2; auxi = auxi2;
+            }
+            complex_mul(auxr, auxi, polynomial_real[j], polynomial_imag[j], &auxr2, &auxi2);
+            auxz0 += auxr2; auxz1 += auxi2;
+          }
         }
       }
     }
 
-    z[0] = auxz0;
-    z[1] = auxz1;
-    z_abs = native_sqrt(pow(z[0], 2) + pow(z[1], 2));
+    if (parameter == order + 1){  //z is param
+      param[0] = auxz0;
+      param[1] = auxz1;
+      z_abs = native_sqrt(pow(param[0], 2) + pow(param[1], 2));
+    } else {  //z is z
+      z[0] = auxz0;
+      z[1] = auxz1;
+      z_abs = native_sqrt(pow(z[0], 2) + pow(z[1], 2));
+    }
     if (z_abs > 10){
       double ni = log10((double) i);
       double n = log10((double) N);

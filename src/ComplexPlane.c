@@ -48,38 +48,88 @@ complex complex_mul(complex a, complex b){
 }
 
 void draw_sequence_lines_polynomial(struct ComplexPlane *C, complex *polynomial, int order, double point[2], int w, int h){
-  complex p, old_p, c;
+  complex param, old_p, c, z;
   int x, y, oldx, oldy;
 
   //TODO: parameter space
-  p = point[0] + point[1]*I;
+  int parameter = C->polynomial_parameter;
+
+  param = point[0] + point[1]*I;
+
+  z = polynomial[order + 1];
   c = polynomial[order];
 
-  x = (int) floor((creal(p)                              - C->Sx[0])/(C->Sx[1]-C->Sx[0]) * w);
-  y = (int) floor((-(cimag(p)-C->center[1] - ((C->Sy[0]+C->Sy[1])/2)) - C->Sy[0])/(C->Sy[1]-C->Sy[0]) * h);
+  if (parameter == order + 1){
+    x = (int) floor((creal(param)                              - C->Sx[0])/(C->Sx[1]-C->Sx[0]) * w);
+    y = (int) floor((-(cimag(param)-C->center[1] - ((C->Sy[0]+C->Sy[1])/2)) - C->Sy[0])/(C->Sy[1]-C->Sy[0]) * h);
+  } else {
+    x = (int) floor((creal(z)                              - C->Sx[0])/(C->Sx[1]-C->Sx[0]) * w);
+    y = (int) floor((-(cimag(z)-C->center[1] - ((C->Sy[0]+C->Sy[1])/2)) - C->Sy[0])/(C->Sy[1]-C->Sy[0]) * h);
+  }
 
   for (int i = 0; i < C->N_line; i++){
-    old_p = p;
+    old_p = z;
     oldx = x; oldy = y;
     complex auxz = 0, aux = 0;
 
     for (int j = order; j >= 0; j--){
-      if (j == order){
-        auxz = c;
-      } else if (j == order-1){
-        auxz += complex_mul(polynomial[j], p);
-      } else {
-        aux = p;
-        for (int k = 0; k < order-j-1; k++){
-          aux = complex_mul(aux, p);
+      if (j == order){            //Add c
+        if (parameter == order){  //c is my param
+          auxz = param;
+        } else {                  //param is somewere else
+          auxz = polynomial[j];
         }
-        auxz += complex_mul(aux, polynomial[j]);
+      } else if (j == order-1){
+        if (parameter == order + 1){  //z is param
+          if (polynomial[j] != 0){
+            auxz += complex_mul(param, polynomial[j]);
+          }
+        } else if (parameter == j){   //param is a
+          auxz += complex_mul(param, z);
+        } else {    //param is somewhere else
+          if (polynomial[j] != 0){
+            auxz += complex_mul(polynomial[j], z);
+          }
+        }
+      } else {
+        if (parameter == order + 1) { //param is z
+          if (polynomial[j] != 0){
+            aux = param;
+            for (int k = 0; k < order-j-1; k++){
+              aux = complex_mul(aux, param);
+            }
+            auxz += complex_mul(aux, polynomial[j]);
+          }
+        } else if (parameter == j){ //parameter is a
+          aux = z;
+          for (int k = 0; k < order-j-1; k++){
+            aux = complex_mul(aux, z);
+          }
+          auxz += complex_mul(aux, param);
+        } else {    //param is somewhere else
+          if (polynomial[j] != 0){
+            aux = z;
+            for (int k = 0; k < order-j-1; k++){
+              aux = complex_mul(aux, z);
+            }
+            auxz += complex_mul(aux, polynomial[j]);
+          }
+        }
       }
     }
-    p = auxz;
+    if (parameter == order + 1){    //z is param
+      param = auxz;
+    } else {  //z is z
+      z = auxz;
+    }
 
-    x = (int) floor((creal(p) - C->Sx[0])/(C->Sx[1]-C->Sx[0]) * w);
-    y = (int) floor((-(cimag(p)-C->center[1]-((C->Sy[0]+C->Sy[1])/2)) - C->Sy[0])/(C->Sy[1]-C->Sy[0]) * h);
+    if (parameter == order + 1){
+      x = (int) floor((creal(param) - C->Sx[0])/(C->Sx[1]-C->Sx[0]) * w);
+      y = (int) floor((-(cimag(param)-C->center[1]-((C->Sy[0]+C->Sy[1])/2)) - C->Sy[0])/(C->Sy[1]-C->Sy[0]) * h);
+    } else {
+      x = (int) floor((creal(z) - C->Sx[0])/(C->Sx[1]-C->Sx[0]) * w);
+      y = (int) floor((-(cimag(z)-C->center[1]-((C->Sy[0]+C->Sy[1])/2)) - C->Sy[0])/(C->Sy[1]-C->Sy[0]) * h);
+    }
 
     draw_line(C->drawn_plot, x, y, oldx, oldy, w, h);
     if (x >= C->w*2 || y >= C->h*2 ||

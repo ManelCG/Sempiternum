@@ -13,6 +13,7 @@ struct ComplexPlane{
   double SpanX;
   double SpanY;
   int polynomial_order;
+  int polynomial_parameter;
   complex double *polynomial;
   int w, h, N, N_line;
 };

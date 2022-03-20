@@ -20,13 +20,18 @@
 // #define DEBUG_DRAW_JULIA_C
 
 
-unsigned char *draw_julia_polynomial(int N, int h, int w, int order, complex double *polynomial, double Sx[2], double Sy[2], char *plot_type, struct OpenCL_Program **cl_prog, _Bool init_new_cl){
+unsigned char *draw_julia_polynomial(int N, int h, int w,
+                                     int order, complex double *polynomial,
+                                     double Sx[2], double Sy[2],
+                                     int parameter,
+                                     struct OpenCL_Program **cl_prog, _Bool init_new_cl){
+
   unsigned char *m = calloc(h*w*3*sizeof(unsigned char), 1);
 
   //Perform OpenCL program
-  double *polynomial_real = malloc(sizeof(double) * (order+1));
-  double *polynomial_imag = malloc(sizeof(double) * (order+1));
-  for (int i = 0; i < order+1; i++){
+  double *polynomial_real = malloc(sizeof(double) * (order+2));
+  double *polynomial_imag = malloc(sizeof(double) * (order+2));
+  for (int i = 0; i < order+2; i++){
     polynomial_real[i] = creal(polynomial[i]);
     polynomial_imag[i] = cimag(polynomial[i]);
   }
@@ -84,23 +89,26 @@ unsigned char *draw_julia_polynomial(int N, int h, int w, int order, complex dou
   cl_mem mem_order = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
                               sizeof(int), NULL, &(prog->ret));
   cl_mem mem_pr = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(double)*(order+1), NULL, &(prog->ret));
+                              sizeof(double)*(order+2), NULL, &(prog->ret));
   cl_mem mem_pi = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(double)*(order+1), NULL, &(prog->ret));
+                              sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_pa = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
+                              sizeof(int), NULL, &(prog->ret));
   cl_mem mem_Sx = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
                               sizeof(double)*2, NULL, &(prog->ret));
   cl_mem mem_Sy = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
                               sizeof(double)*2, NULL, &(prog->ret));
 
   //Write data to mem objects
-  clEnqueueWriteBuffer(prog->command_queue, mem_N,     CL_TRUE, 0, sizeof(int), &N, 0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_h,     CL_TRUE, 0, sizeof(int), &h, 0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_w,     CL_TRUE, 0, sizeof(int), &w, 0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_order, CL_TRUE, 0, sizeof(int), &order, 0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_pr,    CL_TRUE, 0, sizeof(double)*(order+1), polynomial_real, 0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_pi,    CL_TRUE, 0, sizeof(double)*(order+1), polynomial_imag, 0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_Sx,    CL_TRUE, 0, sizeof(double)*2, Sx, 0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_Sy,    CL_TRUE, 0, sizeof(double)*2, Sy, 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_N,     CL_TRUE, 0, sizeof(int), &N,                           0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_h,     CL_TRUE, 0, sizeof(int), &h,                           0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_w,     CL_TRUE, 0, sizeof(int), &w,                           0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_order, CL_TRUE, 0, sizeof(int), &order,                       0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_pr,    CL_TRUE, 0, sizeof(double)*(order+2), polynomial_real, 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_pi,    CL_TRUE, 0, sizeof(double)*(order+2), polynomial_imag, 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_pa,    CL_TRUE, 0, sizeof(int), &parameter,                   0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_Sx,    CL_TRUE, 0, sizeof(double)*2, Sx,                      0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_Sy,    CL_TRUE, 0, sizeof(double)*2, Sy,                      0, NULL, NULL);
 
   if (init_new_cl){
     printf("Building new cl\n");
@@ -109,9 +117,6 @@ unsigned char *draw_julia_polynomial(int N, int h, int w, int order, complex dou
                                               (const char **)  &(prog->src),
                                               (const size_t *) &(prog->src_size),
                                               &(prog->ret));
-    #ifdef DEBUG_DRAW_JULIA_C
-    printf("Building %s... ", filename);
-    #endif
     fflush(stdout);
     clBuildProgram(prog->program, 1, &(prog->device), NULL, NULL, NULL);
   }
@@ -129,8 +134,9 @@ unsigned char *draw_julia_polynomial(int N, int h, int w, int order, complex dou
   clSetKernelArg(prog->kernel, 4, sizeof(mem_order),    (void *)&mem_order);
   clSetKernelArg(prog->kernel, 5, sizeof(mem_pr),       (void *)&mem_pr);
   clSetKernelArg(prog->kernel, 6, sizeof(mem_pi),       (void *)&mem_pi);
-  clSetKernelArg(prog->kernel, 7, sizeof(mem_Sx),       (void *)&mem_Sx);
-  clSetKernelArg(prog->kernel, 8, sizeof(mem_Sy),       (void *)&mem_Sy);
+  clSetKernelArg(prog->kernel, 7, sizeof(mem_pa),       (void *)&mem_pa);
+  clSetKernelArg(prog->kernel, 8, sizeof(mem_Sx),       (void *)&mem_Sx);
+  clSetKernelArg(prog->kernel, 9, sizeof(mem_Sy),       (void *)&mem_Sy);
 
   fflush(stdout);
 
@@ -256,9 +262,6 @@ unsigned char *draw_julia(int N, int h, int w, double c[2], double Sx[2], double
                                               (const char **)  &(prog->src),
                                               (const size_t *) &(prog->src_size),
                                               &(prog->ret));
-    #ifdef DEBUG_DRAW_JULIA_C
-    printf("Building %s... ", filename);
-    #endif
     fflush(stdout);
     clBuildProgram(prog->program, 1, &(prog->device), NULL, NULL, NULL);
   }
@@ -324,7 +327,7 @@ unsigned char *draw_julia(int N, int h, int w, double c[2], double Sx[2], double
   return m;
 }
 
-unsigned char *draw_thumbnail_polynomial(int N, int h, int w, int order, complex double *polynomial, char *plot_type, struct OpenCL_Program **cl_prog, _Bool init_new){
+unsigned char *draw_thumbnail_polynomial(int N, int h, int w, int order, complex double *polynomial, int parameter, struct OpenCL_Program **cl_prog, _Bool init_new){
   double c[2];
   c[0] = creal(polynomial[order]); c[1] = cimag(polynomial[order]);
   double c_abs = pow(pow(c[0], 2) + pow(c[1], 2), 0.5);
@@ -348,7 +351,7 @@ unsigned char *draw_thumbnail_polynomial(int N, int h, int w, int order, complex
 
   unsigned char *Julia;
 
-  Julia = draw_julia_polynomial(N, h, w, order, polynomial, Sdx, Sdy, plot_type, cl_prog, init_new);
+  Julia = draw_julia_polynomial(N, h, w, order, polynomial, Sdx, Sdy, parameter, cl_prog, init_new);
 // unsigned char *draw_julia_polynomial(int N, int h, int w, int order, complex double *polynomial, double Sx[2], double Sy[2], char *plot_type, struct OpenCL_Program **cl_prog, _Bool init_new_cl){
   return Julia;
 }
