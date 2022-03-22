@@ -41,8 +41,8 @@ struct mainWindowData{
   double *zoom_point1[2];
   double *zoom_point2[2];
 
-  struct ComplexPlane *complex_plane;
-  struct ComplexPlane *thumbnail;
+  ComplexPlane *complex_plane;
+  ComplexPlane *thumbnail;
   struct OpenCL_Program *opencl;
 
   mainMenu *menu;
@@ -76,7 +76,7 @@ void draw_from_options(GtkWidget *widget, gpointer data);
 void save_polynomial(GtkWidget *widget, GdkEventKey *event, gpointer data);
 void draw_box(GtkWidget *window, GdkEventButton *event, gpointer data);
 void destroy(GtkWidget *w, gpointer data);
-void plot_zoom(GtkWidget *widget, double zoomratio, double p[2], gpointer data);
+void plot_zoom(GtkWidget *widget, double zoomratio, complex double p, gpointer data);
 
 void change_thumbnail_state(GtkWidget *widget){
   draw_thumbnails_bool = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
@@ -97,7 +97,7 @@ void combo_function_type_handler(GtkWidget *widget, gpointer data){
 }
 
 void change_polynomial_parameter(GtkWidget *widget, gpointer data){
-  struct ComplexPlane *p = (struct ComplexPlane *) data;
+  ComplexPlane *p = (ComplexPlane *) data;
   p->polynomial_parameter = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
 }
 
@@ -141,8 +141,8 @@ void save_polynomial(GtkWidget *widget, GdkEventKey *event, gpointer data){
 }
 
 void change_polynomial_order(GtkWidget *widget, GdkEventKey *event, gpointer data){
-  struct ComplexPlane *p = ((struct mainWindowData *) data)->complex_plane;
-  struct ComplexPlane *t = ((struct mainWindowData *) data)->thumbnail;
+  ComplexPlane *p = ((struct mainWindowData *) data)->complex_plane;
+  ComplexPlane *t = ((struct mainWindowData *) data)->thumbnail;
   if (strcmp(gdk_keyval_name (event->keyval), "Return") == 0){
     int order = atoi(gtk_entry_get_text(GTK_ENTRY(widget)));
     if (polynomial != NULL){free(polynomial);}
@@ -183,7 +183,7 @@ void render_video(GtkWidget *widget, gpointer data){
   double fps = 60;
   int frames;
 
-  struct ComplexPlane *cp = ((struct genVideoData*)data)->data->complex_plane;
+  ComplexPlane *cp = ((struct genVideoData*)data)->data->complex_plane;
   struct mainWindowData *main_data = ((struct genVideoData*)data)->data;
   GtkWidget **widgets = ((struct genVideoData*)data)->option_widgets;
 
@@ -198,8 +198,8 @@ void render_video(GtkWidget *widget, gpointer data){
   double minspanx = strtod(gtk_entry_get_text(GTK_ENTRY(widgets[4])), NULL);
   double minspany = strtod(gtk_entry_get_text(GTK_ENTRY(widgets[5])), NULL);
 
-  double center[2] = {strtod(gtk_entry_get_text(GTK_ENTRY(widgets[6])), NULL),
-                      strtod(gtk_entry_get_text(GTK_ENTRY(widgets[7])), NULL)};
+  complex double center = strtod(gtk_entry_get_text(GTK_ENTRY(widgets[6])), NULL)
+                        + strtod(gtk_entry_get_text(GTK_ENTRY(widgets[7])), NULL)*I;
 
 
   printf("Saving data in %s. Saving video file in %s/%s\n", folder, folder, videofile);
@@ -213,8 +213,8 @@ void render_video(GtkWidget *widget, gpointer data){
 
   gtk_entry_set_text(GTK_ENTRY(main_data->input_spanx), g_strdup_printf("%.16g", maxspanx));
   gtk_entry_set_text(GTK_ENTRY(main_data->input_spany), g_strdup_printf("%.16g", maxspany));
-  gtk_entry_set_text(GTK_ENTRY(main_data->input_center0), g_strdup_printf("%.16g", center[0]));
-  gtk_entry_set_text(GTK_ENTRY(main_data->input_center1), g_strdup_printf("%.16g", center[1]));
+  gtk_entry_set_text(GTK_ENTRY(main_data->input_center0), g_strdup_printf("%.16g", creal(center)));
+  gtk_entry_set_text(GTK_ENTRY(main_data->input_center1), g_strdup_printf("%.16g", cimag(center)));
 
   printf("Will generate %d frames.\n", frames);
   printf("At %f fps that is %f seconds.\n", fps, (double) frames / fps);
@@ -317,8 +317,8 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   GtkWidget **entry_choose_center_point = malloc(sizeof(GtkWidget *) *2);
   entry_choose_center_point[0] = gtk_entry_new(); gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_center_point[0]), default_entry_size);
   entry_choose_center_point[1] = gtk_entry_new(); gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_center_point[1]), default_entry_size);
-  gtk_entry_set_text(GTK_ENTRY(entry_choose_center_point[0]), g_strdup_printf("%.16g", widgets->complex_plane->center[0]));
-  gtk_entry_set_text(GTK_ENTRY(entry_choose_center_point[1]), g_strdup_printf("%.16g", widgets->complex_plane->center[1]));
+  gtk_entry_set_text(GTK_ENTRY(entry_choose_center_point[0]), g_strdup_printf("%.16g", complex_plane_get_center_real(widgets->complex_plane)));
+  gtk_entry_set_text(GTK_ENTRY(entry_choose_center_point[1]), g_strdup_printf("%.16g", complex_plane_get_center_imag(widgets->complex_plane)));
 
   config_center_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
   gtk_box_pack_start(GTK_BOX(config_center_hbox), label_choose_center_point, false, false, 0);
@@ -419,16 +419,17 @@ void apply_changes(GtkWidget *widget, gpointer data){
   SpanXmin = strtod(gtk_entry_get_text(GTK_ENTRY(widgets->input_spanx)), NULL);
   SpanYmin = strtod(gtk_entry_get_text(GTK_ENTRY(widgets->input_spany)), NULL);
 
-  widgets->complex_plane->w = fmax(w - 385, 0);
-  widgets->complex_plane->h = h;
+  complex_plane_set_dimensions(widgets->complex_plane, fmax(w-385, 0), h);
   widgets->complex_plane->N = (N == 0)? 500: N;
   widgets->complex_plane->N_line = (N_line == 0)? 25: N_line;
 
 
-  widgets->complex_plane->z[0] = z[0];
-  widgets->complex_plane->z[1] = z[1];
-  widgets->complex_plane->center[0] = center[0];
-  widgets->complex_plane->center[1] = center[1];
+  complex_plane_set_quadratic_parameter(widgets->complex_plane, z[0] + z[1]*I);
+  // creal(widgets->complex_plane->param) = z[0];
+  // cimag(widgets->complex_plane->param) = z[1];
+  complex_plane_set_center(widgets->complex_plane, center[0] + center[1]*I);
+  // widgets->complex_plane->center[0] = center[0];
+  // widgets->complex_plane->center[1] = center[1];
 
   if (SpanXmin == 0 || SpanYmin == 0){
     if (w >= h){
@@ -441,10 +442,10 @@ void apply_changes(GtkWidget *widget, gpointer data){
       SpanYmin = SpanXmin*ratio;
     }
   }
-  widgets->complex_plane->Sx[0] = (-SpanXmin/2) + widgets->complex_plane->center[0];
-  widgets->complex_plane->Sx[1] = (SpanXmin/2) + widgets->complex_plane->center[0];
-  widgets->complex_plane->Sy[0] = (-SpanYmin/2) + widgets->complex_plane->center[1];
-  widgets->complex_plane->Sy[1] = (SpanYmin/2) + widgets->complex_plane->center[1];
+  widgets->complex_plane->Sx[0] = (-SpanXmin/2) + complex_plane_get_center_real(widgets->complex_plane);
+  widgets->complex_plane->Sx[1] = (SpanXmin/2)  + complex_plane_get_center_real(widgets->complex_plane);
+  widgets->complex_plane->Sy[0] = (-SpanYmin/2) + complex_plane_get_center_imag(widgets->complex_plane);
+  widgets->complex_plane->Sy[1] = (SpanYmin/2)  + complex_plane_get_center_imag(widgets->complex_plane);
   widgets->complex_plane->SpanX = SpanXmin;
   widgets->complex_plane->SpanY = SpanYmin;
 }
@@ -457,7 +458,7 @@ void gen_plot(GtkWidget *widget, _Bool gen_default, gpointer data){
   struct mainWindowData *widgets = (struct mainWindowData *) data;
 
   if (widgets->complex_plane == NULL){
-    widgets->complex_plane = malloc(sizeof(struct ComplexPlane));
+    widgets->complex_plane = malloc(sizeof(ComplexPlane));
     widgets->complex_plane->plot = NULL;
     widgets->complex_plane->drawn_plot = NULL;
   }
@@ -466,29 +467,29 @@ void gen_plot(GtkWidget *widget, _Bool gen_default, gpointer data){
   double SpanYmin;
   double ratio;
   if (gen_default){
-    widgets->complex_plane->N = 500;
-    widgets->complex_plane->N_line = 25;
-    widgets->complex_plane->w = fmax(w - 385, 0), widgets->complex_plane->h = h;
-    widgets->complex_plane->plot_type = "parameter_space";
-    widgets->complex_plane->z[0] = 0;
-    widgets->complex_plane->z[1] = 0;
-    widgets->complex_plane->center[0] = 0;
-    widgets->complex_plane->center[1] = 0;
+    complex_plane_set_dimensions(widgets->complex_plane, fmax(w-385, 0), h);
+
+    complex_plane_set_mandelbrot_parameters(widgets->complex_plane);
+
+    // widgets->complex_plane->z[0] = 0;
+    // widgets->complex_plane->z[1] = 0;
+    // widgets->complex_plane->center[0] = 0;
+    // widgets->complex_plane->center[1] = 0;
 
     if (w >= h){
-      ratio = (double) widgets->complex_plane->w / (double) widgets->complex_plane->h;
+      ratio = (double) complex_plane_get_width(widgets->complex_plane) / (double) complex_plane_get_height(widgets->complex_plane);
       SpanYmin = 3;
       SpanXmin = SpanYmin*ratio;
     } else {
-      ratio = (double) widgets->complex_plane->h / (double) widgets->complex_plane->w;
+      ratio = (double) complex_plane_get_height(widgets->complex_plane) / (double) complex_plane_get_width(widgets->complex_plane);
       SpanXmin = 3;
       SpanYmin = SpanXmin*ratio;
     }
 
-    widgets->complex_plane->Sx[0] = (-SpanXmin/2) + widgets->complex_plane->center[0];
-    widgets->complex_plane->Sx[1] = (SpanXmin/2) + widgets->complex_plane->center[0];
-    widgets->complex_plane->Sy[0] = (-SpanYmin/2) + widgets->complex_plane->center[1];
-    widgets->complex_plane->Sy[1] = (SpanYmin/2) + widgets->complex_plane->center[1];
+    widgets->complex_plane->Sx[0] = (-SpanXmin/2) + complex_plane_get_center_real(widgets->complex_plane);
+    widgets->complex_plane->Sx[1] = (SpanXmin/2)  + complex_plane_get_center_real(widgets->complex_plane);
+    widgets->complex_plane->Sy[0] = (-SpanYmin/2) + complex_plane_get_center_imag(widgets->complex_plane);
+    widgets->complex_plane->Sy[1] = (SpanYmin/2)  + complex_plane_get_center_imag(widgets->complex_plane);
     widgets->complex_plane->SpanX = SpanXmin;
     widgets->complex_plane->SpanY = SpanYmin;
 
@@ -515,21 +516,21 @@ void gen_plot(GtkWidget *widget, _Bool gen_default, gpointer data){
   switch(function_type){
     case 0:
       widgets->complex_plane->plot = draw_julia(widgets->complex_plane->N,
-                                    widgets->complex_plane->h,
-                                    widgets->complex_plane->w,
-                                    widgets->complex_plane->z,
-                                    widgets->complex_plane->Sx,
-                                    widgets->complex_plane->Sy,
-                                    widgets->complex_plane->plot_type,
-                                    &(widgets->opencl), !(widgets->opencl->init));
+                                     complex_plane_get_height(widgets->complex_plane),
+                                     complex_plane_get_width(widgets->complex_plane),
+                                     widgets->complex_plane->param,
+                                     widgets->complex_plane->Sx,
+                                     widgets->complex_plane->Sy,
+                                     widgets->complex_plane->plot_type,
+                                     &(widgets->opencl), !(widgets->opencl->init));
       break;
     case 1:
       if (polynomial_order != -1){
         widgets->complex_plane->polynomial = polynomial;
         widgets->complex_plane->polynomial_order = polynomial_order;
         widgets->complex_plane->plot = draw_julia_polynomial(widgets->complex_plane->N,
-                                                    widgets->complex_plane->h,
-                                                    widgets->complex_plane->w,
+                                                    complex_plane_get_height(widgets->complex_plane),
+                                                    complex_plane_get_width(widgets->complex_plane),
                                                     widgets->complex_plane->polynomial_order,
                                                     widgets->complex_plane->polynomial,
                                                     widgets->complex_plane->Sx,
@@ -576,15 +577,15 @@ void destroy(GtkWidget *w, gpointer data){
   gtk_widget_destroy(window);
 }
 
-void plot_zoom(GtkWidget *widget, double zoomratio, double p[2], gpointer data){
+void plot_zoom(GtkWidget *widget, double zoomratio, complex double p, gpointer data){
   struct mainWindowData *widgets = (struct mainWindowData *) data;
   #ifdef DEBUG_GUI
-  printf("Zooming in %f %f\n", p[0], p[1]);
+  printf("Zooming in %f %f\n", creal(p), cimag(p));
   #endif
   char buffer[500];
-  sprintf(buffer, "%.16g", p[0]);
+  sprintf(buffer, "%.16g", creal(p));
   gtk_entry_set_text(GTK_ENTRY(widgets->input_center0), buffer);
-  sprintf(buffer, "%.16g", p[1]);
+  sprintf(buffer, "%.16g", cimag(p));
   gtk_entry_set_text(GTK_ENTRY(widgets->input_center1), buffer);
   widgets->complex_plane->SpanX *= zoomratio;
   widgets->complex_plane->SpanY *= zoomratio;
@@ -598,11 +599,13 @@ void plot_zoom(GtkWidget *widget, double zoomratio, double p[2], gpointer data){
 void zoom_button_handler(GtkWidget *widget, gpointer data){
   gchar *arg = g_strdup_printf("%s", gtk_button_get_label(GTK_BUTTON(widget)));
   struct mainWindowData *widgets = (struct mainWindowData *) data;
+  double zoomratio;
   if (strcmp(arg, " + ") == 0){
-      plot_zoom(widget, 0.5, widgets->complex_plane->center, data);
+    zoomratio = 0.5;
   } else if (strcmp(arg, "  -  ") == 0){
-      plot_zoom(widget, 2, widgets->complex_plane->center, data);
+    zoomratio = 2;
   }
+  plot_zoom(widget, zoomratio, complex_plane_get_center(widgets->complex_plane), data);
 }
 
 void draw_thumbnail_gui(GtkWidget *widget, double x, double y, gpointer data){
@@ -615,21 +618,22 @@ void draw_thumbnail_gui(GtkWidget *widget, double x, double y, gpointer data){
   }
   widgets->thumbnail->N = N_thumb;
   gtk_widget_destroy(thumb_img);
-  widgets->thumbnail->z[0] = x; widgets->thumbnail->z[1] = y;
+  complex_plane_set_quadratic_parameter(widgets->thumbnail, x + y*I);
+  // widgets->thumbnail->z[0] = x; widgets->thumbnail->z[1] = y;
   switch(function_type){
     case 0:
       if (strcmp(widgets->complex_plane->plot_type, "parameter_space") == 0){
         widgets->thumbnail->plot = draw_thumbnail(widgets->thumbnail->N,
-                                                  widgets->thumbnail->h,
-                                                  widgets->thumbnail->w,
-                                                  widgets->thumbnail->z,
+                                                  complex_plane_get_height(widgets->thumbnail),
+                                                  complex_plane_get_width(widgets->thumbnail),
+                                                  complex_plane_get_quadratic_parameter(widgets->thumbnail),
                                                   "rec_f",
                                                   &(widgets->opencl), !(widgets->opencl->init));
       } else if (strcmp(widgets->complex_plane->plot_type, "rec_f") == 0){
         widgets->thumbnail->plot = draw_thumbnail(widgets->thumbnail->N,
-                                                  widgets->thumbnail->h,
-                                                  widgets->thumbnail->w,
-                                                  widgets->thumbnail->z,
+                                                  complex_plane_get_height(widgets->thumbnail),
+                                                  complex_plane_get_width(widgets->thumbnail),
+                                                  complex_plane_get_quadratic_parameter(widgets->thumbnail),
                                                   "parameter_space",
                                                   &(widgets->opencl),
                                                   !widgets->opencl->init);
@@ -685,8 +689,8 @@ void cp_mouse_handler(GtkWidget *widget, GdkEventButton *event, gpointer data){
 
   event->y = event->y + (widgets->complex_plane->h - h_ev)/2;
 
-  double x = (event->x-0)/(widgets->complex_plane->w-0) * (widgets->complex_plane->Sx[1] - widgets->complex_plane->Sx[0]) + widgets->complex_plane->Sx[0];
-  double y = (-(event->y-widgets->complex_plane->h)-0)/(widgets->complex_plane->h-0) * (widgets->complex_plane->Sy[1] - widgets->complex_plane->Sy[0]) + widgets->complex_plane->Sy[0];
+  double x = (event->x-0)/(complex_plane_get_width(widgets->complex_plane)-0) * (widgets->complex_plane->Sx[1] - widgets->complex_plane->Sx[0]) + widgets->complex_plane->Sx[0];
+  double y = (-(event->y-complex_plane_get_height(widgets->complex_plane))-0)/(complex_plane_get_height(widgets->complex_plane)-0) * (widgets->complex_plane->Sy[1] - widgets->complex_plane->Sy[0]) + widgets->complex_plane->Sy[0];
   double point_clicked[2] = {x, y};
   gchar *point = g_strdup_printf("%.16g %+.16gi", x, y);
   gtk_label_set_text(GTK_LABEL(point_targeted), point);
@@ -748,22 +752,25 @@ void cp_mouse_handler(GtkWidget *widget, GdkEventButton *event, gpointer data){
           *widgets->zoom_point2[1] = aux;
         }
 
-        widgets->complex_plane->center[0] = (*widgets->zoom_point2[0] + *widgets->zoom_point1[0])/2;
-        widgets->complex_plane->center[1] = (*widgets->zoom_point2[1] + *widgets->zoom_point1[1])/2;
+        complex_plane_set_center(widgets->complex_plane,
+                               ((*widgets->zoom_point2[0] + *widgets->zoom_point1[0])/2)
+                             + ((*widgets->zoom_point2[1] + *widgets->zoom_point1[1])/2)*I);
+        // widgets->complex_plane->center[0] = (*widgets->zoom_point2[0] + *widgets->zoom_point1[0])/2;
+        // widgets->complex_plane->center[1] = (*widgets->zoom_point2[1] + *widgets->zoom_point1[1])/2;
 
-        sprintf(buffer, "%.16g", widgets->complex_plane->center[0]);
+        sprintf(buffer, "%.16g", complex_plane_get_center_real(widgets->complex_plane));
         gtk_entry_set_text(GTK_ENTRY(widgets->input_center0), buffer);
-        sprintf(buffer, "%.16g", widgets->complex_plane->center[1]);
+        sprintf(buffer, "%.16g", complex_plane_get_center_imag(widgets->complex_plane));
         gtk_entry_set_text(GTK_ENTRY(widgets->input_center1), buffer);
 
         widgets->complex_plane->SpanX = *widgets->zoom_point2[0] - *widgets->zoom_point1[0];
         widgets->complex_plane->SpanY = *widgets->zoom_point2[1] - *widgets->zoom_point1[1];
 
-        if (widgets->complex_plane->w >= widgets->complex_plane->h){
-          double ratio = (double) widgets->complex_plane->w / (double) widgets->complex_plane->h;
+        if (complex_plane_get_width(widgets->complex_plane) >= complex_plane_get_height(widgets->complex_plane)){
+          double ratio = (double) complex_plane_get_width(widgets->complex_plane) / (double) complex_plane_get_height(widgets->complex_plane);
           widgets->complex_plane->SpanX = widgets->complex_plane->SpanY*ratio;
         } else {
-          double ratio = (double) widgets->complex_plane->h / (double) widgets->complex_plane->w;
+          double ratio = (double) complex_plane_get_height(widgets->complex_plane) / complex_plane_get_width(widgets->complex_plane);
           widgets->complex_plane->SpanY = widgets->complex_plane->SpanX*ratio;
         }
 
@@ -836,7 +843,7 @@ void draw_box(GtkWidget *window, GdkEventButton *event, gpointer data){
   int x0 = event->x;
   int y0 = event->y;
   int x1 = (int) floor((*widgets->zoom_point1[0] - widgets->complex_plane->Sx[0])/(widgets->complex_plane->Sx[1]-widgets->complex_plane->Sx[0]) * widgets->complex_plane->w);
-  int y1 = (int) floor((-(*widgets->zoom_point1[1]-widgets->complex_plane->center[1] - ((widgets->complex_plane->Sy[0] + widgets->complex_plane->Sy[1])/2)) - widgets->complex_plane->Sy[0])/(widgets->complex_plane->Sy[1] - widgets->complex_plane->Sy[0])*widgets->complex_plane->h);
+  int y1 = (int) floor((-(*widgets->zoom_point1[1]-complex_plane_get_center_imag(widgets->complex_plane) - ((widgets->complex_plane->Sy[0] + widgets->complex_plane->Sy[1])/2)) - widgets->complex_plane->Sy[0])/(widgets->complex_plane->Sy[1] - widgets->complex_plane->Sy[0])*widgets->complex_plane->h);
 
   widgets->complex_plane->drawn_plot = malloc(widgets->complex_plane->h * widgets->complex_plane->w*3);
   for (int i = 0; i < widgets->complex_plane->h*widgets->complex_plane->w*3; i++){
@@ -1297,7 +1304,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
 
  //Generate complex_plane
  if (main_data->complex_plane == NULL){
-   main_data->complex_plane = malloc(sizeof(struct ComplexPlane));
+   main_data->complex_plane = malloc(sizeof(ComplexPlane));
    main_data->complex_plane->plot = NULL;
    main_data->complex_plane->drawn_plot = NULL;
    main_data->complex_plane->polynomial_parameter = -1;
@@ -1312,13 +1319,13 @@ void draw_main_window(GtkWidget *widget, gpointer data){
    gtk_entry_set_text(GTK_ENTRY(main_data->input_N_line), buffer);
    sprintf(buffer, "%d", main_data->complex_plane->N);
    gtk_entry_set_text(GTK_ENTRY(main_data->input_N), buffer);
-   sprintf(buffer, "%.16g", main_data->complex_plane->z[0]);
+   sprintf(buffer, "%.16g", creal(main_data->complex_plane->param));
    gtk_entry_set_text(GTK_ENTRY(main_data->input_z0), buffer);
-   sprintf(buffer, "%.16g", main_data->complex_plane->z[1]);
+   sprintf(buffer, "%.16g", cimag(main_data->complex_plane->param));
    gtk_entry_set_text(GTK_ENTRY(main_data->input_z1), buffer);
-   sprintf(buffer, "%.16g", main_data->complex_plane->center[0]);
+   sprintf(buffer, "%.16g", complex_plane_get_center_real(main_data->complex_plane));
    gtk_entry_set_text(GTK_ENTRY(main_data->input_center0), buffer);
-   sprintf(buffer, "%.16g", main_data->complex_plane->center[1]);
+   sprintf(buffer, "%.16g", complex_plane_get_center_imag(main_data->complex_plane));
    gtk_entry_set_text(GTK_ENTRY(main_data->input_center1), buffer);
    sprintf(buffer, "%.16g", main_data->complex_plane->SpanX);
    gtk_entry_set_text(GTK_ENTRY(main_data->input_spanx), buffer);
@@ -1370,7 +1377,7 @@ int main (int argc, char *argv[]) {
 
   gtk_init (&argc, &argv);
 
-  main_data->thumbnail = malloc(sizeof(struct ComplexPlane));
+  main_data->thumbnail = malloc(sizeof(ComplexPlane));
   main_data->thumbnail->w = 320;
   main_data->thumbnail->h = 180;
   main_data->thumbnail->plot = malloc(main_data->thumbnail->w * main_data->thumbnail->h * 3);

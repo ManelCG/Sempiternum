@@ -187,8 +187,13 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
   return m;
 }
 
-unsigned char *draw_julia(int N, int h, int w, double c[2], double Sx[2], double Sy[2], char *plot_type, struct OpenCL_Program **cl_prog, _Bool init_new_cl){
+unsigned char *draw_julia(int N, int h, int w,
+                          complex double param,
+                          double Sx[2], double Sy[2],
+                          char *plot_type,
+                          struct OpenCL_Program **cl_prog, _Bool init_new_cl){
   unsigned char *m = calloc(h*w*3*sizeof(char), 1);
+  double c[2] = {creal(param), cimag(param)};
 
   //Perform OpenCL program
 
@@ -327,7 +332,10 @@ unsigned char *draw_julia(int N, int h, int w, double c[2], double Sx[2], double
   return m;
 }
 
-unsigned char *draw_thumbnail_polynomial(int N, int h, int w, int order, complex double *polynomial, int parameter, struct OpenCL_Program **cl_prog, _Bool init_new){
+unsigned char *draw_thumbnail_polynomial(int N, int h, int w,
+                                         int order, complex double *polynomial,
+                                         int parameter,
+                                         struct OpenCL_Program **cl_prog, _Bool init_new){
   double c[2];
   c[0] = creal(polynomial[order]); c[1] = cimag(polynomial[order]);
   double c_abs = pow(pow(c[0], 2) + pow(c[1], 2), 0.5);
@@ -357,9 +365,13 @@ unsigned char *draw_thumbnail_polynomial(int N, int h, int w, int order, complex
 }
 
 
-unsigned char *draw_thumbnail(int N, int h, int w, double c[2], char *plot_type, struct OpenCL_Program **cl_prog, _Bool init_new){
-  double c_abs = pow(pow(c[0], 2) + pow(c[1], 2), 0.5);
-  double SpanThumbnail = c_abs > 2? c_abs : 2;
+unsigned char *draw_thumbnail(int N, int h, int w,
+                              complex double param,
+                              char *plot_type,
+                              struct OpenCL_Program **cl_prog, _Bool init_new){
+
+  double param_norm = pow(pow(creal(param), 2) + pow(cimag(param), 2), 0.5);
+  double SpanThumbnail = param_norm > 2? param_norm : 2;
   // double Sdx[2] = {-SpanThumbnail, SpanThumbnail}, Sdy[2] = {-SpanThumbnail, SpanThumbnail};
 
   double Sdx[2], Sdy[2];
@@ -379,12 +391,16 @@ unsigned char *draw_thumbnail(int N, int h, int w, double c[2], char *plot_type,
 
   unsigned char *Julia;
 
-  Julia = draw_julia(N, h, w, c, Sdx, Sdy, plot_type, cl_prog, init_new);
+  Julia = draw_julia(N, h, w, param, Sdx, Sdy, plot_type, cl_prog, init_new);
   return Julia;
 }
 
-void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], double zoom_ratio, char *plot_type){
-  const char *out_folder = gen_dir_name(c, plot_type);
+void draw_julia_zoom(int frames, int N,
+                     int h, int w,
+                     complex double c, complex double p,
+                     double zoom_ratio, char *plot_type){
+  double c_arr[2] = {creal(c), cimag(c)};
+  const char *out_folder = gen_dir_name(c_arr, plot_type);
 
   int i = 0;
 
@@ -395,7 +411,7 @@ void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], 
     ratio = (double) h / (double) w;
   }
 
-  double c_abs = pow(pow(c[0], 2) + pow(c[1], 2), 0.5);
+  double c_abs = pow(pow(creal(c), 2) + pow(cimag(c), 2), 0.5);
   double SpanOriginal = 4;
   printf("%f\n", SpanOriginal);
   double Sx[2], Sy[2];
@@ -420,10 +436,10 @@ void draw_julia_zoom(int frames, int N, int h, int w, double c[2], double p[2], 
 
     printf("%f, %f\n", SpanX, SpanY);
 
-    Sx[0] = p[0] - SpanX/2;
-    Sx[1] = p[0] + SpanX/2;
-    Sy[0] = p[1] - SpanY/2;
-    Sy[1] = p[1] + SpanY/2;
+    Sx[0] = creal(p) - SpanX/2;
+    Sx[1] = creal(p) + SpanX/2;
+    Sy[0] = cimag(p) - SpanY/2;
+    Sy[1] = cimag(p) + SpanY/2;
 
     julia_out = malloc(1024);
     snprintf(julia_out, 1024, "%s/%03d.png", out_folder, i);

@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include <math.h>
+#include <complex.h>
 #include <stdbool.h>
 
 #include <lodepng.h>
@@ -30,14 +31,16 @@ int main(int argc, char *argv[]){
   int h = 2160;
   char *plot_type = "rec_f";
   int A = h*w;
-  double c[2] = {0.36, 0.34};   //If parameter space this is interpreted as Z
+  complex double c = 0.36 + 0.34*I;//If parameter space this is interpreted as Z
+  double c_arr[2] = {creal(c), cimag(c)};
   double Sx[2] = {-2, 2};
   double Sy[2] = {-2, 2};
 
   //Zooming point for zoom function
-  double p[2] = {0.36, 0.34};
+  // double p[2] = {0.36, 0.34};
+  complex double p = 0.36 + 0.34*I;
 
-  char *out_folder = gen_dir_name(c, "rec_f");
+  char *out_folder = gen_dir_name(c_arr, "rec_f");
   char *empty_julia_f = gen_filename(out_folder, "Empty_Julia.png");
   char *full_julia_f = gen_filename((char *) out_folder, "Thumbnail.png");
   char *merged = gen_filename(out_folder, "Merged.png");
@@ -46,7 +49,7 @@ int main(int argc, char *argv[]){
 
   printf("Drawing julia by BI...      "); fflush(stdout);
   start = clock();
-  unsigned char *empty_julia = draw_julia_backwards_iteration(N, h, w, c, 100000, true);
+  unsigned char *empty_julia = draw_julia_backwards_iteration(N, h, w, c_arr, 100000, true);
   end = clock();
   printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
   printf("Saving empty Julia set...   "); fflush(stdout);
