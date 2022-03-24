@@ -6,37 +6,7 @@
 
 #include <opencl_funcs.h>
 
-typedef struct ComplexPlane{
-  int ID;
-
-  unsigned char *plot;
-  unsigned char *drawn_plot;
-  int pixel_stride;
-
-  int function_type;
-  char *plot_type;
-  complex double param;
-  complex double center;
-
-  _Bool is_drawing_active;
-  _Bool is_lines_active;
-
-  double *zoom_point1[2];
-  double *zoom_point2[2];
-
-  double Sx[2], Sy[2];
-  double SpanX;
-  double SpanY;
-  int polynomial_order;
-  int polynomial_parameter;
-  complex double *polynomial;
-  int w, h, a;
-  int N, N_line;
-
-  struct OpenCL_Program *cl;
-} ComplexPlane;
-
-//TODO:
+typedef struct ComplexPlane ComplexPlane;
 
 //---Complex plane setters and getters
 
