@@ -4,18 +4,75 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <draw_julia.h>
+
 //---Setters and getters
 ComplexPlane *complex_plane_new(ComplexPlane **cp){
   ComplexPlane *new = malloc(sizeof(ComplexPlane));
   new->plot = NULL;
   new->drawn_plot = NULL;
-  new->polynomial_parameter = -1;
+  new->pixel_stride = 3;
+
   new->polynomial = NULL;
-  new->stride = 3;
+  complex_plane_set_function_type(new, 0);
+
+  new->is_drawing_active = true;
+  new->is_lines_active = true;
+
+  new->zoom_point1[0] = NULL;
+  new->zoom_point1[1] = NULL;
+  new->zoom_point2[0] = NULL;
+  new->zoom_point2[1] = NULL;
+
+  new->cl = malloc(sizeof(struct OpencL_Program *));
+  new->cl->init = false;
+
   if (cp != NULL){
     *cp = new;
   }
   return new;
+}
+
+ComplexPlane *complex_plane_copy(ComplexPlane **dest, ComplexPlane *src){
+  ComplexPlane *new = complex_plane_new(NULL);
+
+  complex_plane_set_stride(new, complex_plane_get_stride(src));
+  complex_plane_set_dimensions(new,
+                               complex_plane_get_width(src),
+                               complex_plane_get_height(src));
+
+  complex_plane_set_iterations(new, complex_plane_get_iterations(src));
+  complex_plane_set_line_iterations(new, complex_plane_get_line_iterations(src));
+
+  complex_plane_set_center(new, complex_plane_get_center(src));
+  complex_plane_set_spanx(new, complex_plane_get_spanx(src));
+  complex_plane_set_spany(new, complex_plane_get_spany(src));
+
+  complex_plane_set_plot_type(new, complex_plane_get_plot_type(src, NULL));
+  complex_plane_set_quadratic_parameter(new, complex_plane_get_quadratic_parameter(src));
+
+  complex_plane_set_function_type(new, complex_plane_get_function_type(src));
+
+  complex_plane_set_drawing_active(new, complex_plane_is_drawing_active(src));
+  complex_plane_set_drawing_lines_active(new, complex_plane_is_drawing_lines_active(src));
+
+  complex_plane_set_polynomial_order(new, complex_plane_get_polynomial_order(src));
+  complex_plane_set_polynomial_parameter(new, complex_plane_get_polynomial_parameter(src));
+  complex_plane_copy_polynomial(new, src);
+
+  //TODO: Copy zoom_point1 & zoom_point2
+
+  if (dest != NULL){
+    *dest = new;
+  }
+  return new;
+}
+
+void complex_plane_set_id(ComplexPlane *cp, int id){
+  cp->ID = id;
+}
+int complex_plane_get_id(ComplexPlane *cp){
+  return cp->ID;
 }
 
 //--- Dimensions
@@ -33,10 +90,10 @@ int complex_plane_get_area(ComplexPlane *cp){
   return cp->a;
 }
 void complex_plane_set_stride(ComplexPlane *cp, int s){
-  cp->stride = s;
+  cp->pixel_stride = s;
 }
 int complex_plane_get_stride(ComplexPlane *cp){
-  return cp->stride;
+  return cp->pixel_stride;
 }
 int complex_plane_get_size(ComplexPlane *cp){
   return (complex_plane_get_area(cp) * complex_plane_get_stride(cp));
@@ -45,6 +102,103 @@ int complex_plane_get_size(ComplexPlane *cp){
 void complex_plane_set_plot_type(ComplexPlane *cp, char *plot_type){
   cp->plot_type = plot_type;
 }
+char *complex_plane_get_plot_type(ComplexPlane *cp, char **r){
+  char *ret = malloc(strlen(cp->plot_type) * sizeof(*cp->plot_type));
+  if (r != NULL){
+    *r = malloc(strlen(cp->plot_type) * sizeof(*cp->plot_type));
+    strcpy(*r, cp->plot_type);
+  }
+  strcpy(ret, cp->plot_type);
+  return ret;
+}
+void complex_plane_set_function_type(ComplexPlane *cp, int type){
+  cp->function_type = type;
+  if (type == 0){
+    complex_plane_set_polynomial_order(cp, -1);
+  }
+}
+int complex_plane_get_function_type(ComplexPlane *cp){
+  return cp->function_type;
+}
+
+//---stop_drawing
+void complex_plane_set_drawing_active(ComplexPlane *cp, _Bool b){
+  cp->is_drawing_active = b;
+}
+_Bool complex_plane_is_drawing_active(ComplexPlane *cp){
+  return cp->is_drawing_active;
+}
+void complex_plane_set_drawing_lines_active(ComplexPlane *cp, _Bool b){
+  cp->is_lines_active = b;
+}
+_Bool complex_plane_is_drawing_lines_active(ComplexPlane *cp){
+  return cp->is_lines_active;
+}
+
+//---polynomial
+void complex_plane_set_polynomial_order(ComplexPlane *cp, int o){
+  complex_plane_free_polynomial(cp);
+
+  cp->polynomial_order = o;
+  cp->polynomial_parameter = -1;
+
+  if (o > 0){
+    cp->polynomial = malloc(sizeof(complex double) * (o+2));
+    for (int i = 0; i <= o+1; i++){
+      complex_plane_set_polynomial_member(cp, 0, i);
+    }
+  }
+
+}
+int complex_plane_get_polynomial_order(ComplexPlane *cp){
+  return cp->polynomial_order;
+}
+void complex_plane_set_polynomial_member(ComplexPlane *cp, complex v, int index){
+  if (index > cp->polynomial_order + 1){
+    return;
+  }
+  cp->polynomial[index] = v;
+}
+complex complex_plane_get_polynomial_member(ComplexPlane *cp, int index){
+  return cp->polynomial[index];
+}
+_Bool complex_plane_polynomial_is_null(ComplexPlane *cp){
+  return (cp->polynomial == NULL);
+}
+void complex_plane_free_polynomial(ComplexPlane *cp){
+  if (cp->polynomial != NULL){
+    free(cp->polynomial);
+    cp->polynomial = NULL;
+  }
+}
+int complex_plane_set_polynomial_parameter(ComplexPlane *cp, int p){
+  if (p > cp->polynomial_order+1){
+    return -1;
+  }
+  cp->polynomial_parameter = p;
+  return 0;
+}
+int complex_plane_get_polynomial_parameter(ComplexPlane *cp){
+  return cp->polynomial_parameter;
+}
+int complex_plane_copy_polynomial(ComplexPlane *d, ComplexPlane *s){
+  int order = complex_plane_get_polynomial_order(s);
+  int orderd = complex_plane_get_polynomial_order(d);
+  if (order != orderd ||
+      complex_plane_polynomial_is_null(d) ||
+      complex_plane_polynomial_is_null(s)){
+    return -1;
+  }
+  for (int i = 0; i <= order + 1; i++){
+    complex v = complex_plane_get_polynomial_member(s, i);
+    complex_plane_set_polynomial_member(d, v, i);
+  }
+  return 0;
+}
+const complex double *complex_plane_get_polynomial(ComplexPlane *cp){
+  return cp->polynomial;
+}
+
 
 //---iterations
 void complex_plane_set_iterations(ComplexPlane *cp, int N){
@@ -151,6 +305,116 @@ double complex_plane_get_spany0(ComplexPlane *cp){
 double complex_plane_get_spany1(ComplexPlane *cp){
   return cp->Sy[1];
 }
+double *complex_plane_get_spanx_array(ComplexPlane *cp){
+  double *Sx;
+  Sx = malloc(sizeof *Sx *2);
+  Sx[0] = cp->Sx[0]; Sx[1] = cp->Sx[1];
+  return Sx;
+} //TODO: Possible memory leak.
+double *complex_plane_get_spany_array(ComplexPlane *cp){
+  double *Sy;
+  Sy = malloc(sizeof *Sy *2);
+  Sy[0] = cp->Sy[0]; Sy[1] = cp->Sy[1];
+  return Sy;
+} //TODO: Possible memory leak.
+
+//---drawing box
+void complex_plane_set_zoom_point1(ComplexPlane *cp, double x, double y){
+  complex_plane_free_zoom_point1(cp);
+  cp->zoom_point1[0] = malloc(sizeof(double));
+  cp->zoom_point1[1] = malloc(sizeof(double));
+  *cp->zoom_point1[0] = x;
+  *cp->zoom_point1[1] = y;
+}
+void complex_plane_set_zoom_point2(ComplexPlane *cp, double x, double y){
+  complex_plane_free_zoom_point2(cp);
+  cp->zoom_point2[0] = malloc(sizeof(double));
+  cp->zoom_point2[1] = malloc(sizeof(double));
+  *cp->zoom_point2[0] = x;
+  *cp->zoom_point2[1] = y;
+}
+void complex_plane_free_zoom_point1(ComplexPlane *cp){
+  if (cp->zoom_point1[0] != NULL){
+  if (cp->zoom_point1[1] != NULL){
+    free(cp->zoom_point1[0]);
+    free(cp->zoom_point1[1]);
+    cp->zoom_point1[0] = NULL;
+    cp->zoom_point1[1] = NULL;
+  }
+  }
+}
+void complex_plane_free_zoom_point2(ComplexPlane *cp){
+  if (cp->zoom_point2[0] != NULL){
+  if (cp->zoom_point2[1] != NULL){
+    free(cp->zoom_point2[0]);
+    free(cp->zoom_point2[1]);
+    cp->zoom_point2[0] = NULL;
+    cp->zoom_point2[1] = NULL;
+  }
+  }
+}
+_Bool complex_plane_zoom_point1_is_null(ComplexPlane *cp){
+  if (cp->zoom_point1[0] == NULL && cp->zoom_point1[1] == NULL){
+    return true;
+  }
+  return false;
+}
+_Bool complex_plane_zoom_point2_is_null(ComplexPlane *cp){
+  if (cp->zoom_point2[0] == NULL && cp->zoom_point2[1] == NULL){
+    return true;
+  }
+  return false;
+}
+void complex_plane_zoom_points_normalize(ComplexPlane *cp){
+  double aux;
+  if (*cp->zoom_point1[0] > *cp->zoom_point2[0]){
+      aux = *cp->zoom_point1[0];
+      *cp->zoom_point1[0] = *cp->zoom_point2[0];
+      *cp->zoom_point2[0] = aux;
+  }
+  if (*cp->zoom_point1[1] > *cp->zoom_point2[1]){
+    aux = *cp->zoom_point1[1];
+    *cp->zoom_point1[1] = *cp->zoom_point2[1];
+    *cp->zoom_point2[1] = aux;
+  }
+}
+double complex_plane_zoom_point_get_spanx(ComplexPlane *cp){
+  return *cp->zoom_point2[0] - *cp->zoom_point1[0];
+}
+double complex_plane_zoom_point_get_spany(ComplexPlane *cp){
+  return *cp->zoom_point2[1] - *cp->zoom_point1[1];
+}
+void complex_plane_zoom_points_set_center(ComplexPlane *cp){
+    complex_plane_set_center(cp, ((*cp->zoom_point2[0] + *cp->zoom_point1[0])/2) + ((*cp->zoom_point2[1] + *cp->zoom_point1[1])/2)*I);
+}
+int complex_plane_zoom_point1_get_pixel_value_x(ComplexPlane *cp){
+    int w = complex_plane_get_width(cp);
+    double spanx = complex_plane_get_spanx(cp);
+
+    return  (int) floor((*cp->zoom_point1[0] - complex_plane_get_spanx0(cp)) / spanx * w);
+}
+int complex_plane_zoom_point1_get_pixel_value_y(ComplexPlane *cp){
+    int h = complex_plane_get_height(cp);
+    double spany = complex_plane_get_spany(cp);
+    return (int) floor((-(*cp->zoom_point1[1] - 2*complex_plane_get_center_imag(cp))
+                          - complex_plane_get_spany0(cp)) / spany * h);
+}
+int complex_plane_zoom_point2_get_pixel_value_x(ComplexPlane *cp){
+    int w = complex_plane_get_width(cp);
+    double spanx = complex_plane_get_spanx(cp);
+
+    return  (int) floor((*cp->zoom_point2[0] - complex_plane_get_spanx0(cp)) / spanx * w);
+}
+int complex_plane_zoom_point2_get_pixel_value_y(ComplexPlane *cp){
+    int h = complex_plane_get_height(cp);
+    double spany = complex_plane_get_spany(cp);
+    return (int) floor((-(*cp->zoom_point2[1] - 2*complex_plane_get_center_imag(cp))
+                          - complex_plane_get_spany0(cp)) / spany * h);
+}
+
+
+
+
 
 void complex_plane_set_mandelbrot_parameters(ComplexPlane *cp){
   complex_plane_set_iterations(cp, 500);
@@ -161,6 +425,90 @@ void complex_plane_set_mandelbrot_parameters(ComplexPlane *cp){
   complex_plane_set_default_spans(cp);
   complex_plane_set_stride(cp, 3);
 }
+
+//---Plots
+void complex_plane_gen_plot(ComplexPlane *cp){
+  if (cp == NULL){
+     complex_plane_new(&cp);
+  }
+
+  double SpanXmin;
+  double SpanYmin;
+  double ratio;
+
+  complex_plane_free_plot(cp);
+  complex_plane_free_drawn_plot(cp);
+
+  #ifdef DEBUG_GUI
+  printf("Spans: %f %f | %f %f\n", complex_plane_get_spanx0(cp),
+                                   complex_plane_get_spanx1(cp),
+                                   complex_plane_get_spany0(cp),
+                                   complex_plane_get_spany1(cp));
+
+  #endif
+
+  switch(cp->function_type){
+    case 0:   //Simple quadratic family
+      cp->plot = draw_julia(complex_plane_get_iterations(cp),
+                                                complex_plane_get_height(cp),
+                                                complex_plane_get_width(cp),
+                                                complex_plane_get_quadratic_parameter(cp),
+                                                complex_plane_get_spanx_array(cp),
+                                                complex_plane_get_spany_array(cp),
+                                                cp->plot_type,
+                                                &(cp->cl), !(cp->cl->init));
+      break;
+    case 1:   //Polynomial function
+      if (complex_plane_get_polynomial_order(cp) != -1){
+        cp->plot = draw_julia_polynomial(complex_plane_get_iterations(cp),
+                                                             complex_plane_get_height(cp),
+                                                             complex_plane_get_width(cp),
+                                                             complex_plane_get_polynomial_order(cp),
+                                                             cp->polynomial,
+                                                             complex_plane_get_spanx_array(cp),
+                                                             complex_plane_get_spany_array(cp),
+                                                             complex_plane_get_polynomial_parameter(cp),
+                                                             &(cp->cl), !cp->cl->init);
+      }
+      break;
+    case 2:   //Newton's method
+      if (complex_plane_get_polynomial_order(cp) != -1){
+        // printf("WIP Newton's method\n");
+      }
+      break;
+  }
+}
+
+void complex_plane_gen_thumb(ComplexPlane *cp){
+  switch(complex_plane_get_function_type(cp)){
+    case 0:
+      cp->plot = draw_thumbnail(cp->N,
+                                      complex_plane_get_height(cp),
+                                      complex_plane_get_width(cp),
+                                      complex_plane_get_quadratic_parameter(cp),
+                                      complex_plane_get_plot_type(cp, NULL),
+                                      &(cp->cl), !(cp->cl->init));
+      break;
+    case 1:
+      if (complex_plane_get_polynomial_order(cp) != -1 && !complex_plane_polynomial_is_null(cp)){
+
+        cp->plot = draw_thumbnail_polynomial(cp->N,
+                                                   cp->h,
+                                                   cp->w,
+                                                   cp->polynomial_order,
+                                                   cp->polynomial,
+                                                   cp->polynomial_parameter,
+                                                   &(cp->cl),
+                                                   !cp->cl->init);
+      } else {
+        complex_plane_alloc_empty_plot(cp);
+      }
+      break;
+  }
+}
+
+
+
 
 void complex_plane_alloc_empty_plot(ComplexPlane *cp){
   if (cp->plot != NULL){
@@ -190,8 +538,11 @@ int complex_plane_free_drawn_plot(ComplexPlane *cp){
   }
   return 0;
 }
-char *complex_plane_get_plot(ComplexPlane *cp){
+const unsigned char *complex_plane_get_plot(ComplexPlane *cp){
   return cp->plot;
+}
+unsigned char *complex_plane_get_drawn_plot(ComplexPlane *cp){
+  return cp->drawn_plot;
 }
 int complex_plane_copy_plot(ComplexPlane *cp){
   if (cp->drawn_plot == NULL || cp->plot == NULL){
@@ -251,7 +602,7 @@ complex complex_mul(complex a, complex b){
           ((creal(a) * cimag(b)) + (cimag(a) * creal(b)))*I);
 }
 
-void draw_sequence_lines_polynomial(struct ComplexPlane *C, complex *polynomial, int order, double point[2], int w, int h){
+void draw_sequence_lines_polynomial(struct ComplexPlane *C, const complex double *polynomial, int order, double point[2], int w, int h){
   complex param, old_p, c, z;
   int x, y, oldx, oldy;
 
