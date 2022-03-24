@@ -13,23 +13,46 @@
 
 #include <gui_gen_video.h>
 
-#define COMPLEX_PLANE_THUMBNAIL_ID 69
-
 // #define DEBUG_GUI
 
 struct mainWindowData{
+  GtkWidget *window;
+
+  GtkWidget *input_plot_type;
+
+  GtkWidget *combo_function_type;
+  GtkWidget *input_thumbN;
+  GtkWidget *check_draw_thumb;
+
+  GtkWidget *check_draw_lines;
+  GtkWidget **input_polynomial_settings_vector_real;
+  GtkWidget **input_polynomial_settings_vector_imag;
+  GtkWidget *combo_polynomial_parameter;
+  GtkWidget *combo_polynomial_parameter_thumb;
+
+  double *zoom_point1[2];
+  double *zoom_point2[2];
+
   ComplexPlane *complex_plane;
   ComplexPlane *thumbnail;
+  struct OpenCL_Program *opencl;
+
+  mainMenu *menu;
 };
 
 struct genVideoData{
-  ComplexPlane *cp;
+  struct mainWindowData *data;
   GtkWidget **option_widgets;
 };
 
 
 //Chose between quadratic, polynomial, etc
 //TODO: Remove these global variables
+int function_type;     //0 = quadratic, 1 = polynomial
+_Bool draw_thumbnails_bool = true;
+_Bool draw_lines_bool = true;
+complex double *polynomial = NULL;
+int polynomial_order = -1;
 
 GtkWidget *point_targeted;
 GtkWidget *thumb_img;
@@ -37,13 +60,36 @@ GtkWidget *thumb_box;
 
 //Function declarations. TODO: Move to header file
 void draw_main_window(GtkWidget *widget, gpointer data);
+void gen_plot(GtkWidget *widget, _Bool gen_default, gpointer data);
 void draw_sequence(GtkWidget *window, GdkEventButton *event, gpointer data);
 void draw_thumbnail_gui(GtkWidget *widget, double x, double y, gpointer data);
 void draw_from_options(GtkWidget *widget, gpointer data);
-void save_polynomial_member(GtkWidget *widget, gpointer data);
+void save_polynomial(GtkWidget *widget, GdkEventKey *event, gpointer data);
 void draw_box(GtkWidget *window, GdkEventButton *event, gpointer data);
 void destroy(GtkWidget *w, gpointer data);
 void plot_zoom(GtkWidget *widget, double zoomratio, complex double p, gpointer data);
+
+void change_thumbnail_state(GtkWidget *widget){
+  draw_thumbnails_bool = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
+}
+void change_lines_state(GtkWidget *widget){
+  draw_lines_bool = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
+}
+void combo_function_type_handler(GtkWidget *widget, gpointer data){
+  struct mainWindowData *widgets = (struct mainWindowData *) data;
+  function_type = gtk_combo_box_get_active(GTK_COMBO_BOX(widgets->combo_function_type));
+  if (function_type == 0){
+    polynomial_order = -1;
+    polynomial = NULL;
+  }
+  ////TODO: Fix being able to draw main widnow from here
+  //draw_main_window(widget, data);
+}
+
+void change_polynomial_parameter(GtkWidget *widget, gpointer data){
+  ComplexPlane *p = (ComplexPlane *) data;
+  p->polynomial_parameter = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
+}
 
 void insert_text_event_int(GtkEditable *editable, const gchar *text, gint length, gint *position, gpointer data){
   int i;
@@ -65,41 +111,48 @@ void insert_text_event_float(GtkEditable *editable, const gchar *text, gint leng
   }
 }
 
-void save_polynomial_member(GtkWidget *widget, gpointer data){
-  ComplexPlane *cp = (ComplexPlane *) data;
+void save_polynomial(GtkWidget *widget, GdkEventKey *event, gpointer data){
+  struct mainWindowData *widgets = (struct mainWindowData *) data;
+  for (int i = 0; i < polynomial_order + 2; i++){
+    polynomial[i] = strtod(gtk_entry_get_text(GTK_ENTRY(widgets->input_polynomial_settings_vector_real[i])), NULL) +
+                    strtod(gtk_entry_get_text(GTK_ENTRY(widgets->input_polynomial_settings_vector_imag[i])), NULL) * I;
+  }
+  #ifdef DEBUG_GUI
+  for (int i = 0; i < polynomial_order + 2; i++){
+    printf("%d: %f + %f I\n", i, strtod(gtk_entry_get_text(GTK_ENTRY(widgets->input_polynomial_settings_vector_real[i])), NULL),
+                                 strtod(gtk_entry_get_text(GTK_ENTRY(widgets->input_polynomial_settings_vector_imag[i])), NULL));
+  }
+  printf("\n");
+  #endif
 
-  const char *name = gtk_widget_get_name(widget);
-  char type = *name;
-  name;
-  int box = atoi(name + 1);
-
-  if (type == 'r'){
-    double old_imag = cimag(complex_plane_get_polynomial_member(cp, box));
-    complex_plane_set_polynomial_member(cp, strtod(gtk_entry_get_text(GTK_ENTRY(widget)), NULL) + old_imag * I, box);
-  } else {
-    double old_real = creal(complex_plane_get_polynomial_member(cp, box));
-    complex_plane_set_polynomial_member(cp, old_real + strtod(gtk_entry_get_text(GTK_ENTRY(widget)), NULL) * I, box);
+  if (event != NULL && strcmp(gdk_keyval_name (event->keyval), "Return") == 0){
+    draw_from_options(widget, data);
   }
 }
 
 void change_polynomial_order(GtkWidget *widget, GdkEventKey *event, gpointer data){
+  ComplexPlane *p = ((struct mainWindowData *) data)->complex_plane;
+  ComplexPlane *t = ((struct mainWindowData *) data)->thumbnail;
   if (strcmp(gdk_keyval_name (event->keyval), "Return") == 0){
-    ComplexPlane *p = ((struct mainWindowData *) data)->complex_plane;
-    ComplexPlane *t = ((struct mainWindowData *) data)->thumbnail;
-
     int order = atoi(gtk_entry_get_text(GTK_ENTRY(widget)));
-    complex_plane_set_polynomial_order(p, order);
-    complex_plane_set_polynomial_order(t, order);
-
+    if (polynomial != NULL){free(polynomial);}
+    polynomial = malloc(sizeof(complex double) * (order + 2));
+    polynomial_order = order;
+    p->polynomial_parameter = -1;
+    t->polynomial_parameter = -1;
+    for (int i = 0; i <= order + 1; i++){
+      polynomial[i] = 0;
+    }
     draw_main_window(widget, data);
   }
 }
 
 void save_plot_as(GtkWidget *widget, gpointer data){
-  ComplexPlane *cp = (ComplexPlane *) data;
+  struct mainWindowData *widgets = (struct mainWindowData *) data;
+  ComplexPlane *cp = widgets->complex_plane;
   GtkWidget *dialog;
   dialog = gtk_file_chooser_dialog_new("Save File",
-                                      NULL,
+                                      GTK_WINDOW(widgets->window),
                                       GTK_FILE_CHOOSER_ACTION_SAVE,
                                       "_Cancel", GTK_RESPONSE_CANCEL,
                                       "_Open", GTK_RESPONSE_ACCEPT,
@@ -122,11 +175,8 @@ void render_video(GtkWidget *widget, gpointer data){
   double fps = 60;
   int frames;
 
-  ComplexPlane *cp_old = ((struct genVideoData*)data)->cp;
-
-  ComplexPlane *cp;
-  complex_plane_copy(&cp, cp_old);
-
+  ComplexPlane *cp = ((struct genVideoData*)data)->data->complex_plane;
+  struct mainWindowData *main_data = ((struct genVideoData*)data)->data;
   GtkWidget **widgets = ((struct genVideoData*)data)->option_widgets;
 
   const char *folder = gtk_entry_get_text(GTK_ENTRY(widgets[8]));
@@ -174,20 +224,18 @@ void render_video(GtkWidget *widget, gpointer data){
     printf("Frame %d of %d... %.2f%% saving in %s", i, frames, ((double) i / (double) frames) * 100, framename);
     fflush(stdout);
 
-    complex_plane_set_spanx(cp, complex_plane_get_spanx(cp) * zoomratio);
-    complex_plane_set_spany(cp, complex_plane_get_spany(cp) * zoomratio);
-    complex_plane_gen_plot(cp);
-    lodepng_encode24_file(framename, complex_plane_get_plot(cp), w, h);
+    complex_plane_set_spanx(main_data->complex_plane, complex_plane_get_spanx(main_data->complex_plane) * zoomratio);
+    complex_plane_set_spany(main_data->complex_plane, complex_plane_get_spany(main_data->complex_plane) * zoomratio);
+    gen_plot(widget, false, (gpointer) main_data);
+    lodepng_encode24_file(framename, cp->plot, cp->w, cp->h);
   }
   printf("\nDone!\n");
 
 }
 
 void generate_video_zoom(GtkWidget *widget, gpointer data){
+  struct mainWindowData *widgets = (struct mainWindowData *) data;
   struct genVideoData *videodata = malloc(sizeof(struct genVideoData));
-
-  ComplexPlane *cp_old = (ComplexPlane *) data;
-
   GtkWindow *zoom_window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
   gtk_window_set_title(GTK_WINDOW(zoom_window), "Generate zoom video");
   gtk_window_set_resizable(GTK_WINDOW(zoom_window), false);
@@ -243,8 +291,8 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   GtkWidget *button_config_span_set_ratio;
   GtkWidget **entry_choose_spans = malloc(sizeof(GtkWidget *)*4);
   for (int i = 0; i < 4; i++){entry_choose_spans[i] = gtk_entry_new(); gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_spans[i]), default_entry_size);}
-  gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[0]), g_strdup_printf("%.16g", complex_plane_get_spanx(cp_old), NULL));
-  gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[1]), g_strdup_printf("%.16g", complex_plane_get_spany(cp_old), NULL));
+  gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[0]), g_strdup_printf("%.16g", complex_plane_get_spanx(widgets->complex_plane), NULL));
+  gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[1]), g_strdup_printf("%.16g", complex_plane_get_spany(widgets->complex_plane), NULL));
   gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[2]), "1e-15");
   gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[3]), "1e-15");
   button_config_span_set_ratio = gtk_button_new_with_label("Lock ratio");
@@ -266,8 +314,8 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   GtkWidget **entry_choose_center_point = malloc(sizeof(GtkWidget *) *2);
   entry_choose_center_point[0] = gtk_entry_new(); gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_center_point[0]), default_entry_size);
   entry_choose_center_point[1] = gtk_entry_new(); gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_center_point[1]), default_entry_size);
-  gtk_entry_set_text(GTK_ENTRY(entry_choose_center_point[0]), g_strdup_printf("%.16g", complex_plane_get_center_real(cp_old)));
-  gtk_entry_set_text(GTK_ENTRY(entry_choose_center_point[1]), g_strdup_printf("%.16g", complex_plane_get_center_imag(cp_old)));
+  gtk_entry_set_text(GTK_ENTRY(entry_choose_center_point[0]), g_strdup_printf("%.16g", complex_plane_get_center_real(widgets->complex_plane)));
+  gtk_entry_set_text(GTK_ENTRY(entry_choose_center_point[1]), g_strdup_printf("%.16g", complex_plane_get_center_imag(widgets->complex_plane)));
 
   config_center_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
   gtk_box_pack_start(GTK_BOX(config_center_hbox), label_choose_center_point, false, false, 0);
@@ -328,7 +376,7 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   video_input_widgets[9] = file_input;
 
   videodata->option_widgets = video_input_widgets;
-  videodata->cp = cp_old;
+  videodata->data = widgets;
 
   g_signal_connect(button_begin_render, "clicked", G_CALLBACK(render_video), (gpointer) videodata);
 
@@ -382,77 +430,88 @@ void input_center1_handler(GtkWidget *w, GdkEventKey *event, gpointer data){
 }
 void combo_plot_type_handler(GtkWidget *w, gpointer data){
   ComplexPlane *cp = (ComplexPlane *) data;
-  if (complex_plane_get_id(cp) == COMPLEX_PLANE_THUMBNAIL_ID){  //This complex plane is our thumbnail which has oposite plot type
-    if (strcmp(gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(w)), "parameter_space") == 0){
-      complex_plane_set_plot_type(cp, "rec_f");
-    } else {
-      complex_plane_set_plot_type(cp, "parameter_space");
-    }
-  } else {  //Main complex plane
-    complex_plane_set_plot_type(cp, gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(w)));
-  }
+  cp->plot_type = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(w));
 }
-void combo_function_type_handler(GtkWidget *w, gpointer data){
-  // struct mainWindowData *widgets = (struct mainWindowData *) data;
-  int function_type = gtk_combo_box_get_active(GTK_COMBO_BOX(w));
 
-  ComplexPlane *cp = (ComplexPlane *) data;
-  complex_plane_set_function_type(cp, function_type);
-
-  ////TODO: Fix being able to draw main widnow from here
-  //draw_main_window(widget, data);
-}
-void combo_polynomial_parameter_handler(GtkWidget *widget, gpointer data){
-  ComplexPlane *p = (ComplexPlane *) data;
-  if (complex_plane_set_polynomial_parameter(p, gtk_combo_box_get_active(GTK_COMBO_BOX(widget))) == -1){
-    printf("Error changing polynomial parameter!\n");
-  }
-}
-void toggle_draw_complex_plane_handler(GtkWidget *widget, gpointer data){
-  ComplexPlane *cp = (ComplexPlane *) data;
-  complex_plane_set_drawing_active(cp, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
-}
-void toggle_draw_lines_handler(GtkWidget *widget, gpointer data){
-  ComplexPlane *cp = (ComplexPlane *) data;
-  complex_plane_set_drawing_lines_active(cp, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
-}
-void save_polynomial_handler(GtkWidget *widget, GdkEventKey *event, gpointer data){
-  ComplexPlane **planes = (ComplexPlane **) data;
-
-  save_polynomial_member(widget, planes[0]);
-  save_polynomial_member(widget, planes[1]);
-
-  if (event != NULL && strcmp(gdk_keyval_name (event->keyval), "Return") == 0){
-    draw_from_options(widget, data);
-  }
-}
-void button_mandelbrot_handler(GtkWidget *widget, gpointer data){
-  ComplexPlane **planes = (ComplexPlane **) data;
-  ComplexPlane *cp = planes[0];
-
-  GtkWindow *window = GTK_WINDOW(gtk_widget_get_toplevel(widget));
+void gen_plot(GtkWidget *widget, _Bool gen_default, gpointer data){
   int w, h;
+  GtkWindow *window = GTK_WINDOW(gtk_widget_get_toplevel(widget));
   gtk_window_get_size(window, &w, &h);
 
-  complex_plane_set_dimensions(cp, fmax(w-385, 0), h);
-  complex_plane_set_mandelbrot_parameters(cp);
+  struct mainWindowData *widgets = (struct mainWindowData *) data;
+  ComplexPlane *cp = widgets->complex_plane;
 
-  complex_plane_gen_plot(cp);
+  if (widgets->complex_plane == NULL){
+    widgets->complex_plane = complex_plane_new(NULL);
+  }
 
-  draw_main_window(widget, data);
+  double SpanXmin;
+  double SpanYmin;
+  double ratio;
+  if (gen_default){
+    complex_plane_set_dimensions(cp, fmax(w-385, 0), h);
+    complex_plane_set_mandelbrot_parameters(cp);
+  }
+
+  complex_plane_free_plot(cp);
+  complex_plane_free_drawn_plot(cp);
+
+  #ifdef DEBUG_GUI
+  printf("Spans: %f %f | %f %f\n", complex_plane_get_spanx0(cp),
+                                   complex_plane_get_spanx1(cp),
+                                   complex_plane_get_spany0(cp),
+                                   complex_plane_get_spany1(cp));
+
+  #endif
+
+  switch(function_type){
+    case 0:
+      widgets->complex_plane->plot = draw_julia(widgets->complex_plane->N,
+                                     complex_plane_get_height(cp),
+                                     complex_plane_get_width(cp),
+                                     widgets->complex_plane->param,
+                                     widgets->complex_plane->Sx,
+                                     widgets->complex_plane->Sy,
+                                     widgets->complex_plane->plot_type,
+                                     &(widgets->opencl), !(widgets->opencl->init));
+      break;
+    case 1:
+      if (polynomial_order != -1){
+        widgets->complex_plane->polynomial = polynomial;
+        widgets->complex_plane->polynomial_order = polynomial_order;
+        widgets->complex_plane->plot = draw_julia_polynomial(widgets->complex_plane->N,
+                                                    complex_plane_get_height(cp),
+                                                    complex_plane_get_width(cp),
+                                                    widgets->complex_plane->polynomial_order,
+                                                    widgets->complex_plane->polynomial,
+                                                    widgets->complex_plane->Sx,
+                                                    widgets->complex_plane->Sy,
+                                                    widgets->complex_plane->polynomial_parameter,
+                                                    &(widgets->opencl), !widgets->opencl->init);
+      }
+      break;
+    case 2:
+      if (polynomial_order != -1){
+        printf("WIP Newton's method\n");
+      }
+      break;
+  }
+
 }
 
 void draw_from_options(GtkWidget *widget, gpointer data){
   int w, h;
   struct mainWindowData *widgets = (struct mainWindowData *) data;
-
-  ComplexPlane *cp = widgets->complex_plane;
-
   GtkWindow *window = GTK_WINDOW(gtk_widget_get_toplevel(widget));
   gtk_window_get_size(window, &w, &h);
   complex_plane_set_dimensions(widgets->complex_plane, fmax(w-385, 0), h);
   complex_plane_adjust_span_ratio(widgets->complex_plane);
-  complex_plane_gen_plot(cp);
+  gen_plot(widget, false, data);
+  draw_main_window(widget, data);
+}
+
+void draw_default_mandelbrot(GtkWidget *widget, gpointer data){
+  gen_plot(widget, true, data);
   draw_main_window(widget, data);
 }
 
@@ -504,22 +563,63 @@ void zoom_button_handler(GtkWidget *widget, gpointer data){
 
 void draw_thumbnail_gui(GtkWidget *widget, double x, double y, gpointer data){
   GtkWindow *window = GTK_WINDOW(gtk_widget_get_toplevel(widget));
+  struct mainWindowData *widgets = (struct mainWindowData *) data;
 
-  ComplexPlane *cp_thumb = (ComplexPlane *) data;
-
+  int N_thumb = strtod(gtk_entry_get_text(GTK_ENTRY(widgets->input_thumbN)), NULL);
+  if (N_thumb == 0){
+    N_thumb = 50;
+  }
+  widgets->thumbnail->N = N_thumb;
   gtk_widget_destroy(thumb_img);
-  complex_plane_set_quadratic_parameter(cp_thumb, x + y*I);
+  complex_plane_set_quadratic_parameter(widgets->thumbnail, x + y*I);
+  // widgets->thumbnail->z[0] = x; widgets->thumbnail->z[1] = y;
+  switch(function_type){
+    case 0:
+      if (strcmp(widgets->complex_plane->plot_type, "parameter_space") == 0){
+        widgets->thumbnail->plot = draw_thumbnail(widgets->thumbnail->N,
+                                                  complex_plane_get_height(widgets->thumbnail),
+                                                  complex_plane_get_width(widgets->thumbnail),
+                                                  complex_plane_get_quadratic_parameter(widgets->thumbnail),
+                                                  "rec_f",
+                                                  &(widgets->opencl), !(widgets->opencl->init));
+      } else if (strcmp(widgets->complex_plane->plot_type, "rec_f") == 0){
+        widgets->thumbnail->plot = draw_thumbnail(widgets->thumbnail->N,
+                                                  complex_plane_get_height(widgets->thumbnail),
+                                                  complex_plane_get_width(widgets->thumbnail),
+                                                  complex_plane_get_quadratic_parameter(widgets->thumbnail),
+                                                  "parameter_space",
+                                                  &(widgets->opencl),
+                                                  !widgets->opencl->init);
+      }
+      break;
+    case 1:
+      if (polynomial_order != -1 && polynomial != NULL){
+        complex double *polynomial_th = malloc(sizeof(complex double) * (polynomial_order + 2));
+        for (int i = 0; i < polynomial_order + 2; i++){
+          polynomial_th[i] = polynomial[i];
+        }
 
-  complex_plane_gen_thumb(cp_thumb);
+        polynomial_th[widgets->complex_plane->polynomial_parameter] = x + y*I;
+        widgets->thumbnail->plot = draw_thumbnail_polynomial(widgets->thumbnail->N,
+                                                             widgets->thumbnail->h,
+                                                             widgets->thumbnail->w,
+                                                             polynomial_order,
+                                                             polynomial_th,
+                                                             widgets->thumbnail->polynomial_parameter,
+                                                             &(widgets->opencl),
+                                                             !widgets->opencl->init);
+      } else {
+        complex_plane_alloc_empty_plot(widgets->thumbnail);
+      }
+  }
 
-  int w = complex_plane_get_width(cp_thumb), h = complex_plane_get_height(cp_thumb), stride = complex_plane_get_stride(cp_thumb);
   GdkPixbuf *thumbBuf = gdk_pixbuf_new_from_data(
-      complex_plane_get_plot(cp_thumb),
+      widgets->thumbnail->plot,
       GDK_COLORSPACE_RGB,
       0,
       8,
-      w, h,
-      w * stride,
+      widgets->thumbnail->w, widgets->thumbnail->h,
+      widgets->thumbnail->w * 3,
       NULL, NULL);
   thumb_img = gtk_image_new_from_pixbuf(thumbBuf);
 
@@ -528,63 +628,57 @@ void draw_thumbnail_gui(GtkWidget *widget, double x, double y, gpointer data){
   gtk_widget_show_all(GTK_WIDGET(window));
 }
 
-void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data){
-  GtkWindow *window = GTK_WINDOW(gtk_widget_get_toplevel(event_box));
+void cp_mouse_handler(GtkWidget *widget, GdkEventButton *event, gpointer data){
+  GtkWindow *window = GTK_WINDOW(gtk_widget_get_toplevel(widget));
 
   struct mainWindowData *widgets = (struct mainWindowData *) data;
-
-  ComplexPlane *cp_thumb = widgets->thumbnail;
-  ComplexPlane *cp = widgets->complex_plane;
-
   char buffer[500];
   #ifdef DEBUG_GUI
   printf("%d\n", event->button);
   #endif
 
-  double w_ev = gtk_widget_get_allocated_width(event_box);
-  double h_ev = gtk_widget_get_allocated_height(event_box);
-  int w = complex_plane_get_width(cp), h = complex_plane_get_height(cp);
+  double w_ev = gtk_widget_get_allocated_width(widget);
+  double h_ev = gtk_widget_get_allocated_height(widget);
 
-  event->y = event->y + (h - h_ev)/2;
+  event->y = event->y + (widgets->complex_plane->h - h_ev)/2;
 
-  double x = (event->x-0)/(complex_plane_get_width(cp)-0)
-           * complex_plane_get_spanx(cp)
-           + complex_plane_get_spanx0(cp);
+  double x = (event->x-0)/(complex_plane_get_width(widgets->complex_plane)-0)
+           * complex_plane_get_spanx(widgets->complex_plane)
+           + complex_plane_get_spanx0(widgets->complex_plane);
 
-  double y = (-(event->y - complex_plane_get_height(cp))-0)
-           / (complex_plane_get_height(cp)-0)
-           * complex_plane_get_spany(cp)
-           + complex_plane_get_spany0(cp);
+  double y = (-(event->y - complex_plane_get_height(widgets->complex_plane))-0)
+           / (complex_plane_get_height(widgets->complex_plane)-0)
+           * complex_plane_get_spany(widgets->complex_plane)
+           + complex_plane_get_spany0(widgets->complex_plane);
 
   double point_clicked[2] = {x, y};
   gchar *point = g_strdup_printf("%.16g %+.16gi", x, y);
   gtk_label_set_text(GTK_LABEL(point_targeted), point);
 
 
-  if (complex_plane_is_drawing_active(cp_thumb)){
-    complex_plane_alloc_empty_plot(cp_thumb);
-    if (!complex_plane_polynomial_is_null(cp_thumb)){
-      complex_plane_set_polynomial_member(cp_thumb, x + y*I, complex_plane_get_polynomial_parameter(cp));
-    }
-    draw_thumbnail_gui(event_box, x, y, (gpointer) cp_thumb);
+  if (draw_thumbnails_bool){
+    complex_plane_alloc_empty_plot(widgets->thumbnail);
+    draw_thumbnail_gui(widget, x, y, data);
   }
 
   switch (event->button){
     case 0:
-      if (complex_plane_zoom_point1_is_null(cp)){
-        if (complex_plane_is_drawing_lines_active(cp)){
-          draw_sequence(event_box, event, data);
+      if (widgets->zoom_point1[0] == NULL){
+        if (draw_lines_bool){
+          draw_sequence(widget, event, data);
         }
       } else {
-        draw_box(event_box, event, (gpointer) cp);
+        draw_box(widget, event, data);
       }
       break;
     case 1:
-      if (complex_plane_zoom_point1_is_null(cp)){
+      if (widgets->zoom_point1[0] == NULL){
         if (event->type != GDK_BUTTON_PRESS){
           break;
         }
-        complex_plane_set_zoom_point1(cp, x, y);
+        widgets->zoom_point1[0] = malloc(sizeof(double));
+        widgets->zoom_point1[1] = malloc(sizeof(double));
+        *widgets->zoom_point1[0] = x; *widgets->zoom_point1[1] = y;
 
         draw_main_window(GTK_WIDGET(window), data);
 
@@ -596,93 +690,116 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
         if (event->type != GDK_BUTTON_RELEASE){
           break;
         }
-        complex_plane_set_zoom_point2(cp, x, y);
+        widgets->zoom_point2[0] = malloc(sizeof(double));
+        widgets->zoom_point2[1] = malloc(sizeof(double));
+        *widgets->zoom_point2[0] = x; *widgets->zoom_point2[1] = y;
         #ifdef DEBUG_GUI
         printf("Second zoom point: %.16g %.16g\n", x, y);
         #endif
 
-        complex_plane_zoom_points_normalize(cp);
+        double aux;
+        if (*widgets->zoom_point1[0] > *widgets->zoom_point2[0]){
+          aux = *widgets->zoom_point1[0];
+          *widgets->zoom_point1[0] = *widgets->zoom_point2[0];
+          *widgets->zoom_point2[0] = aux;
+        }
+        if (*widgets->zoom_point1[1] > *widgets->zoom_point2[1]){
+          aux = *widgets->zoom_point1[1];
+          *widgets->zoom_point1[1] = *widgets->zoom_point2[1];
+          *widgets->zoom_point2[1] = aux;
+        }
 
-        double newspanx = complex_plane_zoom_point_get_spanx(cp);
-        double newspany = complex_plane_zoom_point_get_spany(cp);
+        double newspanx = *widgets->zoom_point2[0] - *widgets->zoom_point1[0];
+        double newspany = *widgets->zoom_point2[1] - *widgets->zoom_point1[1];
 
         if (newspanx == 0 && newspany == 0){
-          complex_plane_free_zoom_point1(cp);
-          complex_plane_free_zoom_point2(cp);
+          free(widgets->zoom_point1[0]);
+          free(widgets->zoom_point1[1]);
+          free(widgets->zoom_point2[0]);
+          free(widgets->zoom_point2[1]);
+          widgets->zoom_point1[0] = NULL;
+          widgets->zoom_point1[1] = NULL;
+          widgets->zoom_point2[0] = NULL;
+          widgets->zoom_point2[1] = NULL;
           break;
         }
 
-        complex_plane_zoom_points_set_center(cp);
+        complex_plane_set_center(widgets->complex_plane,
+                               ((*widgets->zoom_point2[0] + *widgets->zoom_point1[0])/2)
+                             + ((*widgets->zoom_point2[1] + *widgets->zoom_point1[1])/2)*I);
 
-        complex_plane_set_spanx(cp, newspanx);
-        complex_plane_set_spany(cp, newspany);
-        complex_plane_adjust_span_ratio(cp);
+        complex_plane_set_spanx(widgets->complex_plane, newspanx);
+        complex_plane_set_spany(widgets->complex_plane, newspany);
+        complex_plane_adjust_span_ratio(widgets->complex_plane);
 
-        draw_from_options(event_box, data);
+        draw_from_options(widget, data);
 
-        complex_plane_free_zoom_point1(cp);
-        complex_plane_free_zoom_point2(cp);
+        free(widgets->zoom_point1[0]);
+        free(widgets->zoom_point1[1]);
+        free(widgets->zoom_point2[0]);
+        free(widgets->zoom_point2[1]);
+        widgets->zoom_point1[0] = NULL;
+        widgets->zoom_point1[1] = NULL;
+        widgets->zoom_point2[0] = NULL;
+        widgets->zoom_point2[1] = NULL;
       }
       break;
     case 2:   //Move center to point clicked with middle button
-      complex_plane_set_center(cp, x + y*I);
-      draw_from_options(event_box, data);
+      complex_plane_set_center(widgets->complex_plane, x + y*I);
+      draw_from_options(widget, data);
       break;
     case 3:   //Plot from point clicked with right button
-      complex_plane_set_default_spans(cp);
-      complex_plane_set_center(cp, 0);
-      switch (complex_plane_get_function_type(cp)){
+      complex_plane_set_default_spans(widgets->complex_plane);
+      complex_plane_set_center(widgets->complex_plane, 0);
+      switch (function_type){
         case 0:
-          complex_plane_set_quadratic_parameter(cp, x + y*I);
+          complex_plane_set_quadratic_parameter(widgets->complex_plane, x + y*I);
 
-          if (strcmp(complex_plane_get_plot_type(cp, NULL), "parameter_space") == 0){
-            complex_plane_set_plot_type(cp, "rec_f");
-            complex_plane_set_plot_type(cp_thumb, "parameter_space");
-          } else if (strcmp(complex_plane_get_plot_type(cp, NULL), "rec_f") == 0){
-            complex_plane_set_plot_type(cp, "parameter_space");
-            complex_plane_set_plot_type(cp_thumb, "rec_f");
+          if (strcmp(widgets->complex_plane->plot_type, "parameter_space") == 0){
+            gtk_combo_box_set_active(GTK_COMBO_BOX(widgets->input_plot_type), 1);
+          } else if (strcmp(widgets->complex_plane->plot_type, "rec_f") == 0){
+            gtk_combo_box_set_active(GTK_COMBO_BOX(widgets->input_plot_type), 0);
           }
 
-          draw_from_options(event_box, data);
-
+          draw_from_options(widget, data);
           break;
         case 1:
-          int cp_par = complex_plane_get_polynomial_parameter(cp);
-          int th_par = complex_plane_get_polynomial_parameter(cp_thumb);
-          complex_plane_set_polynomial_member(cp, x + y*I, cp_par);
-          complex_plane_set_polynomial_parameter(cp, th_par);
-          complex_plane_set_polynomial_parameter(cp_thumb, cp_par);
-          draw_from_options(event_box, data);
+          sprintf(buffer, "%.16g", x);
+          gtk_entry_set_text(GTK_ENTRY(widgets->input_polynomial_settings_vector_real[widgets->complex_plane->polynomial_parameter]), buffer);
+          sprintf(buffer, "%.16g", y);
+          gtk_entry_set_text(GTK_ENTRY(widgets->input_polynomial_settings_vector_imag[widgets->complex_plane->polynomial_parameter]), buffer);
+          widgets->complex_plane->polynomial[widgets->complex_plane->polynomial_parameter] = x + y*I;
+          gtk_combo_box_set_active(GTK_COMBO_BOX(widgets->combo_polynomial_parameter), gtk_combo_box_get_active(GTK_COMBO_BOX(widgets->combo_polynomial_parameter_thumb)));
+          draw_from_options(widget, data);
       }
       break;
   }
 }
 
-void draw_box(GtkWidget *event_box, GdkEventButton *event, gpointer data){
-  ComplexPlane *cp = (ComplexPlane *) data;
+void draw_box(GtkWidget *window, GdkEventButton *event, gpointer data){
+  struct mainWindowData *widgets = (struct mainWindowData *) data;
+  ComplexPlane *cp = widgets->complex_plane;
 
   int x0 = event->x;
   int y0 = event->y;
   int w = complex_plane_get_width(cp), h = complex_plane_get_height(cp);
   double spanx = complex_plane_get_spanx(cp), spany = complex_plane_get_spany(cp);
-
-  int x1 = complex_plane_zoom_point1_get_pixel_value_x(cp);
-  int y1 = complex_plane_zoom_point1_get_pixel_value_y(cp);
+  int x1 = (int) floor((*widgets->zoom_point1[0] - complex_plane_get_spanx0(cp)) / spanx * w);
+  int y1 = (int) floor((-(*widgets->zoom_point1[1] - 2*complex_plane_get_center_imag(cp))
+                        - complex_plane_get_spany0(widgets->complex_plane)) / spany * h);
 
   complex_plane_alloc_drawn_plot(cp);
   complex_plane_copy_plot(cp);
 
-  unsigned char *drawn_plot = complex_plane_get_drawn_plot(cp);
+  draw_line(widgets->complex_plane->drawn_plot, x0, y0, x0, y1, w, h);
+  draw_line(widgets->complex_plane->drawn_plot, x0, y0, x1, y0, w, h);
+  draw_line(widgets->complex_plane->drawn_plot, x0, y1, x1, y1, w, h);
+  draw_line(widgets->complex_plane->drawn_plot, x1, y0, x1, y1, w, h);
 
-  draw_line(drawn_plot, x0, y0, x0, y1, w, h);
-  draw_line(drawn_plot, x0, y0, x1, y0, w, h);
-  draw_line(drawn_plot, x0, y1, x1, y1, w, h);
-  draw_line(drawn_plot, x1, y0, x1, y1, w, h);
-
-  clear_container(event_box);
+  clear_container(window);
 
   GdkPixbuf *mandelbrotBuf = gdk_pixbuf_new_from_data(
-      drawn_plot,
+      widgets->complex_plane->drawn_plot,
       GDK_COLORSPACE_RGB,
       0,
       8,
@@ -690,8 +807,8 @@ void draw_box(GtkWidget *event_box, GdkEventButton *event, gpointer data){
       w * 3,
       NULL, NULL);
   GtkWidget *image = gtk_image_new_from_pixbuf(mandelbrotBuf);
-  gtk_container_add(GTK_CONTAINER(event_box), image);
-  gtk_widget_show_all(GTK_WIDGET(event_box));
+  gtk_container_add(GTK_CONTAINER(window), image);
+  gtk_widget_show_all(GTK_WIDGET(window));
   complex_plane_free_drawn_plot(cp);
 }
 
@@ -712,16 +829,17 @@ void draw_sequence(GtkWidget *window, GdkEventButton *event, gpointer data){
 
   double p[2] = {x, y};
 
+  // widgets->complex_plane->drawn_plot = malloc(w*h*3);
   complex_plane_alloc_drawn_plot(cp);
   complex_plane_copy_plot(cp);
 
-  switch(complex_plane_get_function_type(cp)){
+  switch(function_type){
     case 0:
       draw_sequence_lines(widgets->complex_plane, p, w, h);
       break;
     case 1:
-      if (complex_plane_get_polynomial_order(cp) != -1){
-        draw_sequence_lines_polynomial(widgets->complex_plane, complex_plane_get_polynomial(cp), complex_plane_get_polynomial_order(cp), p, w, h);
+      if (polynomial_order != -1){
+        draw_sequence_lines_polynomial(widgets->complex_plane, polynomial, polynomial_order, p, w, h);
       }
       break;
   }
@@ -747,23 +865,21 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   clear_container(GTK_WIDGET(window));
 
   struct mainWindowData *main_data = (struct mainWindowData *) data;
-  ComplexPlane **complex_planes = (ComplexPlane **) data;
+  main_data->input_polynomial_settings_vector_real = NULL;
+  main_data->input_polynomial_settings_vector_imag = NULL;
 
-  ComplexPlane *cp = main_data->complex_plane;
-  ComplexPlane *cp_thumb = main_data->thumbnail;
-
-  //Generate complex_plane
-  if (cp == NULL){
-    complex_planes[0] = complex_plane_new(&cp);
-
-    int w, h;
-    gtk_window_get_size(window, &w, &h);
-
-    complex_plane_set_dimensions(cp, fmax(w-385, 0), h);
-    complex_plane_set_mandelbrot_parameters(cp);
-
-    complex_plane_gen_plot(cp);
+  if (main_data->menu == NULL){
+    main_data->menu = malloc(sizeof(mainMenu));
   }
+
+ //Generate complex_plane
+ if (main_data->complex_plane == NULL){
+   main_data->complex_plane = malloc(sizeof(ComplexPlane));
+   main_data->complex_plane->plot = NULL;
+   main_data->complex_plane->drawn_plot = NULL;
+   main_data->complex_plane->polynomial_parameter = -1;
+   gen_plot(widget, true, (gpointer) main_data);
+ }
 
   gint w, h;
   gtk_window_get_size(window, &w, &h);
@@ -779,11 +895,6 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   GtkWidget *input_spany;
   GtkWidget *input_center0;
   GtkWidget *input_center1;
-  GtkWidget *input_plot_type;
-
-  GtkWidget *combo_function_type;
-
-  GtkWidget *check_draw_lines;
 
   GtkWidget *hbox;
   GtkWidget *scroll_box;
@@ -813,25 +924,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   GtkWidget *polynomial_config_hbox;
   GtkWidget *polynomial_order_box;
 
-  GtkWidget *combo_polynomial_parameter;
-  GtkWidget *combo_polynomial_parameter_thumb;
-
   GtkWidget *plot_options_label;
-
-  //Menu
-  GtkWidget *menu_menubar;
-
-  //File menu
-  GtkWidget *menu_filemenu;
-  GtkWidget *menu_fileMi;
-  GtkWidget *menu_button_quit;
-  GtkWidget *menu_button_save_plot;
-  GtkWidget *menu_button_render_video;
-
-
-
-
-
 
   //Initialize input widgets
   input_N = gtk_entry_new();
@@ -841,11 +934,11 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   input_center0 = gtk_entry_new();
   input_center1 = gtk_entry_new();
 
-  input_plot_type = gtk_combo_box_text_new();
+  main_data->input_plot_type = gtk_combo_box_text_new();
   input_spanx = gtk_entry_new();
   input_spany = gtk_entry_new();
 
-  combo_function_type = gtk_combo_box_text_new();
+  main_data->combo_function_type = gtk_combo_box_text_new();
 
   point_targeted = gtk_label_new("0 + 0i");
 
@@ -866,25 +959,25 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   zoom_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 
   //Main menu
-  menu_menubar = gtk_menu_bar_new();
-  menu_filemenu = gtk_menu_new();
+  main_data->menu->menubar = gtk_menu_bar_new();
+  main_data->menu->filemenu = gtk_menu_new();
 
   //File submenu
-  menu_fileMi = gtk_menu_item_new_with_label("File");
-  menu_button_quit = gtk_menu_item_new_with_label("Quit");
-  gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_fileMi), menu_filemenu);
-  gtk_menu_shell_append(GTK_MENU_SHELL(menu_menubar), menu_fileMi);
-  g_signal_connect(menu_button_quit, "activate", G_CALLBACK(quit_app), NULL);
+  main_data->menu->fileMi = gtk_menu_item_new_with_label("File");
+  main_data->menu->button_quit = gtk_menu_item_new_with_label("Quit");
+  gtk_menu_item_set_submenu(GTK_MENU_ITEM(main_data->menu->fileMi), main_data->menu->filemenu);
+  gtk_menu_shell_append(GTK_MENU_SHELL(main_data->menu->menubar), main_data->menu->fileMi);
+  g_signal_connect(main_data->menu->button_quit, "activate", G_CALLBACK(quit_app), NULL);
 
-  menu_button_save_plot = gtk_menu_item_new_with_label("Save plot as...");
-  g_signal_connect(menu_button_save_plot, "activate", G_CALLBACK(save_plot_as), (gpointer) cp);
+  main_data->menu->button_save_plot = gtk_menu_item_new_with_label("Save plot as...");
+  g_signal_connect(main_data->menu->button_save_plot, "activate", G_CALLBACK(save_plot_as), (gpointer) main_data);
 
-  menu_button_render_video = gtk_menu_item_new_with_label("Generate video zoom");
-  g_signal_connect(menu_button_render_video, "activate", G_CALLBACK(generate_video_zoom), (gpointer) cp);
+  main_data->menu->button_gen_video = gtk_menu_item_new_with_label("Generate video zoom");
+  g_signal_connect(main_data->menu->button_gen_video, "activate", G_CALLBACK(generate_video_zoom), (gpointer) main_data);
 
-  gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_button_save_plot);
-  gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_button_render_video);
-  gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_button_quit);
+  gtk_menu_shell_append(GTK_MENU_SHELL(main_data->menu->filemenu), main_data->menu->button_save_plot);
+  gtk_menu_shell_append(GTK_MENU_SHELL(main_data->menu->filemenu), main_data->menu->button_gen_video);
+  gtk_menu_shell_append(GTK_MENU_SHELL(main_data->menu->filemenu), main_data->menu->button_quit);
 
 
   //Iter box
@@ -894,8 +987,8 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_widget_set_tooltip_text(input_N_line, "Number of iterations to plot");
   gtk_box_pack_start(GTK_BOX(iter_box), input_N, true, false, 0);
   gtk_box_pack_start(GTK_BOX(iter_box), input_N_line, true, false, 0);
-  g_signal_connect(input_N, "key-release-event", G_CALLBACK(input_N_handler), (gpointer) cp);
-  g_signal_connect(input_N_line, "key-release-event", G_CALLBACK(input_N_line_handler), (gpointer) cp);
+  g_signal_connect(input_N, "key-release-event", G_CALLBACK(input_N_handler), (gpointer) main_data->complex_plane);
+  g_signal_connect(input_N_line, "key-release-event", G_CALLBACK(input_N_line_handler), (gpointer) main_data->complex_plane);
 
   //Z box
   gtk_entry_set_placeholder_text(GTK_ENTRY(input_z0), "z0");
@@ -904,8 +997,8 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_widget_set_tooltip_text(input_z1, "Imag part of z");
   gtk_box_pack_start(GTK_BOX(z_box), input_z0, true, false, 0);
   gtk_box_pack_start(GTK_BOX(z_box), input_z1, true, false, 0);
-  g_signal_connect(input_z0, "key-release-event", G_CALLBACK(input_z0_handler), (gpointer) cp);
-  g_signal_connect(input_z1, "key-release-event", G_CALLBACK(input_z1_handler), (gpointer) cp);
+  g_signal_connect(input_z0, "key-release-event", G_CALLBACK(input_z0_handler), (gpointer) main_data->complex_plane);
+  g_signal_connect(input_z1, "key-release-event", G_CALLBACK(input_z1_handler), (gpointer) main_data->complex_plane);
 
   //Center box
   gtk_entry_set_placeholder_text(GTK_ENTRY(input_center0), "Center0");
@@ -914,37 +1007,36 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_widget_set_tooltip_text(input_center1, "Imag part of center");
   gtk_box_pack_start(GTK_BOX(center_box), input_center0, true, false, 0);
   gtk_box_pack_start(GTK_BOX(center_box), input_center1, true, false, 0);
-  g_signal_connect(input_center0, "key-release-event", G_CALLBACK(input_center0_handler), (gpointer) cp);
-  g_signal_connect(input_center1, "key-release-event", G_CALLBACK(input_center1_handler), (gpointer) cp);
+  g_signal_connect(input_center0, "key-release-event", G_CALLBACK(input_center0_handler), (gpointer) main_data->complex_plane);
+  g_signal_connect(input_center1, "key-release-event", G_CALLBACK(input_center1_handler), (gpointer) main_data->complex_plane);
 
   //Span box
   gtk_box_pack_start(GTK_BOX(span_box), input_spanx, true, false, 0);
   gtk_box_pack_start(GTK_BOX(span_box), input_spany, true, false, 0);
   gtk_entry_set_placeholder_text(GTK_ENTRY(input_spanx), "Span X");
   gtk_entry_set_placeholder_text(GTK_ENTRY(input_spany), "Span Y");
-  g_signal_connect(GTK_ENTRY(input_spanx), "key-release-event", G_CALLBACK(input_spanx_handler), (gpointer) cp);
-  g_signal_connect(GTK_ENTRY(input_spany), "key-release-event", G_CALLBACK(input_spany_handler), (gpointer) cp);
+  g_signal_connect(GTK_ENTRY(input_spanx), "key-release-event", G_CALLBACK(input_spanx_handler), (gpointer) main_data->complex_plane);
+  g_signal_connect(GTK_ENTRY(input_spany), "key-release-event", G_CALLBACK(input_spany_handler), (gpointer) main_data->complex_plane);
   // g_signal_connect(G_OBJECT(main_data->input_spanx), "insert-text", G_CALLBACK(insert_text_event_float), NULL);
   // g_signal_connect(G_OBJECT(main_data->input_spany), "insert-text", G_CALLBACK(insert_text_event_float), NULL);
 
   //Plot type box
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_function_type), NULL, "Quadratic");
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_function_type), NULL, "Polynomial");
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_function_type), NULL, "Newton's Algorithm");
-  gtk_combo_box_set_active(GTK_COMBO_BOX(combo_function_type), complex_plane_get_function_type(cp));
-  gtk_widget_set_tooltip_text(combo_function_type, "Set type of function to plot");
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(input_plot_type), NULL, "parameter_space");
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(input_plot_type), NULL, "rec_f");
-  gtk_combo_box_set_active(GTK_COMBO_BOX(input_plot_type), 0);
-  gtk_widget_set_tooltip_text(input_plot_type, "parameter_space or rec_f");
-  gtk_box_pack_start(GTK_BOX(plot_type_box), combo_function_type, true, true, 0);
-  gtk_box_pack_start(GTK_BOX(plot_type_box), input_plot_type, true, true, 0);
-  gtk_widget_set_size_request(input_plot_type, 168, 20);
-  gtk_widget_set_size_request(combo_function_type, 168, 20);
-  g_signal_connect(combo_function_type, "changed", G_CALLBACK(combo_function_type_handler), (gpointer) cp);
-  g_signal_connect(combo_function_type, "changed", G_CALLBACK(combo_function_type_handler), (gpointer) cp_thumb);
-  g_signal_connect(input_plot_type, "changed", G_CALLBACK(combo_plot_type_handler), (gpointer) cp);
-  g_signal_connect(input_plot_type, "changed", G_CALLBACK(combo_plot_type_handler), (gpointer) cp_thumb);
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(main_data->combo_function_type), NULL, "Quadratic");
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(main_data->combo_function_type), NULL, "Polynomial");
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(main_data->combo_function_type), NULL, "Newton's Algorithm");
+  gtk_combo_box_set_active(GTK_COMBO_BOX(main_data->combo_function_type), function_type);
+  g_signal_connect(main_data->combo_function_type, "changed", G_CALLBACK(combo_function_type_handler), main_data);
+  g_signal_connect(main_data->input_plot_type, "changed", G_CALLBACK(combo_plot_type_handler), (gpointer) main_data->complex_plane);
+  gtk_widget_set_tooltip_text(main_data->combo_function_type, "Set type of function to plot");
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(main_data->input_plot_type), NULL, "parameter_space");
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(main_data->input_plot_type), NULL, "rec_f");
+  gtk_combo_box_set_active(GTK_COMBO_BOX(main_data->input_plot_type), 0);
+  gtk_widget_set_tooltip_text(main_data->input_plot_type, "parameter_space or rec_f");
+  gtk_box_pack_start(GTK_BOX(plot_type_box), main_data->combo_function_type, true, true, 0);
+  gtk_box_pack_start(GTK_BOX(plot_type_box), main_data->input_plot_type, true, true, 0);
+  gtk_widget_set_size_request(main_data->input_plot_type, 168, 20);
+  gtk_widget_set_size_request(main_data->combo_function_type, 168, 20);
+
 
   //Draw/Clear box
   button_draw = gtk_button_new_with_label("Draw");
@@ -962,22 +1054,22 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_widget_set_tooltip_text(button_zoomin, "Zoom in");
   gtk_widget_set_tooltip_text(button_zoomout, "Zoom out");
   int in = 1, out = -1;
-  g_signal_connect(button_zoomin, "clicked", G_CALLBACK(zoom_button_handler),  (gpointer) complex_planes);
-  g_signal_connect(button_zoomout, "clicked", G_CALLBACK(zoom_button_handler),  (gpointer) complex_planes);
+  g_signal_connect(button_zoomin, "clicked", G_CALLBACK(zoom_button_handler),  (gpointer) main_data);
+  g_signal_connect(button_zoomout, "clicked", G_CALLBACK(zoom_button_handler),  (gpointer) main_data);
   gtk_box_pack_start(GTK_BOX(zoom_box), button_zoomin, false, false, 0);
   gtk_box_pack_start(GTK_BOX(zoom_box), button_zoomout, false, false, 0);
 
   //Draw lines
-  check_draw_lines = gtk_check_button_new_with_mnemonic("Draw _lines");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_draw_lines), complex_plane_is_drawing_lines_active(cp));
-  g_signal_connect(check_draw_lines, "toggled", G_CALLBACK(toggle_draw_lines_handler), (gpointer) cp);
+  main_data->check_draw_lines = gtk_check_button_new_with_mnemonic("Draw _lines");
+  g_signal_connect(main_data->check_draw_lines, "toggled", G_CALLBACK(change_lines_state), NULL);
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(main_data->check_draw_lines), draw_lines_bool);
 
   //Zoom/Lines box
   gtk_box_pack_start(GTK_BOX(zoom_lines_box), zoom_box, false, false, 0);
-  gtk_box_pack_start(GTK_BOX(zoom_lines_box), check_draw_lines, false, false, 0);
+  gtk_box_pack_start(GTK_BOX(zoom_lines_box), main_data->check_draw_lines, false, false, 0);
 
   //Populate options box
-  gtk_box_pack_start(GTK_BOX(options_box), menu_menubar, true, false, 0);
+  gtk_box_pack_start(GTK_BOX(options_box), main_data->menu->menubar, true, false, 0);
   plot_options_label = gtk_label_new("Plot options");
   gtk_box_pack_start(GTK_BOX(options_box), plot_options_label, true, false, 5);
   gtk_box_pack_start(GTK_BOX(options_box), iter_box, true, false, 0);
@@ -988,17 +1080,14 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_box_pack_start(GTK_BOX(options_box), draw_apply_box, true, false, 0);
   gtk_box_pack_start(GTK_BOX(options_box), zoom_lines_box, true, false, 0);
 
-
-  switch (complex_plane_get_function_type(cp)){
+  switch (function_type){
     case 0:   //Quadratic
       button_mandelbrot = gtk_button_new_with_label("Default Mandelbrot");
       gtk_widget_set_tooltip_text(button_mandelbrot, "Generate and plot Mandelbrot Set");
-      g_signal_connect(button_mandelbrot, "clicked", G_CALLBACK(button_mandelbrot_handler), (gpointer) complex_planes);
+      g_signal_connect(button_mandelbrot, "clicked", G_CALLBACK(draw_default_mandelbrot), (gpointer) main_data);
       break;
     case 1:   //Polynomial
     case 2:
-      int polynomial_order = complex_plane_get_polynomial_order(cp);
-
       polynomial_config_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
       polynomial_order_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 
@@ -1010,53 +1099,45 @@ void draw_main_window(GtkWidget *widget, gpointer data){
       g_signal_connect(input_polynomial_order, "key-release-event", G_CALLBACK(change_polynomial_order), (gpointer) main_data);
 
       if (polynomial_order > 0){
-        GtkWidget **input_polynomial_settings_vector_real;
-        GtkWidget **input_polynomial_settings_vector_imag;
-
-        const complex double *polynomial = complex_plane_get_polynomial(cp);
-
         gtk_entry_set_text(GTK_ENTRY(input_polynomial_order), g_strdup_printf("%d", polynomial_order));
 
         //Create hbox for input values
         polynomial_config_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 
-        combo_polynomial_parameter = gtk_combo_box_text_new();
-        combo_polynomial_parameter_thumb = gtk_combo_box_text_new();
+        main_data->combo_polynomial_parameter = gtk_combo_box_text_new();
+        main_data->combo_polynomial_parameter_thumb = gtk_combo_box_text_new();
 
-        input_polynomial_settings_vector_real = malloc(sizeof(GtkWidget) * (polynomial_order + 2));
-        input_polynomial_settings_vector_imag = malloc(sizeof(GtkWidget) * (polynomial_order + 2));
+        main_data->input_polynomial_settings_vector_real = malloc(sizeof(GtkWidget) * (polynomial_order + 2));
+        main_data->input_polynomial_settings_vector_imag = malloc(sizeof(GtkWidget) * (polynomial_order + 2));
         for (int i = 0; i < polynomial_order + 2; i++){
           GtkWidget *polynomial_settings_input_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
-          input_polynomial_settings_vector_real[i] = gtk_entry_new();
-          input_polynomial_settings_vector_imag[i] = gtk_entry_new();
-          gtk_entry_set_placeholder_text(GTK_ENTRY(input_polynomial_settings_vector_real[i]), "Real");
-          gtk_entry_set_placeholder_text(GTK_ENTRY(input_polynomial_settings_vector_imag[i]), "Imag");
-          gtk_entry_set_width_chars(GTK_ENTRY(input_polynomial_settings_vector_real[i]), 5);
-          gtk_entry_set_width_chars(GTK_ENTRY(input_polynomial_settings_vector_imag[i]), 5);
-          gtk_box_pack_start(GTK_BOX(polynomial_settings_input_vbox), input_polynomial_settings_vector_real[i], false, false, 0);
-          gtk_box_pack_start(GTK_BOX(polynomial_settings_input_vbox), input_polynomial_settings_vector_imag[i], false, false, 0);
-          g_signal_connect(G_OBJECT(input_polynomial_settings_vector_real[i]), "insert-text", G_CALLBACK(insert_text_event_float), NULL);
-          g_signal_connect(G_OBJECT(input_polynomial_settings_vector_imag[i]), "insert-text", G_CALLBACK(insert_text_event_float), NULL);
-          g_signal_connect(G_OBJECT(input_polynomial_settings_vector_real[i]), "key_release_event", G_CALLBACK(save_polynomial_handler), (gpointer) complex_planes);
-          g_signal_connect(G_OBJECT(input_polynomial_settings_vector_imag[i]), "key_release_event", G_CALLBACK(save_polynomial_handler), (gpointer) complex_planes);
-          gtk_widget_set_name(input_polynomial_settings_vector_real[i], g_strdup_printf("r%d", i, NULL));
-          gtk_widget_set_name(input_polynomial_settings_vector_imag[i], g_strdup_printf("i%d", i, NULL));
+          main_data->input_polynomial_settings_vector_real[i] = gtk_entry_new();
+          main_data->input_polynomial_settings_vector_imag[i] = gtk_entry_new();
+          gtk_entry_set_placeholder_text(GTK_ENTRY(main_data->input_polynomial_settings_vector_real[i]), "Real");
+          gtk_entry_set_placeholder_text(GTK_ENTRY(main_data->input_polynomial_settings_vector_imag[i]), "Imag");
+          gtk_entry_set_width_chars(GTK_ENTRY(main_data->input_polynomial_settings_vector_real[i]), 5);
+          gtk_entry_set_width_chars(GTK_ENTRY(main_data->input_polynomial_settings_vector_imag[i]), 5);
+          gtk_box_pack_start(GTK_BOX(polynomial_settings_input_vbox), main_data->input_polynomial_settings_vector_real[i], false, false, 0);
+          gtk_box_pack_start(GTK_BOX(polynomial_settings_input_vbox), main_data->input_polynomial_settings_vector_imag[i], false, false, 0);
+          g_signal_connect(G_OBJECT(main_data->input_polynomial_settings_vector_real[i]), "insert-text", G_CALLBACK(insert_text_event_float), NULL);
+          g_signal_connect(G_OBJECT(main_data->input_polynomial_settings_vector_imag[i]), "insert-text", G_CALLBACK(insert_text_event_float), NULL);
+          g_signal_connect(G_OBJECT(main_data->input_polynomial_settings_vector_real[i]), "key_release_event", G_CALLBACK(save_polynomial), (gpointer) main_data);
+          g_signal_connect(G_OBJECT(main_data->input_polynomial_settings_vector_imag[i]), "key_release_event", G_CALLBACK(save_polynomial), (gpointer) main_data);
 
           if (polynomial != NULL){
             if (creal(polynomial[i]) != 0.0){
-              gtk_entry_set_text(GTK_ENTRY(input_polynomial_settings_vector_real[i]), g_strdup_printf("%.16g", creal(polynomial[i])));
+              gtk_entry_set_text(GTK_ENTRY(main_data->input_polynomial_settings_vector_real[i]), g_strdup_printf("%.16g", creal(polynomial[i])));
             }
             if (cimag(polynomial[i]) != 0.0){
-              gtk_entry_set_text(GTK_ENTRY(input_polynomial_settings_vector_imag[i]), g_strdup_printf("%.16g", cimag(polynomial[i])));
+              gtk_entry_set_text(GTK_ENTRY(main_data->input_polynomial_settings_vector_imag[i]), g_strdup_printf("%.16g", cimag(polynomial[i])));
             }
-            if (complex_plane_get_polynomial_parameter(cp) == i){
-              // gtk_entry_can_focus(GTK_ENTRY(input_polynomial_settings_vector_real[i]), false);
-              // gtk_entry_set_editable(GTK_ENTRY(input_polynomial_settings_vector_imag[i]), false);
+            if (main_data->complex_plane->polynomial_parameter == i){
+              // gtk_entry_can_focus(GTK_ENTRY(main_data->input_polynomial_settings_vector_real[i]), false);
+              // gtk_entry_set_editable(GTK_ENTRY(main_data->input_polynomial_settings_vector_imag[i]), false);
             }
           }
 
           gtk_box_pack_start(GTK_BOX(polynomial_config_hbox), polynomial_settings_input_vbox, true, false, 0);
-
 
           char buffer[10];
           //Set polynomial z labels
@@ -1081,8 +1162,8 @@ void draw_main_window(GtkWidget *widget, gpointer data){
             } else if (i == polynomial_order){
               sprintf(buffer, "c");
             }
-            gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_polynomial_parameter), NULL, buffer);
-            gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_polynomial_parameter_thumb), NULL, buffer);
+            gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(main_data->combo_polynomial_parameter), NULL, buffer);
+            gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(main_data->combo_polynomial_parameter_thumb), NULL, buffer);
           }
 
           //Populate parameter chosing combo box
@@ -1096,20 +1177,20 @@ void draw_main_window(GtkWidget *widget, gpointer data){
 
         gtk_box_pack_end(GTK_BOX(polynomial_config_vbox), polynomial_scroll_box, true, false, 0);
 
-        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_polynomial_parameter), NULL, "z");
-        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_polynomial_parameter_thumb), NULL, "z");
+        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(main_data->combo_polynomial_parameter), NULL, "z");
+        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(main_data->combo_polynomial_parameter_thumb), NULL, "z");
         gtk_entry_set_width_chars(GTK_ENTRY(input_polynomial_order), 5);
-        gtk_box_pack_end(GTK_BOX(polynomial_order_box), combo_polynomial_parameter, true, true, 0);
-        gtk_widget_set_tooltip_text(combo_polynomial_parameter, "Which parameter to plot");
-        gtk_widget_set_tooltip_text(combo_polynomial_parameter_thumb, "Which parameter to plot in thumbnails");
-        g_signal_connect(combo_polynomial_parameter, "changed", G_CALLBACK(combo_polynomial_parameter_handler), (gpointer) cp);
-        g_signal_connect(combo_polynomial_parameter_thumb, "changed", G_CALLBACK(combo_polynomial_parameter_handler), (gpointer) cp_thumb);
+        gtk_box_pack_end(GTK_BOX(polynomial_order_box), main_data->combo_polynomial_parameter, true, true, 0);
+        gtk_widget_set_tooltip_text(main_data->combo_polynomial_parameter, "Which parameter to plot");
+        gtk_widget_set_tooltip_text(main_data->combo_polynomial_parameter_thumb, "Which parameter to plot in thumbnails");
+        g_signal_connect(main_data->combo_polynomial_parameter, "changed", G_CALLBACK(change_polynomial_parameter), (gpointer) main_data->complex_plane);
+        g_signal_connect(main_data->combo_polynomial_parameter_thumb, "changed", G_CALLBACK(change_polynomial_parameter), (gpointer) main_data->thumbnail);
 
-        if (complex_plane_get_polynomial_parameter(cp) == -1){
-          complex_plane_set_polynomial_parameter(cp, polynomial_order);
-          gtk_combo_box_set_active(GTK_COMBO_BOX(combo_polynomial_parameter), polynomial_order);
+        if (main_data->complex_plane->polynomial_parameter == -1){
+          main_data->complex_plane->polynomial_parameter = polynomial_order;
+          gtk_combo_box_set_active(GTK_COMBO_BOX(main_data->combo_polynomial_parameter), polynomial_order);
         } else {
-          gtk_combo_box_set_active(GTK_COMBO_BOX(combo_polynomial_parameter), complex_plane_get_polynomial_parameter(cp));
+          gtk_combo_box_set_active(GTK_COMBO_BOX(main_data->combo_polynomial_parameter), main_data->complex_plane->polynomial_parameter);
         }
       }
 
@@ -1119,54 +1200,51 @@ void draw_main_window(GtkWidget *widget, gpointer data){
       gtk_box_pack_start(GTK_BOX(polynomial_config_vbox), polynomial_order_box, true, false, 0);
       break;
   }
+
   //Thumbnails
   gtk_box_pack_start(GTK_BOX(thumb_box), point_targeted, true, false, 0);
-  if (complex_plane_get_plot(cp_thumb) != NULL){
-    int w = complex_plane_get_width(cp_thumb), h = complex_plane_get_height(cp_thumb), stride = complex_plane_get_stride(cp_thumb);
+  if (main_data->thumbnail->plot != NULL){
     GdkPixbuf *thumbBuf = gdk_pixbuf_new_from_data(
-        complex_plane_get_plot(cp_thumb),
+        main_data->thumbnail->plot,
         GDK_COLORSPACE_RGB,
         0,
         8,
-        w, h,
-        w * stride,
+        main_data->thumbnail->w, main_data->thumbnail->h,
+        main_data->thumbnail->w * 3,
         NULL, NULL);
     thumb_img = gtk_image_new_from_pixbuf(thumbBuf);
 
-    //Widget declarations
-    GtkWidget *input_thumbN;
-    GtkWidget *check_draw_thumb;
 
     //Input iter
-    input_thumbN = gtk_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(input_thumbN), "Iter N");
-    gtk_widget_set_tooltip_text(input_thumbN, "Number of iterations to plot for thumbnails");
-    gchar *buffer = g_strdup_printf("%d", complex_plane_get_iterations(cp_thumb));
-    gtk_entry_set_text(GTK_ENTRY(input_thumbN), buffer);
-    g_signal_connect(GTK_ENTRY(input_thumbN), "key-release-event", G_CALLBACK(input_N_handler), (gpointer) cp_thumb);
+    main_data->input_thumbN = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(main_data->input_thumbN), "Iter N");
+    gtk_widget_set_tooltip_text(main_data->input_thumbN, "Number of iterations to plot for thumbnails");
+    gchar *buffer = g_strdup_printf("%d", main_data->thumbnail->N);
+    gtk_entry_set_text(GTK_ENTRY(main_data->input_thumbN), buffer);
 
     //Check draw_thumb
-    check_draw_thumb = gtk_check_button_new_with_mnemonic("Draw _thumbnails");
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_draw_thumb), complex_plane_is_drawing_active(cp_thumb));
-    g_signal_connect(check_draw_thumb, "toggled", G_CALLBACK(toggle_draw_complex_plane_handler), (gpointer) cp_thumb);
+    main_data->check_draw_thumb = gtk_check_button_new_with_mnemonic("Draw _thumbnails");
+    g_signal_connect(main_data->check_draw_thumb, "toggled", G_CALLBACK(change_thumbnail_state), NULL);
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(main_data->check_draw_thumb), draw_thumbnails_bool);
 
     //Thumb options box
-    gtk_box_pack_start(GTK_BOX(thumb_options_box), input_thumbN, true, false, 0);
-    gtk_box_pack_start(GTK_BOX(thumb_options_box), check_draw_thumb, true, false, 0);
+    gtk_box_pack_start(GTK_BOX(thumb_options_box), main_data->input_thumbN, true, false, 0);
+    gtk_box_pack_start(GTK_BOX(thumb_options_box), main_data->check_draw_thumb, true, false, 0);
 
     //Thumb box
     gtk_box_pack_start(GTK_BOX(thumb_box), thumb_img, true, false, 0);
     gtk_box_pack_end(GTK_BOX(thumb_box), thumb_options_box, true, false, 0);
 
-    if (complex_plane_get_polynomial_order(cp) > 0){
-      gtk_box_pack_start(GTK_BOX(thumb_options_box), combo_polynomial_parameter_thumb, true, false, 0);
-      gtk_entry_set_width_chars(GTK_ENTRY(input_thumbN), 5);
+    if (polynomial_order > 0){
+      gtk_box_pack_start(GTK_BOX(thumb_options_box), main_data->combo_polynomial_parameter_thumb, true, false, 0);
+      gtk_entry_set_width_chars(GTK_ENTRY(main_data->input_thumbN), 5);
 
-      if (complex_plane_get_polynomial_parameter(cp_thumb) == -1){
-        int order = complex_plane_get_polynomial_order(cp);
-        complex_plane_set_polynomial_parameter(cp_thumb, order + 1);
+      if (main_data->thumbnail->polynomial_parameter == -1){
+        main_data->thumbnail->polynomial_parameter = polynomial_order + 1;
+        gtk_combo_box_set_active(GTK_COMBO_BOX(main_data->combo_polynomial_parameter_thumb), polynomial_order + 1);
+      } else {
+        gtk_combo_box_set_active(GTK_COMBO_BOX(main_data->combo_polynomial_parameter_thumb), main_data->thumbnail->polynomial_parameter);
       }
-      gtk_combo_box_set_active(GTK_COMBO_BOX(combo_polynomial_parameter_thumb), complex_plane_get_polynomial_parameter(cp_thumb));
     }
   }
 
@@ -1180,7 +1258,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
 
  //Populate vbox
  gtk_box_pack_start(GTK_BOX(vbox), options_box, true, false, 0);
- switch (complex_plane_get_function_type(cp)){
+ switch (function_type){
    case 0:
      gtk_box_pack_start(GTK_BOX(vbox), button_mandelbrot, true, false, 0);
      break;
@@ -1192,31 +1270,30 @@ void draw_main_window(GtkWidget *widget, gpointer data){
  gtk_box_pack_start(GTK_BOX(vbox), thumb_box, true, false, 0);
 
  //If plane has been already generated
- if (complex_plane_get_plot(cp) != NULL){
+ if (main_data->complex_plane->plot != NULL){
    //Copy complex_plane values to input boxes
-   gtk_entry_set_text(GTK_ENTRY(input_N_line), g_strdup_printf("%d", complex_plane_get_line_iterations(cp)));
-   gtk_entry_set_text(GTK_ENTRY(input_N), g_strdup_printf("%d", complex_plane_get_iterations(cp)));
-   gtk_entry_set_text(GTK_ENTRY(input_z0), g_strdup_printf("%.16g", creal(complex_plane_get_quadratic_parameter(cp))));
-   gtk_entry_set_text(GTK_ENTRY(input_z1), g_strdup_printf("%.16g", cimag(complex_plane_get_quadratic_parameter(cp))));
-   gtk_entry_set_text(GTK_ENTRY(input_center0), g_strdup_printf("%.16g", complex_plane_get_center_real(cp)));
-   gtk_entry_set_text(GTK_ENTRY(input_center1), g_strdup_printf("%.16g", complex_plane_get_center_imag(cp)));
-   gtk_entry_set_text(GTK_ENTRY(input_spanx), g_strdup_printf("%.16g", complex_plane_get_spanx(cp)));
-   gtk_entry_set_text(GTK_ENTRY(input_spany), g_strdup_printf("%.16g", complex_plane_get_spany(cp)));
-   if (strcmp(complex_plane_get_plot_type(cp, NULL), "parameter_space") == 0){
-     gtk_combo_box_set_active(GTK_COMBO_BOX(input_plot_type), 0);
-   } else if (strcmp(complex_plane_get_plot_type(cp, NULL), "rec_f") == 0){
-     gtk_combo_box_set_active(GTK_COMBO_BOX(input_plot_type), 1);
+   gtk_entry_set_text(GTK_ENTRY(input_N_line), g_strdup_printf("%d", main_data->complex_plane->N_line));
+   gtk_entry_set_text(GTK_ENTRY(input_N), g_strdup_printf("%d", main_data->complex_plane->N));
+   gtk_entry_set_text(GTK_ENTRY(input_z0), g_strdup_printf("%.16g", creal(main_data->complex_plane->param)));
+   gtk_entry_set_text(GTK_ENTRY(input_z1), g_strdup_printf("%.16g", cimag(main_data->complex_plane->param)));
+   gtk_entry_set_text(GTK_ENTRY(input_center0), g_strdup_printf("%.16g", complex_plane_get_center_real(main_data->complex_plane)));
+   gtk_entry_set_text(GTK_ENTRY(input_center1), g_strdup_printf("%.16g", complex_plane_get_center_imag(main_data->complex_plane)));
+   gtk_entry_set_text(GTK_ENTRY(input_spanx), g_strdup_printf("%.16g", complex_plane_get_spanx(main_data->complex_plane)));
+   gtk_entry_set_text(GTK_ENTRY(input_spany), g_strdup_printf("%.16g", complex_plane_get_spany(main_data->complex_plane)));
+   if (strcmp(main_data->complex_plane->plot_type, "parameter_space") == 0){
+     gtk_combo_box_set_active(GTK_COMBO_BOX(main_data->input_plot_type), 0);
+   } else if (strcmp(main_data->complex_plane->plot_type, "rec_f") == 0){
+     gtk_combo_box_set_active(GTK_COMBO_BOX(main_data->input_plot_type), 1);
    }
 
-   int w = complex_plane_get_width(cp), h = complex_plane_get_height(cp), stride = complex_plane_get_stride(cp);
    //Image (not generated by default, but when button is clicked).
    GdkPixbuf *mandelbrotBuf = gdk_pixbuf_new_from_data(
-       complex_plane_get_plot(cp),
+       main_data->complex_plane->plot,
        GDK_COLORSPACE_RGB,
        0,
        8,
-       w, h,
-       w * stride,
+       main_data->complex_plane->w, main_data->complex_plane->h,
+       main_data->complex_plane->w * 3,
        NULL, NULL);
    GtkWidget *image = gtk_image_new_from_pixbuf(mandelbrotBuf);
 
@@ -1242,44 +1319,51 @@ void draw_main_window(GtkWidget *widget, gpointer data){
 int main (int argc, char *argv[]) {
   //cd to root folder
   chdir(get_root_folder(argv[0]));
+  struct mainWindowData *main_data = malloc(sizeof(struct mainWindowData));
 
-  ComplexPlane **complex_planes = malloc(sizeof(ComplexPlane) * 2);
+  main_data->opencl = malloc(sizeof(struct OpenCL_Program));
+  main_data->opencl->init = false;
 
   gtk_init (&argc, &argv);
 
-  complex_planes[1] = complex_plane_new(NULL);
-  complex_plane_set_id(complex_planes[1], COMPLEX_PLANE_THUMBNAIL_ID);
-  complex_plane_set_dimensions(complex_planes[1], 320, 180);
-  complex_plane_set_stride(complex_planes[1], 3);
-  complex_plane_alloc_empty_plot(complex_planes[1]);
-  complex_plane_set_iterations(complex_planes[1], 25);
-  complex_plane_set_plot_type(complex_planes[1], "rec_f");
+  main_data->thumbnail = complex_plane_new(NULL);
+  complex_plane_set_dimensions(main_data->thumbnail, 320, 180);
+  complex_plane_set_stride(main_data->thumbnail, 3);
+  complex_plane_alloc_empty_plot(main_data->thumbnail);
+  complex_plane_set_iterations(main_data->thumbnail, 25);
+
+  function_type = 0;
 
   int w = 1650;
   int h = 850;
 
-  complex_planes[0] = NULL;
+  main_data->complex_plane = NULL;
 
-  // main_data->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  GtkWidget *window_root = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  main_data->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  GtkWidget *window_root = main_data->window;
+
+  main_data->zoom_point1[0] = NULL;
+  main_data->zoom_point1[1] = NULL;
+  main_data->zoom_point2[0] = NULL;
+  main_data->zoom_point2[1] = NULL;
+
+  main_data->menu = NULL;
 
   gtk_window_set_title(GTK_WINDOW(window_root), "Julia Set Viewer");
   gtk_window_set_default_size(GTK_WINDOW(window_root), w, h);
   gtk_window_set_position(GTK_WINDOW(window_root), GTK_WIN_POS_CENTER);
   g_signal_connect(window_root, "destroy",
                    G_CALLBACK(quit_app),
-                   (gpointer) window_root);
+                   (gpointer) main_data->window);
 
 
   gtk_widget_show_all(window_root);
-  draw_main_window(window_root, (gpointer) complex_planes);
-
+  draw_main_window(window_root, (gpointer) main_data);
   // gtk_window_fullscreen(GTK_WINDOW(window));
   // gtk_window_set_default_icon_from_file("assets/app_icon/256.png", NULL);
-
   gtk_main();
 
-  free(complex_planes[0]);
-  free(complex_planes[1]);
+  free(main_data->complex_plane);
+  free(main_data->thumbnail);
   return 0;
 }
