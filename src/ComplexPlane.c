@@ -579,9 +579,11 @@ int complex_plane_copy_plot(ComplexPlane *cp){
   if (cp->drawn_plot == NULL || cp->plot == NULL){
     return -1;
   }
-  for (int i = 0; i < complex_plane_get_size(cp); i++){
-    cp->drawn_plot[i] = cp->plot[i];
-  }
+  // for (int i = 0; i < complex_plane_get_size(cp); i++){
+  //   cp->drawn_plot[i] = cp->plot[i];
+  // }
+  cp->drawn_plot = image_manipulation_clone_image(cp->plot, cp->w, cp->h,
+                                                &(cp->cl), !(cp->cl->init));
   return 0;
 }
 

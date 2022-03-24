@@ -111,7 +111,6 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
   clEnqueueWriteBuffer(prog->command_queue, mem_Sy,    CL_TRUE, 0, sizeof(double)*2, Sy,                      0, NULL, NULL);
 
   if (init_new_cl){
-    printf("Building new cl\n");
     prog->program = clCreateProgramWithSource(prog->context,
                                               1,
                                               (const char **)  &(prog->src),

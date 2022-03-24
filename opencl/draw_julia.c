@@ -231,3 +231,17 @@ __kernel void polynomial(__global unsigned char *m,
       m[(y*w + x)*3+2] = 0;
   }
 }
+
+__kernel void clone(__global unsigned char *result,
+                    __global unsigned char *source,
+                    __global int *hp,
+                    __global int *wp){
+  int h = *hp;
+  int w = *wp;
+  const int y = get_global_id(0);
+  const int x = get_global_id(1);
+
+  result[(y*w + x)*3 + 0] = source[(y*w + x)*3 + 0];
+  result[(y*w + x)*3 + 1] = source[(y*w + x)*3 + 1];
+  result[(y*w + x)*3 + 2] = source[(y*w + x)*3 + 2];
+}
