@@ -6,6 +6,8 @@
 
 #include <draw_julia.h>
 
+// #define DEBUG_COMPLEX_PLANE_H
+
 typedef struct ComplexPlane{
   int ID;
 
@@ -109,6 +111,9 @@ int complex_plane_get_id(ComplexPlane *cp){
 //--- Dimensions
 int complex_plane_set_dimensions(ComplexPlane *cp, int w, int h){
   cp->w = w; cp->h = h; cp->a = w*h;
+
+  complex_plane_alloc_empty_plot(cp);
+
   return cp->a;
 }
 int complex_plane_get_width(ComplexPlane *cp){
@@ -459,18 +464,10 @@ void complex_plane_set_mandelbrot_parameters(ComplexPlane *cp){
 
 //---Plots
 void complex_plane_gen_plot(ComplexPlane *cp){
-  if (cp == NULL){
-     complex_plane_new(&cp);
-  }
-
-  double SpanXmin;
-  double SpanYmin;
-  double ratio;
-
   complex_plane_free_plot(cp);
   complex_plane_free_drawn_plot(cp);
 
-  #ifdef DEBUG_GUI
+  #ifdef DEBUG_COMPLEX_PLANE_H
   printf("Spans: %f %f | %f %f\n", complex_plane_get_spanx0(cp),
                                    complex_plane_get_spanx1(cp),
                                    complex_plane_get_spany0(cp),
@@ -480,26 +477,26 @@ void complex_plane_gen_plot(ComplexPlane *cp){
 
   switch(cp->function_type){
     case 0:   //Simple quadratic family
-      cp->plot = draw_julia(complex_plane_get_iterations(cp),
-                                                complex_plane_get_height(cp),
-                                                complex_plane_get_width(cp),
-                                                complex_plane_get_quadratic_parameter(cp),
-                                                complex_plane_get_spanx_array(cp),
-                                                complex_plane_get_spany_array(cp),
-                                                cp->plot_type,
-                                                &(cp->cl), !(cp->cl->init));
+      cp->plot = draw_julia(cp->N,
+                            cp->h,
+                            cp->w,
+                            cp->param,
+                            cp->Sx,
+                            cp->Sy,
+                            cp->plot_type,
+                            &(cp->cl), !(cp->cl->init));
       break;
     case 1:   //Polynomial function
       if (complex_plane_get_polynomial_order(cp) != -1){
         cp->plot = draw_julia_polynomial(complex_plane_get_iterations(cp),
-                                                             complex_plane_get_height(cp),
-                                                             complex_plane_get_width(cp),
-                                                             complex_plane_get_polynomial_order(cp),
-                                                             cp->polynomial,
-                                                             complex_plane_get_spanx_array(cp),
-                                                             complex_plane_get_spany_array(cp),
-                                                             complex_plane_get_polynomial_parameter(cp),
-                                                             &(cp->cl), !cp->cl->init);
+                                         complex_plane_get_height(cp),
+                                         complex_plane_get_width(cp),
+                                         complex_plane_get_polynomial_order(cp),
+                                         cp->polynomial,
+                                         complex_plane_get_spanx_array(cp),
+                                         complex_plane_get_spany_array(cp),
+                                         complex_plane_get_polynomial_parameter(cp),
+                                         &(cp->cl), !cp->cl->init);
       }
       break;
     case 2:   //Newton's method
@@ -510,38 +507,9 @@ void complex_plane_gen_plot(ComplexPlane *cp){
   }
 }
 
-void complex_plane_gen_thumb(ComplexPlane *cp){
-  switch(complex_plane_get_function_type(cp)){
-    case 0:
-      cp->plot = draw_thumbnail(cp->N,
-                                      complex_plane_get_height(cp),
-                                      complex_plane_get_width(cp),
-                                      complex_plane_get_quadratic_parameter(cp),
-                                      complex_plane_get_plot_type(cp, NULL),
-                                      &(cp->cl), !(cp->cl->init));
-      break;
-    case 1:
-      if (complex_plane_get_polynomial_order(cp) != -1 && !complex_plane_polynomial_is_null(cp)){
-
-        cp->plot = draw_thumbnail_polynomial(cp->N,
-                                                   cp->h,
-                                                   cp->w,
-                                                   cp->polynomial_order,
-                                                   cp->polynomial,
-                                                   cp->polynomial_parameter,
-                                                   &(cp->cl),
-                                                   !cp->cl->init);
-      } else {
-        complex_plane_alloc_empty_plot(cp);
-      }
-      break;
-  }
-}
-
-
-
 
 void complex_plane_alloc_empty_plot(ComplexPlane *cp){
+  printf("Empty\n");
   if (cp->plot != NULL){
     free(cp->plot);
   }
@@ -555,6 +523,7 @@ void complex_plane_alloc_drawn_plot(ComplexPlane *cp){
 }
 int complex_plane_free_plot(ComplexPlane *cp){
   if (cp->plot != NULL){
+  printf("Freeing\n");
     free(cp->plot);
     cp->plot = NULL;
     return 1;
@@ -588,7 +557,22 @@ int complex_plane_copy_plot(ComplexPlane *cp){
 }
 
 double complex_plane_get_norm(complex double z){
-   return (pow(pow(creal(z), 2) + pow(cimag(z), 2), 0.5));
+   return (pow(pow(creal(z), 2) + pow(cimag(z), 3), 0.5));
+}
+double complex_plane_thumbnail_get_span(ComplexPlane *cp){
+  switch(cp->function_type){
+    case 0:
+      return fmax(complex_plane_get_norm(cp->param), 3);
+      break;
+    case 1:
+      if (complex_plane_get_polynomial_order(cp) != -1 && !complex_plane_polynomial_is_null(cp)){
+        return fmax(complex_plane_get_norm(cp->polynomial[cp->polynomial_order]), 2);
+      }
+      break;
+    default:
+      return 2;
+  }
+
 }
 
 void draw_sequence_lines(struct ComplexPlane *C, double point[2], int w, int h){

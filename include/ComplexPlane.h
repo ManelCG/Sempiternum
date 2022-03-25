@@ -92,7 +92,7 @@ unsigned char *complex_plane_get_drawn_plot(ComplexPlane *);
 int complex_plane_copy_plot(ComplexPlane *);  //-1 if error, 0 success
 
 void complex_plane_gen_plot(ComplexPlane *);
-void complex_plane_gen_thumb(ComplexPlane *);
+// void complex_plane_gen_thumb(ComplexPlane *);
 
 //Stop drawing
 void complex_plane_set_drawing_active(ComplexPlane *, _Bool);
@@ -121,6 +121,8 @@ const complex double *complex_plane_get_polynomial(ComplexPlane *);
 
 //---Complex algebra
 double complex_plane_get_norm(complex double z);
+
+double complex_plane_thumbnail_get_span(ComplexPlane *);
 
 
 

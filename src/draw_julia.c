@@ -26,7 +26,9 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
                                      int parameter,
                                      struct OpenCL_Program **cl_prog, _Bool init_new_cl){
 
+  printf("Pre\n");
   unsigned char *m = calloc(h*w*3*sizeof(unsigned char), 1);
+  printf("Post\n");
 
   //Perform OpenCL program
   double *polynomial_real = malloc(sizeof(double) * (order+2));
@@ -191,6 +193,7 @@ unsigned char *draw_julia(int N, int h, int w,
                           double Sx[2], double Sy[2],
                           char *plot_type,
                           struct OpenCL_Program **cl_prog, _Bool init_new_cl){
+
   unsigned char *m = calloc(h*w*3*sizeof(char), 1);
   double c[2] = {creal(param), cimag(param)};
 
@@ -260,13 +263,11 @@ unsigned char *draw_julia(int N, int h, int w,
   clEnqueueWriteBuffer(prog->command_queue, mem_Sy, CL_TRUE, 0, sizeof(double)*2, Sy, 0, NULL, NULL);
 
   if (init_new_cl){
-    printf("Building new cl\n");
     prog->program = clCreateProgramWithSource(prog->context,
                                               1,
                                               (const char **)  &(prog->src),
                                               (const size_t *) &(prog->src_size),
                                               &(prog->ret));
-    fflush(stdout);
     clBuildProgram(prog->program, 1, &(prog->device), NULL, NULL, NULL);
   }
 
