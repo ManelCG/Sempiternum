@@ -4,9 +4,13 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <stdio.h>
+
 #include <draw_julia.h>
 
-// #define DEBUG_COMPLEX_PLANE_H
+#include <opencl_funcs.h>
+
+// #define DEBUG_CP
 
 typedef struct ComplexPlane{
   int ID;
@@ -32,6 +36,7 @@ typedef struct ComplexPlane{
   int polynomial_order;
   int polynomial_parameter;
   complex double *polynomial;
+  complex double *polynomial_derivative;
   int w, h, a;
   int N, N_line;
 
@@ -42,11 +47,16 @@ typedef struct ComplexPlane{
 //---Setters and getters
 ComplexPlane *complex_plane_new(ComplexPlane **cp){
   ComplexPlane *new = malloc(sizeof(ComplexPlane));
+
   new->plot = NULL;
   new->drawn_plot = NULL;
   new->pixel_stride = 3;
 
+  new->ID = 0;
+
   new->polynomial = NULL;
+  new->polynomial_derivative = NULL;
+
   complex_plane_set_function_type(new, 0);
 
   new->is_drawing_active = true;
@@ -57,7 +67,7 @@ ComplexPlane *complex_plane_new(ComplexPlane **cp){
   new->zoom_point2[0] = NULL;
   new->zoom_point2[1] = NULL;
 
-  new->cl = malloc(sizeof(struct OpencL_Program *));
+  new->cl = get_opencl_info();
   new->cl->init = false;
 
   if (cp != NULL){
@@ -70,9 +80,7 @@ ComplexPlane *complex_plane_copy(ComplexPlane **dest, ComplexPlane *src){
   ComplexPlane *new = complex_plane_new(NULL);
 
   complex_plane_set_stride(new, complex_plane_get_stride(src));
-  complex_plane_set_dimensions(new,
-                               complex_plane_get_width(src),
-                               complex_plane_get_height(src));
+  complex_plane_set_dimensions(new, src->w, src->h);
 
   complex_plane_set_iterations(new, complex_plane_get_iterations(src));
   complex_plane_set_line_iterations(new, complex_plane_get_line_iterations(src));
@@ -110,8 +118,13 @@ int complex_plane_get_id(ComplexPlane *cp){
 
 //--- Dimensions
 int complex_plane_set_dimensions(ComplexPlane *cp, int w, int h){
-  cp->w = w; cp->h = h; cp->a = w*h;
+  #ifdef DEBUG_CP
+  printf("CP %d: Set dimensions (%d x %d = %d)\n", cp->ID, w, h, w*h);
+  #endif
+  complex_plane_free_plot(cp);
+  complex_plane_free_drawn_plot(cp);
 
+  cp->w = w; cp->h = h; cp->a = w*h;
   complex_plane_alloc_empty_plot(cp);
 
   return cp->a;
@@ -139,9 +152,9 @@ void complex_plane_set_plot_type(ComplexPlane *cp, char *plot_type){
   cp->plot_type = plot_type;
 }
 char *complex_plane_get_plot_type(ComplexPlane *cp, char **r){
-  char *ret = malloc(strlen(cp->plot_type) * sizeof(*cp->plot_type));
+  char *ret = malloc((strlen(cp->plot_type) + 1) * sizeof(*cp->plot_type));
   if (r != NULL){
-    *r = malloc(strlen(cp->plot_type) * sizeof(*cp->plot_type));
+    *r = malloc((strlen(cp->plot_type) + 1) * sizeof(*cp->plot_type));
     strcpy(*r, cp->plot_type);
   }
   strcpy(ret, cp->plot_type);
@@ -172,6 +185,12 @@ _Bool complex_plane_is_drawing_lines_active(ComplexPlane *cp){
 }
 
 //---polynomial
+void complex_plane_set_polynomial_derivative_member(ComplexPlane *cp, complex v, int index){
+  if (index >= cp->polynomial_order){
+    return;
+  }
+  cp->polynomial_derivative[index] = v;
+}
 void complex_plane_set_polynomial_order(ComplexPlane *cp, int o){
   complex_plane_free_polynomial(cp);
 
@@ -180,8 +199,12 @@ void complex_plane_set_polynomial_order(ComplexPlane *cp, int o){
 
   if (o > 0){
     cp->polynomial = malloc(sizeof(complex double) * (o+2));
+    cp->polynomial_derivative = malloc(sizeof(complex double) * (o+1));
     for (int i = 0; i <= o+1; i++){
       complex_plane_set_polynomial_member(cp, 0, i);
+    }
+    for (int i = 0; i < o+1; i++){
+      complex_plane_set_polynomial_derivative_member(cp, 0, i);
     }
   }
 
@@ -190,10 +213,17 @@ int complex_plane_get_polynomial_order(ComplexPlane *cp){
   return cp->polynomial_order;
 }
 void complex_plane_set_polynomial_member(ComplexPlane *cp, complex v, int index){
-  if (index > cp->polynomial_order + 1){
+  int order = cp->polynomial_order;
+  if (index > order + 1){
     return;
   }
   cp->polynomial[index] = v;
+
+  if (index < order){
+    printf("Set deriv member\n");
+    complex_plane_set_polynomial_derivative_member(cp, (order - index) * v, index + 1);
+  }
+
 }
 complex complex_plane_get_polynomial_member(ComplexPlane *cp, int index){
   return cp->polynomial[index];
@@ -204,6 +234,7 @@ _Bool complex_plane_polynomial_is_null(ComplexPlane *cp){
 void complex_plane_free_polynomial(ComplexPlane *cp){
   if (cp->polynomial != NULL){
     free(cp->polynomial);
+    free(cp->polynomial_derivative);
     cp->polynomial = NULL;
   }
 }
@@ -233,6 +264,30 @@ int complex_plane_copy_polynomial(ComplexPlane *d, ComplexPlane *s){
 }
 const complex double *complex_plane_get_polynomial(ComplexPlane *cp){
   return cp->polynomial;
+}
+void complex_plane_print_polynomial(ComplexPlane *cp){
+  for (int i = 0; i < cp->polynomial_order + 1; i++){
+    if (i == cp->polynomial_order){
+      printf("%gz ", cp->polynomial[i]);
+    } else {
+      printf("%gz^%d ", cp->polynomial[i], cp->polynomial_order - i);
+    }
+    printf("+ ");
+  }
+  printf("%g", cp->polynomial[cp->polynomial_order + 1]);
+  printf("\n");
+}
+void complex_plane_print_polynomial_derivative(ComplexPlane *cp){
+  for (int i = 0; i < cp->polynomial_order + 1; i++){
+    if (i == cp->polynomial_order){
+      printf("%gz ", cp->polynomial_derivative[i]);
+    } else {
+      printf("%gz^%d ", cp->polynomial_derivative[i], cp->polynomial_order - i);
+    }
+    printf("+ ");
+  }
+  printf("%g", cp->polynomial_derivative[cp->polynomial_order + 1]);
+  printf("\n");
 }
 
 
@@ -467,11 +522,11 @@ void complex_plane_gen_plot(ComplexPlane *cp){
   complex_plane_free_plot(cp);
   complex_plane_free_drawn_plot(cp);
 
-  #ifdef DEBUG_COMPLEX_PLANE_H
-  printf("Spans: %f %f | %f %f\n", complex_plane_get_spanx0(cp),
-                                   complex_plane_get_spanx1(cp),
-                                   complex_plane_get_spany0(cp),
-                                   complex_plane_get_spany1(cp));
+  #ifdef DEBUG_CP
+  printf("CP %d Spans: %f %f | %f %f\n", cp->ID, complex_plane_get_spanx0(cp),
+                                                  complex_plane_get_spanx1(cp),
+                                                  complex_plane_get_spany0(cp),
+                                                  complex_plane_get_spany1(cp));
 
   #endif
 
@@ -488,15 +543,17 @@ void complex_plane_gen_plot(ComplexPlane *cp){
       break;
     case 1:   //Polynomial function
       if (complex_plane_get_polynomial_order(cp) != -1){
-        cp->plot = draw_julia_polynomial(complex_plane_get_iterations(cp),
-                                         complex_plane_get_height(cp),
-                                         complex_plane_get_width(cp),
-                                         complex_plane_get_polynomial_order(cp),
+        cp->plot = draw_julia_polynomial(cp->N,
+                                         cp->h,
+                                         cp->w,
+                                         cp->polynomial_order,
                                          cp->polynomial,
-                                         complex_plane_get_spanx_array(cp),
-                                         complex_plane_get_spany_array(cp),
-                                         complex_plane_get_polynomial_parameter(cp),
+                                         cp->Sx,
+                                         cp->Sy,
+                                         cp->polynomial_parameter,
                                          &(cp->cl), !cp->cl->init);
+      } else {
+        complex_plane_alloc_empty_plot(cp);
       }
       break;
     case 2:   //Newton's method
@@ -509,21 +566,29 @@ void complex_plane_gen_plot(ComplexPlane *cp){
 
 
 void complex_plane_alloc_empty_plot(ComplexPlane *cp){
-  printf("Empty\n");
-  if (cp->plot != NULL){
-    free(cp->plot);
-  }
+  complex_plane_free_plot(cp);
+
+  #ifdef DEBUG_CP
+    printf("CP %d: Empty\n", cp->ID);
+  #endif
+
   cp->plot = calloc(complex_plane_get_size(cp) * sizeof(unsigned char), 1);
 }
 void complex_plane_alloc_drawn_plot(ComplexPlane *cp){
-  if (cp->drawn_plot != NULL){
-    free(cp->drawn_plot);
-  }
+  complex_plane_free_drawn_plot(cp);
+
+  #ifdef DEBUG_CP
+    printf("CP %d: Empty drawn\n", cp->ID);
+  #endif
+
   cp->drawn_plot = calloc(complex_plane_get_size(cp) * sizeof(unsigned char), 1);
 }
 int complex_plane_free_plot(ComplexPlane *cp){
   if (cp->plot != NULL){
-  printf("Freeing\n");
+    #ifdef DEBUG_CP
+      printf("CP %d: Freeing plot\n", cp->ID);
+    #endif
+
     free(cp->plot);
     cp->plot = NULL;
     return 1;
@@ -532,6 +597,9 @@ int complex_plane_free_plot(ComplexPlane *cp){
 }
 int complex_plane_free_drawn_plot(ComplexPlane *cp){
   if (cp->drawn_plot != NULL){
+    #ifdef DEBUG_CP
+      printf("CP %d: Freeing drawn\n", cp->ID);
+    #endif
     free(cp->drawn_plot);
     cp->drawn_plot = NULL;
     return 1;
@@ -548,9 +616,10 @@ int complex_plane_copy_plot(ComplexPlane *cp){
   if (cp->drawn_plot == NULL || cp->plot == NULL){
     return -1;
   }
-  // for (int i = 0; i < complex_plane_get_size(cp); i++){
-  //   cp->drawn_plot[i] = cp->plot[i];
-  // }
+  complex_plane_free_drawn_plot(cp);
+  #ifdef DEBUG_CP
+    printf("CP %d: Copying plot to drawn\n", cp->ID);
+  #endif
   cp->drawn_plot = image_manipulation_clone_image(cp->plot, cp->w, cp->h,
                                                 &(cp->cl), !(cp->cl->init));
   return 0;

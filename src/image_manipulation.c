@@ -206,6 +206,9 @@ unsigned char *merge_sets(unsigned char *full, unsigned char *empty, int h, int 
                          NULL,
                          0, NULL, NULL);
 
+  clFlush(prog->command_queue);
+  clFinish(prog->command_queue);
+
   clEnqueueReadBuffer(prog->command_queue,
                       mem_ret,
                       CL_TRUE,
@@ -216,8 +219,6 @@ unsigned char *merge_sets(unsigned char *full, unsigned char *empty, int h, int 
                       NULL, NULL);
 
 
-  clFlush(prog->command_queue);
-  clFinish(prog->command_queue);
   clReleaseCommandQueue(prog->command_queue);
   clReleaseKernel(prog->kernel);
   clReleaseProgram(prog->program);

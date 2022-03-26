@@ -26,9 +26,7 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
                                      int parameter,
                                      struct OpenCL_Program **cl_prog, _Bool init_new_cl){
 
-  printf("Pre\n");
   unsigned char *m = calloc(h*w*3*sizeof(unsigned char), 1);
-  printf("Post\n");
 
   //Perform OpenCL program
   double *polynomial_real = malloc(sizeof(double) * (order+2));
@@ -151,6 +149,9 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
                          NULL,
                          0, NULL, NULL);
 
+  clFlush(prog->command_queue);
+  clFinish(prog->command_queue);
+
   clEnqueueReadBuffer(prog->command_queue,
                       mem_m,
                       CL_TRUE,
@@ -160,8 +161,6 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
                       0,
                       NULL, NULL);
 
-  clFlush(prog->command_queue);
-  clFinish(prog->command_queue);
   clReleaseCommandQueue(prog->command_queue);
   clReleaseKernel(prog->kernel);
   prog->init = true;
@@ -200,7 +199,7 @@ unsigned char *draw_julia(int N, int h, int w,
   //Perform OpenCL program
 
   struct OpenCL_Program *prog = cl_prog == NULL? NULL : *cl_prog;
-  if (init_new_cl == true){
+  if (init_new_cl == true || cl_prog == NULL){
     if (cl_prog == NULL){
       prog = get_opencl_info();
     } else {
@@ -259,7 +258,6 @@ unsigned char *draw_julia(int N, int h, int w,
   clEnqueueWriteBuffer(prog->command_queue, mem_w, CL_TRUE, 0, sizeof(int), &w, 0, NULL, NULL);
   clEnqueueWriteBuffer(prog->command_queue, mem_c, CL_TRUE, 0, sizeof(double)*2, c, 0, NULL, NULL);
   clEnqueueWriteBuffer(prog->command_queue, mem_Sx, CL_TRUE, 0, sizeof(double)*2, Sx, 0, NULL, NULL);
-
   clEnqueueWriteBuffer(prog->command_queue, mem_Sy, CL_TRUE, 0, sizeof(double)*2, Sy, 0, NULL, NULL);
 
   if (init_new_cl){
@@ -297,6 +295,9 @@ unsigned char *draw_julia(int N, int h, int w,
                          NULL,
                          0, NULL, NULL);
 
+  clFlush(prog->command_queue);
+  clFinish(prog->command_queue);
+
   clEnqueueReadBuffer(prog->command_queue,
                       mem_m,
                       CL_TRUE,
@@ -306,8 +307,6 @@ unsigned char *draw_julia(int N, int h, int w,
                       0,
                       NULL, NULL);
 
-  clFlush(prog->command_queue);
-  clFinish(prog->command_queue);
   clReleaseCommandQueue(prog->command_queue);
   clReleaseKernel(prog->kernel);
   prog->init = true;

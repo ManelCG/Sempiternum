@@ -92,7 +92,6 @@ unsigned char *complex_plane_get_drawn_plot(ComplexPlane *);
 int complex_plane_copy_plot(ComplexPlane *);  //-1 if error, 0 success
 
 void complex_plane_gen_plot(ComplexPlane *);
-// void complex_plane_gen_thumb(ComplexPlane *);
 
 //Stop drawing
 void complex_plane_set_drawing_active(ComplexPlane *, _Bool);
@@ -110,6 +109,7 @@ int complex_plane_get_function_type(ComplexPlane *);
 void complex_plane_set_polynomial_order(ComplexPlane *, int);
 int complex_plane_get_polynomial_order(ComplexPlane *);
 void complex_plane_set_polynomial_member(ComplexPlane *, complex v, int index);
+void complex_plane_set_polynomial_derivative_member(ComplexPlane *, complex v, int index);
 complex complex_plane_get_polynomial_member(ComplexPlane *, int index);
 void complex_plane_free_polynomial(ComplexPlane *);
 int complex_plane_set_polynomial_parameter(ComplexPlane *, int);  //-1 if fail
@@ -117,6 +117,8 @@ int complex_plane_get_polynomial_parameter(ComplexPlane *);
 _Bool complex_plane_polynomial_is_null(ComplexPlane *);
 int complex_plane_copy_polynomial(ComplexPlane *dest, ComplexPlane *src); //-1 if fail
 const complex double *complex_plane_get_polynomial(ComplexPlane *);
+void complex_plane_print_polynomial(ComplexPlane *);
+void complex_plane_print_polynomial_derivative(ComplexPlane *);
 
 
 //---Complex algebra
