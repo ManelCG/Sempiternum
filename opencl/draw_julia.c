@@ -31,11 +31,22 @@ __kernel void rec_f(__global unsigned char *m,
     z_abs = native_sqrt(pow(z[0], 2) + pow(z[1] , 2));
 
     if (z_abs > R){
-      double ni = log10((double) i);
-      double n = log10((double) N);
-      m[(y*w + x)*3+0] = 255;
-      m[(y*w + x)*3+1] = (int) floor( ((double) ni / (double) n) * 255);
-      m[(y*w + x)*3+2] = i % 256;
+      // // Glitch colors
+      // double ni = log10((double) i);
+      // double n = log10((double) N);
+      // // m[(y*w + x)*3] = 255;
+      // // m[(y*w + x)*3+1] = (int) floor( ((double) ni / (double) n) * 255);
+      // m[(y*w + x)*3+0] = abs((int) floor(cos((double) i/200.0) * 255));
+      // m[(y*w + x)*3+1] = abs((int) floor(sin((double) i/50.0) * 255));
+      // m[(y*w + x)*3+2] = abs((int) floor(sin((double) i/100.0) * 255));
+
+      // double ni = log10((double) i);
+      // double n = log10((double) N);
+      // m[(y*w + x)*3] = 255;
+      // m[(y*w + x)*3+1] = (int) floor( ((double) ni / (double) n) * 255);
+      m[(y*w + x)*3+0] = abs((int) floor(cos((double) i/200.0) * 255));
+      m[(y*w + x)*3+1] = abs((int) floor(sin((double) i/50.0) * 255));
+      m[(y*w + x)*3+2] = abs((int) floor(sin((double) i/200.0) * 255));
 
       ////Blue
       //m[(y*w + x)*3+2] = 255;
@@ -88,11 +99,13 @@ __kernel void parameter_space(__global unsigned char *m,
     z_abs = native_sqrt(pow(z[0], 2) + pow(z[1] , 2));
 
     if (z_abs > R){
-      double ni = log10((double) i);
-      double n = log10((double) N);
-      m[(y*w + x)*3] = 255;
-      m[(y*w + x)*3+1] = (int) floor( ((double) ni / (double) n) * 255);
-      // m[(y*w + x)*3+2] = 128;
+      // double ni = log10((double) i);
+      // double n = log10((double) N);
+      // m[(y*w + x)*3] = 255;
+      // m[(y*w + x)*3+1] = (int) floor( ((double) ni / (double) n) * 255);
+      m[(y*w + x)*3+0] = abs((int) floor(cos((double) i/200.0) * 255));
+      m[(y*w + x)*3+1] = abs((int) floor(sin((double) i/50.0) * 255));
+      m[(y*w + x)*3+2] = abs((int) floor(sin((double) i/200.0) * 255));
       break;
     }
   }
@@ -190,7 +203,7 @@ __kernel void polynomial(__global unsigned char *m,
             complex_mul(auxr, auxi, z[0], z[1], &auxr2, &auxi2);
             auxr = auxr2; auxi = auxi2;
           }
-          complex_mul(auxr, auxi, param[j], param[j], &auxr2, &auxi2);
+          complex_mul(auxr, auxi, param[0], param[1], &auxr2, &auxi2);
           auxz0 += auxr2; auxz1 += auxi2;
         } else {  //param is somewhere else
           if ((polynomial_real[j] != 0) || (polynomial_imag[j] != 0)){
@@ -217,11 +230,13 @@ __kernel void polynomial(__global unsigned char *m,
       z_abs = native_sqrt(pow(z[0], 2) + pow(z[1], 2));
     }
     if (z_abs > 10){
-      double ni = log10((double) i);
-      double n = log10((double) N);
-      m[(y*w + x)*3+0] = 255;
-      m[(y*w + x)*3+1] = (int) floor( ((double) ni / (double) n) * 255);
-      m[(y*w + x)*3+2] = i % 256;
+      // double ni = log10((double) i);
+      // double n = log10((double) N);
+      // m[(y*w + x)*3] = 255;
+      // m[(y*w + x)*3+1] = (int) floor( ((double) ni / (double) n) * 255);
+      m[(y*w + x)*3+0] = abs((int) floor(cos((double) i/200.0) * 255));
+      m[(y*w + x)*3+1] = abs((int) floor(sin((double) i/50.0) * 255));
+      m[(y*w + x)*3+2] = abs((int) floor(sin((double) i/200.0) * 255));
       break;
     }
   }
