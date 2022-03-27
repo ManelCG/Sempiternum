@@ -96,7 +96,6 @@ void change_polynomial_order(GtkWidget *widget, GdkEventKey *event, gpointer dat
 
 void save_plot_as(GtkWidget *widget, gpointer data){
   ComplexPlane *cp = (ComplexPlane *) data;
-  complex_plane_gen_plot(cp);
   GtkWidget *dialog;
   dialog = gtk_file_chooser_dialog_new("Save File",
                                       NULL,
@@ -108,6 +107,8 @@ void save_plot_as(GtkWidget *widget, gpointer data){
   gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), true);
   if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT){
     char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+
+    complex_plane_gen_plot(cp);
 
     lodepng_encode24_file(filename,
                           complex_plane_get_plot(cp),
@@ -735,10 +736,10 @@ void draw_thumbnail_gui(GtkWidget *widget, double x, double y, gpointer data){
   gtk_widget_destroy(thumb_img);
   complex_plane_set_quadratic_parameter(cp_thumb, x + y*I);
 
-  double span = complex_plane_thumbnail_get_span(cp_thumb);
-  complex_plane_set_spanx(cp_thumb, span);
-  complex_plane_set_spany(cp_thumb, span);
-  complex_plane_adjust_span_ratio(cp_thumb);
+  // double span = complex_plane_thumbnail_get_span(cp_thumb);
+  // complex_plane_set_spanx(cp_thumb, span);
+  // complex_plane_set_spany(cp_thumb, span);
+  // complex_plane_adjust_span_ratio(cp_thumb);
 
   complex_plane_gen_plot(cp_thumb);
 
@@ -1501,6 +1502,9 @@ int main (int argc, char *argv[]) {
   complex_plane_set_stride(planes[1], 3);
   complex_plane_set_iterations(planes[1], 25);
   complex_plane_set_plot_type(planes[1], "rec_f");
+  complex_plane_set_spanx(planes[1], 6);
+  complex_plane_set_spany(planes[1], 4);
+  complex_plane_adjust_span_ratio(planes[1]);
 
   int w = 1650; int h = 850;
 

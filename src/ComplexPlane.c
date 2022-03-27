@@ -390,7 +390,7 @@ void complex_plane_adjust_span_ratio(ComplexPlane *cp){
   }
 }
 void complex_plane_set_default_spans(ComplexPlane *cp){
-  complex_plane_set_spanx(cp, 3);
+  complex_plane_set_spanx(cp, 5.2);
   complex_plane_set_spany(cp, 3);
   complex_plane_adjust_span_ratio(cp);
 }
