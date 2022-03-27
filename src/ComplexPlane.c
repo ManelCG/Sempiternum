@@ -215,7 +215,7 @@ void complex_plane_set_polynomial_order(ComplexPlane *cp, int o){
 
   if (o > 0){
     cp->polynomial = calloc(sizeof(complex double) * (o+2), 1);
-    cp->polynomial_derivative = calloc(sizeof(complex double) * (o+1), 1);
+    cp->polynomial_derivative = calloc(sizeof(complex double) * (o+2), 1);
     for (int i = 0; i <= o+1; i++){
       complex_plane_set_polynomial_member(cp, 0, i);
     }
@@ -573,7 +573,17 @@ void complex_plane_gen_plot(ComplexPlane *cp){
       break;
     case 2:   //Newton's method
       if (complex_plane_get_polynomial_order(cp) != -1){
-        // printf("WIP Newton's method\n");
+        printf("Drawing newton's fractal\n");
+        cp->plot = draw_julia_polynomial_fraction(cp->N,
+                                                  cp->h,
+                                                  cp->w,
+                                                  cp->polynomial_order,
+                                                  cp->polynomial,
+                                                  cp->polynomial_derivative,
+                                                  cp->Sx,
+                                                  cp->Sy,
+                                                  cp->polynomial_parameter,
+                                                  &(cp->cl), !cp->cl->init);
       }
       break;
   }
