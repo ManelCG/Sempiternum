@@ -78,6 +78,9 @@ void save_polynomial_member(GtkWidget *widget, gpointer data){
     double old_real = creal(complex_plane_get_polynomial_member(cp, box));
     complex_plane_set_polynomial_member(cp, old_real + strtod(gtk_entry_get_text(GTK_ENTRY(widget)), NULL) * I, box);
   }
+
+  // complex_plane_print_polynomial(cp);
+  // complex_plane_print_polynomial_derivative(cp);
 }
 
 void change_polynomial_order(GtkWidget *widget, GdkEventKey *event, gpointer data){

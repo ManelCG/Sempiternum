@@ -24,6 +24,14 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
                                      int parameter,
                                      struct OpenCL_Program **cl_prog, _Bool init_new_cl);
 
+unsigned char *draw_julia_polynomial_fraction(int N, int h, int w,
+                                              int order,
+                                              complex double *numerator,
+                                              complex double *denominator,
+                                              double Sx[2], double Sy[2],
+                                              int parameter,
+                                              struct OpenCL_Program **cl_prog, _Bool init_new_cl);
+
 void draw_julia_zoom(int frames, int N, int h, int w,
                      complex double c, complex double p,
                      double zoom_ratio, const char *plot_type);
