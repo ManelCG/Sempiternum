@@ -18,21 +18,11 @@ unsigned char *draw_julia(int N, int h, int w,
                           const char *plot_type,
                           struct OpenCL_Program **cl_prog, _Bool init_new_cl);
 
-unsigned char *draw_thumbnail(int N, int h, int w,
-                              complex double c,
-                              const char *plot_type,
-                              struct OpenCL_Program **cl_prog, _Bool init_new);
-
 unsigned char *draw_julia_polynomial(int N, int h, int w,
                                      int order, complex double *polynomial,
                                      double Sx[2], double Sy[2],
                                      int parameter,
                                      struct OpenCL_Program **cl_prog, _Bool init_new_cl);
-
-unsigned char *draw_thumbnail_polynomial(int N, int h, int w,
-                                         int order, complex double *polynomial,
-                                         int parameter,
-                                         struct OpenCL_Program **cl_prog, _Bool init_new);
 
 void draw_julia_zoom(int frames, int N, int h, int w,
                      complex double c, complex double p,

@@ -324,68 +324,6 @@ unsigned char *draw_julia(int N, int h, int w,
   return m;
 }
 
-unsigned char *draw_thumbnail_polynomial(int N, int h, int w,
-                                         int order, complex double *polynomial,
-                                         int parameter,
-                                         struct OpenCL_Program **cl_prog, _Bool init_new){
-  double c[2];
-  c[0] = creal(polynomial[order]); c[1] = cimag(polynomial[order]);
-  double c_abs = pow(pow(c[0], 2) + pow(c[1], 2), 0.5);
-  double SpanThumbnail = c_abs > 2? c_abs : 2;
-  // double Sdx[2] = {-SpanThumbnail, SpanThumbnail}, Sdy[2] = {-SpanThumbnail, SpanThumbnail};
-
-  double Sdx[2], Sdy[2];
-  if (w >= h){
-    double ratio = (double) w / (double) h;
-    Sdy[0] = -SpanThumbnail;
-    Sdy[1] = SpanThumbnail;
-    Sdx[0] = -SpanThumbnail * ratio;
-    Sdx[1] =  SpanThumbnail * ratio;
-  } else {
-    double ratio = (double) h / (double) w;
-    Sdx[0] = -SpanThumbnail;
-    Sdx[1] = SpanThumbnail;
-    Sdy[0] = -SpanThumbnail * ratio;
-    Sdy[1] =  SpanThumbnail * ratio;
-  }
-
-  unsigned char *Julia;
-
-  Julia = draw_julia_polynomial(N, h, w, order, polynomial, Sdx, Sdy, parameter, cl_prog, init_new);
-  return Julia;
-}
-
-
-unsigned char *draw_thumbnail(int N, int h, int w,
-                              complex double param,
-                              const char *plot_type,
-                              struct OpenCL_Program **cl_prog, _Bool init_new){
-
-  double param_norm = pow(pow(creal(param), 2) + pow(cimag(param), 2), 0.5);
-  double SpanThumbnail = param_norm > 2? param_norm : 2;
-  // double Sdx[2] = {-SpanThumbnail, SpanThumbnail}, Sdy[2] = {-SpanThumbnail, SpanThumbnail};
-
-  double Sdx[2], Sdy[2];
-  if (w >= h){
-    double ratio = (double) w / (double) h;
-    Sdy[0] = -SpanThumbnail;
-    Sdy[1] = SpanThumbnail;
-    Sdx[0] = -SpanThumbnail * ratio;
-    Sdx[1] =  SpanThumbnail * ratio;
-  } else {
-    double ratio = (double) h / (double) w;
-    Sdx[0] = -SpanThumbnail;
-    Sdx[1] = SpanThumbnail;
-    Sdy[0] = -SpanThumbnail * ratio;
-    Sdy[1] =  SpanThumbnail * ratio;
-  }
-
-  unsigned char *Julia;
-
-  Julia = draw_julia(N, h, w, param, Sdx, Sdy, plot_type, cl_prog, init_new);
-  return Julia;
-}
-
 void draw_julia_zoom(int frames, int N,
                      int h, int w,
                      complex double c, complex double p,

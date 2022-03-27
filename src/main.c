@@ -20,73 +20,73 @@
 
 int main(int argc, char *argv[]){
 
-  //Profiling info vars
-  clock_t start, end, start_g, end_g;
-  start_g = clock();
-  printf("Started whole program clock\n");
+  ////Profiling info vars
+  //clock_t start, end, start_g, end_g;
+  //start_g = clock();
+  //printf("Started whole program clock\n");
 
-  int N = 1000;   //Max iterations
-                 // 4K = 3840 × 2160
-  int w = 3840;
-  int h = 2160;
-  char *plot_type = "rec_f";
-  int A = h*w;
-  complex double c = 0.36 + 0.34*I;//If parameter space this is interpreted as Z
-  double c_arr[2] = {creal(c), cimag(c)};
-  double Sx[2] = {-2, 2};
-  double Sy[2] = {-2, 2};
+  //int N = 1000;   //Max iterations
+  //               // 4K = 3840 × 2160
+  //int w = 3840;
+  //int h = 2160;
+  //char *plot_type = "rec_f";
+  //int A = h*w;
+  //complex double c = 0.36 + 0.34*I;//If parameter space this is interpreted as Z
+  //double c_arr[2] = {creal(c), cimag(c)};
+  //double Sx[2] = {-2, 2};
+  //double Sy[2] = {-2, 2};
 
-  //Zooming point for zoom function
-  // double p[2] = {0.36, 0.34};
-  complex double p = 0.36 + 0.34*I;
+  ////Zooming point for zoom function
+  //// double p[2] = {0.36, 0.34};
+  //complex double p = 0.36 + 0.34*I;
 
-  char *out_folder = gen_dir_name(c_arr, "rec_f");
-  char *empty_julia_f = gen_filename(out_folder, "Empty_Julia.png");
-  char *full_julia_f = gen_filename((char *) out_folder, "Thumbnail.png");
-  char *merged = gen_filename(out_folder, "Merged.png");
+  //char *out_folder = gen_dir_name(c_arr, "rec_f");
+  //char *empty_julia_f = gen_filename(out_folder, "Empty_Julia.png");
+  //char *full_julia_f = gen_filename((char *) out_folder, "Thumbnail.png");
+  //char *merged = gen_filename(out_folder, "Merged.png");
 
-  printf("Saving results in: %s\n", out_folder);
+  //printf("Saving results in: %s\n", out_folder);
 
-  printf("Drawing julia by BI...      "); fflush(stdout);
-  start = clock();
-  unsigned char *empty_julia = draw_julia_backwards_iteration(N, h, w, c_arr, 100000, true);
-  end = clock();
-  printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
-  printf("Saving empty Julia set...   "); fflush(stdout);
-  start = clock();
-  lodepng_encode_file(empty_julia_f, empty_julia, w, h, LCT_GREY, 8);
-  end = clock();
-  printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
+  //printf("Drawing julia by BI...      "); fflush(stdout);
+  //start = clock();
+  //unsigned char *empty_julia = draw_julia_backwards_iteration(N, h, w, c_arr, 100000, true);
+  //end = clock();
+  //printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
+  //printf("Saving empty Julia set...   "); fflush(stdout);
+  //start = clock();
+  //lodepng_encode_file(empty_julia_f, empty_julia, w, h, LCT_GREY, 8);
+  //end = clock();
+  //printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
 
 
-  printf("Drawing Full Julia set...   "); fflush(stdout);
-  start = clock();
-  unsigned char *full_julia = draw_thumbnail(N, h, w, c, plot_type, NULL, true);
-  end = clock();
-  printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
+  //printf("Drawing Full Julia set...   "); fflush(stdout);
+  //start = clock();
+  //unsigned char *full_julia = draw_thumbnail(N, h, w, c, plot_type, NULL, true);
+  //end = clock();
+  //printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
 
-  printf("Saving result...            "); fflush(stdout);
-  start = clock();
-  lodepng_encode24_file(full_julia_f, full_julia, w, h);
-  end = clock();
-  printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
+  //printf("Saving result...            "); fflush(stdout);
+  //start = clock();
+  //lodepng_encode24_file(full_julia_f, full_julia, w, h);
+  //end = clock();
+  //printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
 
-  printf("Merging result...           "); fflush(stdout);
-  start = clock();
-  unsigned char *merg = merge_sets(full_julia, empty_julia, h, w);
-  end = clock();
-  printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
+  //printf("Merging result...           "); fflush(stdout);
+  //start = clock();
+  //unsigned char *merg = merge_sets(full_julia, empty_julia, h, w);
+  //end = clock();
+  //printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
 
-  printf("Saving result...            "); fflush(stdout);
-  start = clock();
-  lodepng_encode24_file(merged, merg, w, h);
-  end = clock();
-  printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
+  //printf("Saving result...            "); fflush(stdout);
+  //start = clock();
+  //lodepng_encode24_file(merged, merg, w, h);
+  //end = clock();
+  //printf("Done. Took %f seconds\n", ((double)(end - start))/CLOCKS_PER_SEC);
 
-  ////rec_f or parameter_space
-  //draw_julia_zoom(10, N, h, w, c, p, 0.05, "rec_f");
+  //////rec_f or parameter_space
+  ////draw_julia_zoom(10, N, h, w, c, p, 0.05, "rec_f");
 
-  end_g = clock();
-  printf("Finished whole program execution. Took %f seconds\n", ((double)(end_g - start_g))/CLOCKS_PER_SEC);
+  //end_g = clock();
+  //printf("Finished whole program execution. Took %f seconds\n", ((double)(end_g - start_g))/CLOCKS_PER_SEC);
 
 }
