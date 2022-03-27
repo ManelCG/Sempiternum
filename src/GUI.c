@@ -22,6 +22,7 @@
 struct genVideoData{
   ComplexPlane *cp;
   GtkWidget **option_widgets;
+  _Bool stop;
 };
 
 
@@ -95,6 +96,7 @@ void change_polynomial_order(GtkWidget *widget, GdkEventKey *event, gpointer dat
 
 void save_plot_as(GtkWidget *widget, gpointer data){
   ComplexPlane *cp = (ComplexPlane *) data;
+  complex_plane_gen_plot(cp);
   GtkWidget *dialog;
   dialog = gtk_file_chooser_dialog_new("Save File",
                                       NULL,
@@ -120,9 +122,9 @@ void *render_video(void *data){
   double fps = 60;
   int frames;
 
-  ComplexPlane *cp = ((struct genVideoData*)data)->cp;
-
-  GtkWidget **widgets = ((struct genVideoData*)data)->option_widgets;
+  struct genVideoData *videodata = (struct genVideoData *) data;
+  ComplexPlane *cp = videodata->cp;
+  GtkWidget **widgets = videodata->option_widgets;
 
   const char *folder = gtk_entry_get_text(GTK_ENTRY(widgets[8]));
   const char *videofile = gtk_entry_get_text(GTK_ENTRY(widgets[9]));
@@ -130,16 +132,13 @@ void *render_video(void *data){
     return NULL;
   }
 
-  int w = atoi(gtk_entry_get_text(GTK_ENTRY(widgets[0])));
-  int h = atoi(gtk_entry_get_text(GTK_ENTRY(widgets[1])));
-  double maxspanx = strtod(gtk_entry_get_text(GTK_ENTRY(widgets[2])), NULL);
-  double maxspany = strtod(gtk_entry_get_text(GTK_ENTRY(widgets[3])), NULL);
+  //Get CP data
+  int w = complex_plane_get_width(cp), h = complex_plane_get_height(cp);
+  double maxspanx = complex_plane_get_spanx(cp);
+  double maxspany = complex_plane_get_spany(cp);
+
   double minspanx = strtod(gtk_entry_get_text(GTK_ENTRY(widgets[4])), NULL);
   double minspany = strtod(gtk_entry_get_text(GTK_ENTRY(widgets[5])), NULL);
-
-  complex double center = strtod(gtk_entry_get_text(GTK_ENTRY(widgets[6])), NULL)
-                        + strtod(gtk_entry_get_text(GTK_ENTRY(widgets[7])), NULL)*I;
-
 
   printf("Saving data in %s. Saving video file in %s/%s\n", folder, folder, videofile);
 
@@ -150,17 +149,14 @@ void *render_video(void *data){
     frames = fmin(framesx, framesy);
   }
 
-  complex_plane_set_dimensions(cp, w, h);
-  complex_plane_set_spanx(cp, maxspanx);
-  complex_plane_set_spany(cp, maxspany);
-  complex_plane_adjust_span_ratio(cp);
-  complex_plane_set_center(cp, center);
-
   printf("Will generate %d frames.\n", frames);
   printf("At %f fps that is %f seconds.\n", fps, (double) frames / fps);
   printf("At ~~3 seconds per plot that is %f seconds to render\n", ((double)frames * 3.0)/ fps);
 
   for (int i = 1; i <= frames; i++){
+    if (videodata->stop){
+      break;
+    }
     char framename[50];
     sprintf(framename, "%s/%010d.png", folder, i);
 
@@ -176,7 +172,6 @@ void *render_video(void *data){
       lodepng_encode24_file(framename, complex_plane_get_plot(cp), w, h);
     }
   }
-  printf("\nDone!\n");
 }
 
 void render_video_handler(GtkWidget *widget, gpointer data){
@@ -191,27 +186,196 @@ void render_video_handler(GtkWidget *widget, gpointer data){
 void generate_video_input_handler(GtkWidget *wid, gpointer data){
   ComplexPlane *cp = (ComplexPlane *) data;
   int w, h;
+  printf("%s\n", gtk_widget_get_name(wid));
   switch(gtk_widget_get_name(wid)[0]){
     case '0':
-      w = complex_plane_get_width(cp);
       h = complex_plane_get_height(cp);
-      printf("%d %d\n", w, h);
-      printf("Set width\n");
       complex_plane_set_dimensions(cp, atoi(gtk_entry_get_text(GTK_ENTRY(wid))), h);
       break;
     case '1':
       w = complex_plane_get_width(cp);
-      h = complex_plane_get_height(cp);
-      printf("Set height\n");
       complex_plane_set_dimensions(cp, w, atoi(gtk_entry_get_text(GTK_ENTRY(wid))));
       break;
+    case '2':
+      complex_plane_set_spanx(cp, strtod(gtk_entry_get_text(GTK_ENTRY(wid)), NULL));
+      break;
+    case '3':
+      complex_plane_set_spany(cp, strtod(gtk_entry_get_text(GTK_ENTRY(wid)), NULL));
+      break;
+    case '6':
+      complex_plane_set_center_real(cp, strtod(gtk_entry_get_text(GTK_ENTRY(wid)), NULL));
+      break;
+    case '7':
+      complex_plane_set_center_imag(cp, strtod(gtk_entry_get_text(GTK_ENTRY(wid)), NULL));
+      break;
   }
+  printf("SECOND FUNCTION; %d %d\n", complex_plane_get_width(cp), complex_plane_get_height(cp));
+  complex_plane_print(cp);
 }
+
+void button_cancel_render_handler(GtkWidget *widget, gpointer data){
+  struct genVideoData *d = (struct genVideoData *) data;
+  d->stop = true;
+}
+
+void save_plot_handler(GtkWidget *widget, gpointer data){
+  ComplexPlane *cp_old = (ComplexPlane *) data;
+
+  ComplexPlane *cp;
+  complex_plane_copy(&cp, cp_old);
+
+  GtkWindow *zoom_window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
+  gtk_window_set_title(GTK_WINDOW(zoom_window), "Save new plot");
+  gtk_window_set_resizable(GTK_WINDOW(zoom_window), false);
+  // gtk_window_set_default_size(GTK_WINDOW(zoom_window), 720, 480);
+  gtk_container_set_border_width(GTK_CONTAINER(zoom_window), 15);
+  g_signal_connect(zoom_window, "destroy", G_CALLBACK(destroy), (gpointer) zoom_window);
+
+  int default_resolution_x = 1920, default_resolution_y = 1080;
+  int default_label_size = 150, default_entry_size = 15;
+  int default_buttons_size = 125;
+
+  //Boxes
+  GtkWidget *main_vbox;
+  GtkWidget *folder_input_hbox;
+  GtkWidget *file_input_hbox;
+
+  //Config
+  GtkWidget *config_vbox;
+  GtkWidget *config_resolution_hbox;
+  GtkWidget *config_spans_start_hbox;
+
+  //Entries
+  GtkWidget *label_config_window = gtk_label_new("Options for generating video:");
+  GtkWidget **entry_choose_resolution   = malloc(sizeof(GtkWidget *) * 2);
+  GtkWidget **entry_choose_spans        = malloc(sizeof(GtkWidget *) * 4);
+  GtkWidget **video_input_widgets       = malloc(sizeof(GtkWidget *) * 10);
+
+  //Config input resolution
+  GtkWidget *label_choose_resolution = gtk_label_new("Choose image resolution:");
+  gtk_widget_set_size_request(label_choose_resolution, default_label_size, 0);
+  entry_choose_resolution[0] =  gtk_entry_new();
+  entry_choose_resolution[1] =  gtk_entry_new();
+  gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_resolution[0]), default_entry_size);
+  gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_resolution[1]), default_entry_size);
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entry_choose_resolution[0]), g_strdup_printf("%d", default_resolution_x, NULL));
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entry_choose_resolution[1]), g_strdup_printf("%d", default_resolution_y, NULL));
+  gtk_widget_set_name(entry_choose_resolution[0], "0");
+  gtk_widget_set_name(entry_choose_resolution[1], "1");
+  printf("FIRST FUNCTION; %d %d\n", complex_plane_get_width(cp), complex_plane_get_height(cp));
+
+  GtkWidget *combo_default_resolutions = gui_gen_video_generate_default_resolutions_combo_box();
+  gtk_widget_set_size_request(combo_default_resolutions, default_buttons_size, 0);
+  g_signal_connect(combo_default_resolutions, "changed", G_CALLBACK(gui_gen_video_resolutions_combo_box_to_entries), (gpointer) entry_choose_resolution);
+
+  complex_plane_print(cp);
+
+  g_signal_connect(GTK_ENTRY(entry_choose_resolution[0]), "changed", G_CALLBACK(generate_video_input_handler), (gpointer) cp);
+  g_signal_connect(GTK_ENTRY(entry_choose_resolution[1]), "changed", G_CALLBACK(generate_video_input_handler), (gpointer) cp);
+
+  gui_gen_video_resolutions_combo_box_to_entries(combo_default_resolutions, (gpointer) entry_choose_resolution);
+
+  config_resolution_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+  gtk_box_pack_start(GTK_BOX(config_resolution_hbox), label_choose_resolution, false, false, 0);
+  gtk_box_pack_start(GTK_BOX(config_resolution_hbox), entry_choose_resolution[0], false, false, 0);
+  gtk_box_pack_start(GTK_BOX(config_resolution_hbox), entry_choose_resolution[1], false, false, 0);
+  gtk_box_pack_start(GTK_BOX(config_resolution_hbox), combo_default_resolutions, false, false, 0);
+
+  //Config zoom span
+  GtkWidget *label_choose_start_span = gtk_label_new("Plot span:");
+  gtk_widget_set_size_request(label_choose_start_span, default_label_size, 0);
+  GtkWidget *button_config_span_set_ratio;
+  for (int i = 0; i < 4; i++){
+    entry_choose_spans[i] = gtk_entry_new();
+    gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_spans[i]), default_entry_size);
+  }
+  gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[0]), g_strdup_printf("%.16g", complex_plane_get_spanx(cp), NULL));
+  gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[1]), g_strdup_printf("%.16g", complex_plane_get_spany(cp), NULL));
+  gtk_widget_set_name(entry_choose_spans[0], "2");
+  gtk_widget_set_name(entry_choose_spans[1], "3");
+  button_config_span_set_ratio = gtk_button_new_with_label("Lock ratio");
+  gtk_widget_set_size_request(button_config_span_set_ratio, default_buttons_size, 0);
+
+  g_signal_connect(GTK_ENTRY(entry_choose_spans[0]), "changed", G_CALLBACK(generate_video_input_handler), (gpointer) cp);
+  g_signal_connect(GTK_ENTRY(entry_choose_spans[1]), "changed", G_CALLBACK(generate_video_input_handler), (gpointer) cp);
+
+  config_spans_start_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+  gtk_box_pack_start(GTK_BOX(config_spans_start_hbox), label_choose_start_span, false, false, 0);
+  gtk_box_pack_start(GTK_BOX(config_spans_start_hbox), entry_choose_spans[0], false, false, 0);
+  gtk_box_pack_start(GTK_BOX(config_spans_start_hbox), entry_choose_spans[1], false, false, 0);
+  gtk_box_pack_start(GTK_BOX(config_spans_start_hbox), button_config_span_set_ratio, false, false, 0);
+
+  //Config vbox
+  config_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+  gtk_box_pack_start(GTK_BOX(config_vbox), label_config_window, true, true, 0);
+  gtk_box_pack_start(GTK_BOX(config_vbox), config_resolution_hbox, true, true, 0);
+  gtk_box_pack_start(GTK_BOX(config_vbox), config_spans_start_hbox, true, true, 0);
+
+  //Folder input
+  GtkWidget *folder_input;
+  GtkWidget *button_choose_folder;
+
+  folder_input = gtk_entry_new();
+  gtk_entry_set_placeholder_text(GTK_ENTRY(folder_input), "Output folder");
+  button_choose_folder = gtk_button_new_with_label("Explore");
+  g_signal_connect(button_choose_folder, "clicked", G_CALLBACK(gui_gen_video_choose_folder), (gpointer) folder_input);
+  gtk_widget_set_size_request(button_choose_folder, default_buttons_size, 20);
+
+  folder_input_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+  gtk_box_pack_start(GTK_BOX(folder_input_hbox), folder_input, true, true, 0);
+  gtk_box_pack_start(GTK_BOX(folder_input_hbox), button_choose_folder, false, false, 0);
+
+  //Filename/Accept/Cancel bar
+  GtkWidget *file_input;
+  GtkWidget *button_cancel;
+  GtkWidget *button_begin_render;
+
+  file_input = gtk_entry_new();
+
+  video_input_widgets[0] = entry_choose_resolution[0];
+  video_input_widgets[1] = entry_choose_resolution[1];
+  video_input_widgets[2] = entry_choose_spans[0];
+  video_input_widgets[3] = entry_choose_spans[1];
+  video_input_widgets[4] = entry_choose_spans[2];
+  video_input_widgets[5] = entry_choose_spans[3];
+  video_input_widgets[8] = folder_input;
+  video_input_widgets[9] = file_input;
+
+  gtk_entry_set_placeholder_text(GTK_ENTRY(file_input), "Output file name");
+  button_cancel = gtk_button_new_with_label("Cancel");
+  button_begin_render = gtk_button_new_with_label("Render");
+  g_signal_connect(button_cancel, "clicked", G_CALLBACK(destroy), (gpointer) zoom_window);
+  gtk_widget_set_size_request(button_cancel, default_buttons_size, 20);
+  gtk_widget_set_size_request(button_begin_render, default_buttons_size, 20);
+
+  file_input_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+  gtk_box_pack_start(GTK_BOX(file_input_hbox), file_input, true, true, 0);
+  gtk_box_pack_start(GTK_BOX(file_input_hbox), button_begin_render, false, false, 0);
+  gtk_box_pack_start(GTK_BOX(file_input_hbox), button_cancel, false, false, 0);
+
+  g_signal_connect(button_begin_render, "clicked", G_CALLBACK(save_plot_as), (gpointer) cp);
+
+  g_signal_connect(button_config_span_set_ratio, "clicked", G_CALLBACK(gui_gen_video_lock_span_ratio), (gpointer) video_input_widgets);
+  gui_gen_video_lock_span_ratio(NULL, (gpointer) video_input_widgets);
+
+
+  //Main vbox
+  main_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+  gtk_box_pack_end(GTK_BOX(main_vbox), file_input_hbox, false, false, 0);
+  gtk_box_pack_end(GTK_BOX(main_vbox), folder_input_hbox, false, false, 0);
+  gtk_box_pack_start(GTK_BOX(main_vbox), config_vbox, false, false, 0);
+
+  gtk_container_add(GTK_CONTAINER(zoom_window), main_vbox);
+
+  gtk_widget_show_all(GTK_WIDGET(zoom_window));
+}
+
 
 void generate_video_zoom(GtkWidget *widget, gpointer data){
   struct genVideoData *videodata = malloc(sizeof(struct genVideoData));
 
   ComplexPlane *cp_old = (ComplexPlane *) data;
+  // ComplexPlane *cp = (ComplexPlane *) data;
 
   ComplexPlane *cp;
   complex_plane_copy(&cp, cp_old);
@@ -241,25 +405,34 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
 
   //Entries
   GtkWidget *label_config_window = gtk_label_new("Options for generating video:");
+  GtkWidget **entry_choose_resolution   = malloc(sizeof(GtkWidget *) * 2);
+  GtkWidget **entry_choose_spans        = malloc(sizeof(GtkWidget *) * 4);
+  GtkWidget **entry_choose_center_point = malloc(sizeof(GtkWidget *) * 2);
+  GtkWidget **video_input_widgets       = malloc(sizeof(GtkWidget *) * 10);
 
   //Config input resolution
   GtkWidget *label_choose_resolution = gtk_label_new("Choose video resolution:");
   gtk_widget_set_size_request(label_choose_resolution, default_label_size, 0);
-  GtkWidget *combo_default_resolutions = gui_gen_video_generate_default_resolutions_combo_box();
-  gtk_widget_set_size_request(combo_default_resolutions, default_buttons_size, 0);
-  GtkWidget **entry_choose_resolution = malloc(sizeof(GtkWidget *)*2);
   entry_choose_resolution[0] =  gtk_entry_new();
   entry_choose_resolution[1] =  gtk_entry_new();
   gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_resolution[0]), default_entry_size);
   gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_resolution[1]), default_entry_size);
   gtk_entry_set_placeholder_text(GTK_ENTRY(entry_choose_resolution[0]), g_strdup_printf("%d", default_resolution_x, NULL));
   gtk_entry_set_placeholder_text(GTK_ENTRY(entry_choose_resolution[1]), g_strdup_printf("%d", default_resolution_y, NULL));
-  g_signal_connect(combo_default_resolutions, "changed", G_CALLBACK(gui_gen_video_resolutions_combo_box_to_entries), (gpointer) entry_choose_resolution);
-  gui_gen_video_resolutions_combo_box_to_entries(combo_default_resolutions, (gpointer) entry_choose_resolution);
   gtk_widget_set_name(entry_choose_resolution[0], "0");
   gtk_widget_set_name(entry_choose_resolution[1], "1");
-  g_signal_connect(entry_choose_resolution[0], "insert-text", G_CALLBACK(generate_video_input_handler), (gpointer) cp);
-  g_signal_connect(entry_choose_resolution[1], "insert-text", G_CALLBACK(generate_video_input_handler), (gpointer) cp);
+  printf("FIRST FUNCTION; %d %d\n", complex_plane_get_width(cp), complex_plane_get_height(cp));
+
+  GtkWidget *combo_default_resolutions = gui_gen_video_generate_default_resolutions_combo_box();
+  gtk_widget_set_size_request(combo_default_resolutions, default_buttons_size, 0);
+  g_signal_connect(combo_default_resolutions, "changed", G_CALLBACK(gui_gen_video_resolutions_combo_box_to_entries), (gpointer) entry_choose_resolution);
+
+  complex_plane_print(cp);
+
+  g_signal_connect(GTK_ENTRY(entry_choose_resolution[0]), "changed", G_CALLBACK(generate_video_input_handler), (gpointer) cp);
+  g_signal_connect(GTK_ENTRY(entry_choose_resolution[1]), "changed", G_CALLBACK(generate_video_input_handler), (gpointer) cp);
+
+  gui_gen_video_resolutions_combo_box_to_entries(combo_default_resolutions, (gpointer) entry_choose_resolution);
 
   config_resolution_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
   gtk_box_pack_start(GTK_BOX(config_resolution_hbox), label_choose_resolution, false, false, 0);
@@ -273,14 +446,21 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   gtk_widget_set_size_request(label_choose_start_span, default_label_size, 0);
   gtk_widget_set_size_request(label_choose_final_span, default_label_size, 0);
   GtkWidget *button_config_span_set_ratio;
-  GtkWidget **entry_choose_spans = malloc(sizeof(GtkWidget *)*4);
-  for (int i = 0; i < 4; i++){entry_choose_spans[i] = gtk_entry_new(); gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_spans[i]), default_entry_size);}
+  for (int i = 0; i < 4; i++){
+    entry_choose_spans[i] = gtk_entry_new();
+    gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_spans[i]), default_entry_size);
+  }
   gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[0]), g_strdup_printf("%.16g", complex_plane_get_spanx(cp), NULL));
   gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[1]), g_strdup_printf("%.16g", complex_plane_get_spany(cp), NULL));
   gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[2]), "1e-15");
   gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[3]), "1e-15");
+  gtk_widget_set_name(entry_choose_spans[0], "2");
+  gtk_widget_set_name(entry_choose_spans[1], "3");
   button_config_span_set_ratio = gtk_button_new_with_label("Lock ratio");
   gtk_widget_set_size_request(button_config_span_set_ratio, default_buttons_size, 0);
+
+  g_signal_connect(GTK_ENTRY(entry_choose_spans[0]), "changed", G_CALLBACK(generate_video_input_handler), (gpointer) cp);
+  g_signal_connect(GTK_ENTRY(entry_choose_spans[1]), "changed", G_CALLBACK(generate_video_input_handler), (gpointer) cp);
 
   config_spans_start_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
   config_spans_final_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
@@ -295,11 +475,15 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   //Config center point
   GtkWidget *label_choose_center_point = gtk_label_new("Choose center point:");
   gtk_widget_set_size_request(label_choose_center_point, default_label_size, 0);
-  GtkWidget **entry_choose_center_point = malloc(sizeof(GtkWidget *) *2);
   entry_choose_center_point[0] = gtk_entry_new(); gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_center_point[0]), default_entry_size);
   entry_choose_center_point[1] = gtk_entry_new(); gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_center_point[1]), default_entry_size);
   gtk_entry_set_text(GTK_ENTRY(entry_choose_center_point[0]), g_strdup_printf("%.16g", complex_plane_get_center_real(cp)));
   gtk_entry_set_text(GTK_ENTRY(entry_choose_center_point[1]), g_strdup_printf("%.16g", complex_plane_get_center_imag(cp)));
+
+  gtk_widget_set_name(entry_choose_center_point[0], "6");
+  gtk_widget_set_name(entry_choose_center_point[1], "7");
+  g_signal_connect(GTK_ENTRY(entry_choose_center_point[0]), "changed", G_CALLBACK(generate_video_input_handler), (gpointer) cp);
+  g_signal_connect(GTK_ENTRY(entry_choose_center_point[1]), "changed", G_CALLBACK(generate_video_input_handler), (gpointer) cp);
 
   config_center_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
   gtk_box_pack_start(GTK_BOX(config_center_hbox), label_choose_center_point, false, false, 0);
@@ -335,19 +519,7 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   GtkWidget *button_begin_render;
 
   file_input = gtk_entry_new();
-  gtk_entry_set_placeholder_text(GTK_ENTRY(file_input), "Output file name");
-  button_cancel = gtk_button_new_with_label("Cancel");
-  button_begin_render = gtk_button_new_with_label("Render");
-  g_signal_connect(button_cancel, "clicked", G_CALLBACK(destroy), (gpointer) zoom_window);
-  gtk_widget_set_size_request(button_cancel, default_buttons_size, 20);
-  gtk_widget_set_size_request(button_begin_render, default_buttons_size, 20);
 
-  file_input_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-  gtk_box_pack_start(GTK_BOX(file_input_hbox), file_input, true, true, 0);
-  gtk_box_pack_start(GTK_BOX(file_input_hbox), button_begin_render, false, false, 0);
-  gtk_box_pack_start(GTK_BOX(file_input_hbox), button_cancel, false, false, 0);
-
-  GtkWidget **video_input_widgets = malloc(sizeof(GtkWidget *) * 10);
   video_input_widgets[0] = entry_choose_resolution[0];
   video_input_widgets[1] = entry_choose_resolution[1];
   video_input_widgets[2] = entry_choose_spans[0];
@@ -361,6 +533,20 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
 
   videodata->option_widgets = video_input_widgets;
   videodata->cp = cp;
+  videodata->stop = false;
+
+  gtk_entry_set_placeholder_text(GTK_ENTRY(file_input), "Output file name");
+  button_cancel = gtk_button_new_with_label("Cancel");
+  button_begin_render = gtk_button_new_with_label("Render");
+  g_signal_connect(button_cancel, "clicked", G_CALLBACK(button_cancel_render_handler), (gpointer) videodata);
+  g_signal_connect(button_cancel, "clicked", G_CALLBACK(destroy), (gpointer) zoom_window);
+  gtk_widget_set_size_request(button_cancel, default_buttons_size, 20);
+  gtk_widget_set_size_request(button_begin_render, default_buttons_size, 20);
+
+  file_input_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+  gtk_box_pack_start(GTK_BOX(file_input_hbox), file_input, true, true, 0);
+  gtk_box_pack_start(GTK_BOX(file_input_hbox), button_begin_render, false, false, 0);
+  gtk_box_pack_start(GTK_BOX(file_input_hbox), button_cancel, false, false, 0);
 
   g_signal_connect(button_begin_render, "clicked", G_CALLBACK(render_video_handler), (gpointer) videodata);
 
@@ -918,13 +1104,14 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   g_signal_connect(menu_button_quit, "activate", G_CALLBACK(quit_app), NULL);
 
   menu_button_save_plot = gtk_menu_item_new_with_label("Save plot as...");
-  g_signal_connect(menu_button_save_plot, "activate", G_CALLBACK(save_plot_as), (gpointer) cp);
+  g_signal_connect(menu_button_save_plot, "activate", G_CALLBACK(save_plot_handler), (gpointer) cp);
 
   menu_button_render_video = gtk_menu_item_new_with_label("Generate video zoom");
   g_signal_connect(menu_button_render_video, "activate", G_CALLBACK(generate_video_zoom), (gpointer) cp);
 
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_button_save_plot);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_button_render_video);
+
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_button_quit);
 
 
@@ -1062,8 +1249,8 @@ void draw_main_window(GtkWidget *widget, gpointer data){
         combo_polynomial_parameter = gtk_combo_box_text_new();
         combo_polynomial_parameter_thumb = gtk_combo_box_text_new();
 
-        input_polynomial_settings_vector_real = malloc(sizeof(GtkWidget) * (polynomial_order + 2));
-        input_polynomial_settings_vector_imag = malloc(sizeof(GtkWidget) * (polynomial_order + 2));
+        input_polynomial_settings_vector_real = malloc(sizeof(GtkWidget *) * (polynomial_order + 2));
+        input_polynomial_settings_vector_imag = malloc(sizeof(GtkWidget *) * (polynomial_order + 2));
         for (int i = 0; i < polynomial_order + 2; i++){
           GtkWidget *polynomial_settings_input_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
           input_polynomial_settings_vector_real[i] = gtk_entry_new();
@@ -1182,6 +1369,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
     gtk_widget_set_tooltip_text(input_thumbN, "Number of iterations to plot for thumbnails");
     gchar *buffer = g_strdup_printf("%d", complex_plane_get_iterations(cp_thumb));
     gtk_entry_set_text(GTK_ENTRY(input_thumbN), buffer);
+    free(buffer);
     g_signal_connect(GTK_ENTRY(input_thumbN), "key-release-event", G_CALLBACK(input_N_handler), (gpointer) cp_thumb);
 
     //Check draw_thumb
@@ -1231,19 +1419,35 @@ void draw_main_window(GtkWidget *widget, gpointer data){
  //If plane has been already generated
  if (complex_plane_get_plot(cp) != NULL){
    //Copy complex_plane values to input boxes
-   gtk_entry_set_text(GTK_ENTRY(input_N_line), g_strdup_printf("%d", complex_plane_get_line_iterations(cp)));
-   gtk_entry_set_text(GTK_ENTRY(input_N), g_strdup_printf("%d", complex_plane_get_iterations(cp)));
-   gtk_entry_set_text(GTK_ENTRY(input_z0), g_strdup_printf("%.16g", creal(complex_plane_get_quadratic_parameter(cp))));
-   gtk_entry_set_text(GTK_ENTRY(input_z1), g_strdup_printf("%.16g", cimag(complex_plane_get_quadratic_parameter(cp))));
-   gtk_entry_set_text(GTK_ENTRY(input_center0), g_strdup_printf("%.16g", complex_plane_get_center_real(cp)));
-   gtk_entry_set_text(GTK_ENTRY(input_center1), g_strdup_printf("%.16g", complex_plane_get_center_imag(cp)));
-   gtk_entry_set_text(GTK_ENTRY(input_spanx), g_strdup_printf("%.16g", complex_plane_get_spanx(cp)));
-   gtk_entry_set_text(GTK_ENTRY(input_spany), g_strdup_printf("%.16g", complex_plane_get_spany(cp)));
-   if (strcmp(complex_plane_get_plot_type(cp, NULL), "parameter_space") == 0){
+   char *buffer = malloc(500);
+   sprintf(buffer, "%d", complex_plane_get_line_iterations(cp));
+   gtk_entry_set_text(GTK_ENTRY(input_N_line), buffer);
+   sprintf(buffer, "%d", complex_plane_get_iterations(cp));
+   gtk_entry_set_text(GTK_ENTRY(input_N), buffer);
+   sprintf(buffer, "%g", creal(complex_plane_get_quadratic_parameter(cp)));
+   gtk_entry_set_text(GTK_ENTRY(input_z0), buffer);
+   sprintf(buffer, "%g", cimag(complex_plane_get_quadratic_parameter(cp)));
+   gtk_entry_set_text(GTK_ENTRY(input_z1), buffer);
+   sprintf(buffer, "%g", complex_plane_get_center_real(cp));
+   gtk_entry_set_text(GTK_ENTRY(input_center0), buffer);
+   sprintf(buffer, "%g", complex_plane_get_center_imag(cp));
+   gtk_entry_set_text(GTK_ENTRY(input_center1), buffer);
+   sprintf(buffer, "%g", complex_plane_get_spanx(cp));
+   gtk_entry_set_text(GTK_ENTRY(input_spanx), buffer);
+   sprintf(buffer, "%g", complex_plane_get_spany(cp));
+   gtk_entry_set_text(GTK_ENTRY(input_spany), buffer);
+
+   free(buffer);
+   buffer = complex_plane_get_plot_type(cp, NULL);
+
+   if (strcmp(buffer, "parameter_space") == 0){
      gtk_combo_box_set_active(GTK_COMBO_BOX(input_plot_type), 0);
-   } else if (strcmp(complex_plane_get_plot_type(cp, NULL), "rec_f") == 0){
+   } else if (strcmp(buffer, "rec_f") == 0){
      gtk_combo_box_set_active(GTK_COMBO_BOX(input_plot_type), 1);
    }
+
+   free(buffer);
+
 
    int w = complex_plane_get_width(cp), h = complex_plane_get_height(cp), stride = complex_plane_get_stride(cp);
    //Image (not generated by default, but when button is clicked).
@@ -1298,10 +1502,9 @@ int main (int argc, char *argv[]) {
   complex_plane_set_iterations(planes[1], 25);
   complex_plane_set_plot_type(planes[1], "rec_f");
 
-  int w = 1650;
-  int h = 850;
+  int w = 1650; int h = 850;
 
-  // int w = 1200, h = 700;
+  // int w = 600, h = 400;
 
   planes[0] = NULL;
 

@@ -79,6 +79,8 @@ ComplexPlane *complex_plane_new(ComplexPlane **cp){
 ComplexPlane *complex_plane_copy(ComplexPlane **dest, ComplexPlane *src){
   ComplexPlane *new = complex_plane_new(NULL);
 
+  new->ID = src->ID + 1;
+
   complex_plane_set_stride(new, complex_plane_get_stride(src));
   complex_plane_set_dimensions(new, src->w, src->h);
 
@@ -107,6 +109,20 @@ ComplexPlane *complex_plane_copy(ComplexPlane **dest, ComplexPlane *src){
     *dest = new;
   }
   return new;
+}
+
+void complex_plane_print(ComplexPlane *cp){
+  printf("Complex plane   %d\n", cp->ID);
+  printf("Dimensions:     %d x %d = %d\n", cp->w, cp->h, cp->a);
+  printf("Size of plot:   %d x %d = %d\n", cp->a, cp->pixel_stride, cp->a * cp->pixel_stride);
+  printf("Is plot alloc:  ");
+  if (cp->plot == NULL){
+    printf("No\n");
+  } else {
+    printf("Yes\n");
+  }
+  printf("Center:         %g %+gi\n", creal(cp->center), cimag(cp->center));
+  printf("Spans:          %g, %g\n", cp->SpanX, cp->SpanY);
 }
 
 void complex_plane_set_id(ComplexPlane *cp, int id){

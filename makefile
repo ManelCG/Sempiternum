@@ -8,7 +8,7 @@ CFLAGS = -I$(IDIR) `pkg-config --cflags --libs gtk+-3.0`
 ODIR=.obj
 LDIR=lib
 
-LIBS = -lm -lOpenCL
+LIBS = -lm -lOpenCL -lpthread
 
 _DEPS = lodepng.h draw_julia.h opencl_funcs.h file_io.h ComplexPlane.h image_manipulation.h gui_gen_video.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))

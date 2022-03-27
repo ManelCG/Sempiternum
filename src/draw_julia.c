@@ -190,7 +190,7 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
 unsigned char *draw_julia(int N, int h, int w,
                           complex double param,
                           double Sx[2], double Sy[2],
-                          char *plot_type,
+                          const char *plot_type,
                           struct OpenCL_Program **cl_prog, _Bool init_new_cl){
 
   unsigned char *m = calloc(h*w*3*sizeof(char), 1);
@@ -237,20 +237,13 @@ unsigned char *draw_julia(int N, int h, int w,
 
   //Create all memory objects for Julia set Drawing
   //Memobjects for images and dmap
-  cl_mem mem_m = clCreateBuffer(prog->context, CL_MEM_WRITE_ONLY,
-                              w*h*3, NULL, &(prog->ret));
-  cl_mem mem_N = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(int), NULL, &(prog->ret));
-  cl_mem mem_h = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(int), NULL, &(prog->ret));
-  cl_mem mem_w = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(int), NULL, &(prog->ret));
-  cl_mem mem_c = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(double)*2, NULL, &(prog->ret));
-  cl_mem mem_Sx = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(double)*2, NULL, &(prog->ret));
-  cl_mem mem_Sy = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(double)*2, NULL, &(prog->ret));
+  cl_mem mem_m = clCreateBuffer(prog->context, CL_MEM_WRITE_ONLY, w*h*3, NULL, &(prog->ret));
+  cl_mem mem_N = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,  sizeof(int), NULL, &(prog->ret));
+  cl_mem mem_h = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,  sizeof(int), NULL, &(prog->ret));
+  cl_mem mem_w = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,  sizeof(int), NULL, &(prog->ret));
+  cl_mem mem_c = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,  sizeof(double)*2, NULL, &(prog->ret));
+  cl_mem mem_Sx = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*2, NULL, &(prog->ret));
+  cl_mem mem_Sy = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*2, NULL, &(prog->ret));
 
   //Write data to mem objects
   clEnqueueWriteBuffer(prog->command_queue, mem_N, CL_TRUE, 0, sizeof(int), &N, 0, NULL, NULL);
@@ -359,14 +352,13 @@ unsigned char *draw_thumbnail_polynomial(int N, int h, int w,
   unsigned char *Julia;
 
   Julia = draw_julia_polynomial(N, h, w, order, polynomial, Sdx, Sdy, parameter, cl_prog, init_new);
-// unsigned char *draw_julia_polynomial(int N, int h, int w, int order, complex double *polynomial, double Sx[2], double Sy[2], char *plot_type, struct OpenCL_Program **cl_prog, _Bool init_new_cl){
   return Julia;
 }
 
 
 unsigned char *draw_thumbnail(int N, int h, int w,
                               complex double param,
-                              char *plot_type,
+                              const char *plot_type,
                               struct OpenCL_Program **cl_prog, _Bool init_new){
 
   double param_norm = pow(pow(creal(param), 2) + pow(cimag(param), 2), 0.5);
@@ -397,7 +389,7 @@ unsigned char *draw_thumbnail(int N, int h, int w,
 void draw_julia_zoom(int frames, int N,
                      int h, int w,
                      complex double c, complex double p,
-                     double zoom_ratio, char *plot_type){
+                     double zoom_ratio, const char *plot_type){
   double c_arr[2] = {creal(c), cimag(c)};
   const char *out_folder = gen_dir_name(c_arr, plot_type);
 

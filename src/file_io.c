@@ -8,7 +8,7 @@
 
 #include <file_io.h>
 
-char *gen_dir_name(double c[2], char *plot_type){
+char *gen_dir_name(double c[2], const char *plot_type){
   const char *rootd = "/home/hrad/Universidad/4o/TFG/sketch_code/beta1";
   char *out_folder = calloc(300, 1);
   snprintf(out_folder, 300, "%s/out/%s_%f+%fi_VIDEO_FRAMES\0", rootd, plot_type, c[0], c[1]);
@@ -23,7 +23,7 @@ char *gen_dir_name(double c[2], char *plot_type){
   return out_folder;
 }
 
-char *gen_filename(char *dirname, char *filename){
+char *gen_filename(const char *dirname, const char *filename){
   char *f, c;
   int i = 0, j = 0;
 
@@ -44,7 +44,7 @@ char *gen_filename(char *dirname, char *filename){
   return f;
 }
 
-char *get_root_folder(char *exec_path){
+char *get_root_folder(const char *exec_path){
   char *p = realpath(exec_path, NULL);
   int n_slashes = 0;
 

@@ -6,6 +6,7 @@ struct OpenCL_Program *get_opencl_info(){
   struct OpenCL_Program *prog = malloc(sizeof (struct OpenCL_Program));
 
   prog->ret = false;
+  prog->src = NULL;
 
   #ifdef DEBUG_OPENCL_FUNCS_C
   printf("Getting OpenCL info...\n");

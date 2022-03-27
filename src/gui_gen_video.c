@@ -66,6 +66,7 @@ void gui_gen_video_lock_span_ratio(GtkWidget *widget, gpointer data){
   double maxspanx;
 
   double ratio = (double) w / (double) h;
+  printf("RATIO %f\n", ratio);
 
   minspanx = minspany * ratio;
   maxspanx = maxspany * ratio;

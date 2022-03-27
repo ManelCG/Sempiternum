@@ -19,6 +19,9 @@ int complex_plane_get_id(ComplexPlane *);
 //Copies complex plane. Returns & saves in arg
 ComplexPlane *complex_plane_copy(ComplexPlane **dest, ComplexPlane *src);
 
+//IO
+void complex_plane_print(ComplexPlane *cp);
+
 //Dimensions
 int complex_plane_set_dimensions(ComplexPlane *, int w, int h);
 int complex_plane_get_width(ComplexPlane *);
