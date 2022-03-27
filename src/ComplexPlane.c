@@ -202,7 +202,7 @@ _Bool complex_plane_is_drawing_lines_active(ComplexPlane *cp){
 
 //---polynomial
 void complex_plane_set_polynomial_derivative_member(ComplexPlane *cp, complex v, int index){
-  if (index >= cp->polynomial_order){
+  if (index > cp->polynomial_order){
     return;
   }
   cp->polynomial_derivative[index] = v;
@@ -214,8 +214,8 @@ void complex_plane_set_polynomial_order(ComplexPlane *cp, int o){
   cp->polynomial_parameter = -1;
 
   if (o > 0){
-    cp->polynomial = malloc(sizeof(complex double) * (o+2));
-    cp->polynomial_derivative = malloc(sizeof(complex double) * (o+1));
+    cp->polynomial = calloc(sizeof(complex double) * (o+2), 1);
+    cp->polynomial_derivative = calloc(sizeof(complex double) * (o+1), 1);
     for (int i = 0; i <= o+1; i++){
       complex_plane_set_polynomial_member(cp, 0, i);
     }
@@ -236,7 +236,6 @@ void complex_plane_set_polynomial_member(ComplexPlane *cp, complex v, int index)
   cp->polynomial[index] = v;
 
   if (index < order){
-    printf("Set deriv member\n");
     complex_plane_set_polynomial_derivative_member(cp, (order - index) * v, index + 1);
   }
 
@@ -282,7 +281,7 @@ const complex double *complex_plane_get_polynomial(ComplexPlane *cp){
   return cp->polynomial;
 }
 void complex_plane_print_polynomial(ComplexPlane *cp){
-  for (int i = 0; i < cp->polynomial_order + 1; i++){
+  for (int i = 0; i < cp->polynomial_order; i++){
     if (i == cp->polynomial_order){
       printf("%gz ", cp->polynomial[i]);
     } else {
@@ -290,11 +289,11 @@ void complex_plane_print_polynomial(ComplexPlane *cp){
     }
     printf("+ ");
   }
-  printf("%g", cp->polynomial[cp->polynomial_order + 1]);
+  printf("%g", cp->polynomial[cp->polynomial_order]);
   printf("\n");
 }
 void complex_plane_print_polynomial_derivative(ComplexPlane *cp){
-  for (int i = 0; i < cp->polynomial_order + 1; i++){
+  for (int i = 0; i < cp->polynomial_order; i++){
     if (i == cp->polynomial_order){
       printf("%gz ", cp->polynomial_derivative[i]);
     } else {
@@ -302,7 +301,7 @@ void complex_plane_print_polynomial_derivative(ComplexPlane *cp){
     }
     printf("+ ");
   }
-  printf("%g", cp->polynomial_derivative[cp->polynomial_order + 1]);
+  printf("%g", cp->polynomial_derivative[cp->polynomial_order]);
   printf("\n");
 }
 
