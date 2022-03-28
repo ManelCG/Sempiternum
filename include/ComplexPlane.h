@@ -126,6 +126,9 @@ void complex_plane_print_polynomial_derivative(ComplexPlane *);
 
 //---Complex algebra
 double complex_plane_get_norm(complex double z);
+complex complex_mul(complex a, complex b);
+complex complex_div(complex a, complex b);
+complex complex_compute_polynomial(const complex double *polynomial, int order, complex param, complex z, int parameter);
 
 double complex_plane_thumbnail_get_span(ComplexPlane *);
 
@@ -137,6 +140,7 @@ void complex_plane_set_mandelbrot_parameters(ComplexPlane *);
 
 //---Complex plane image functions
 void draw_sequence_lines(ComplexPlane *C, double point[2], int w, int h);
-void draw_sequence_lines_polynomial(ComplexPlane *C, const complex double *polynomial, int order, double point[2], int w, int h);
+void draw_sequence_lines_polynomial(ComplexPlane *C, double point[2], int w, int h);
+void draw_sequence_lines_newton(ComplexPlane *cp, double point[2], int w, int h);
 
 #endif //COMPLEXPLANE_H

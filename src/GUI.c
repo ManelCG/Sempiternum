@@ -79,8 +79,8 @@ void save_polynomial_member(GtkWidget *widget, gpointer data){
     complex_plane_set_polynomial_member(cp, old_real + strtod(gtk_entry_get_text(GTK_ENTRY(widget)), NULL) * I, box);
   }
 
-  // complex_plane_print_polynomial(cp);
-  // complex_plane_print_polynomial_derivative(cp);
+  complex_plane_print_polynomial(cp);
+  complex_plane_print_polynomial_derivative(cp);
 }
 
 void change_polynomial_order(GtkWidget *widget, GdkEventKey *event, gpointer data){
@@ -957,9 +957,13 @@ void draw_sequence(GtkWidget *window, GdkEventButton *event, gpointer data){
       break;
     case 1:
       if (complex_plane_get_polynomial_order(cp) != -1){
-        draw_sequence_lines_polynomial(cp, complex_plane_get_polynomial(cp), complex_plane_get_polynomial_order(cp), p, w, h);
+        draw_sequence_lines_polynomial(cp, p, w, h);
       }
       break;
+    case 2:
+      if (complex_plane_get_polynomial_order(cp) != -1){
+        draw_sequence_lines_newton(cp, p, w, h);
+      }
   }
 
   clear_container(window);
