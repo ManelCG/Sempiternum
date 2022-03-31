@@ -886,6 +886,14 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
           complex_plane_set_polynomial_parameter(cp, th_par);
           complex_plane_set_polynomial_parameter(cp_thumb, cp_par);
           draw_from_options(event_box, data);
+          break;
+        case 2:
+          cp_par = complex_plane_get_polynomial_parameter(cp);
+          th_par = complex_plane_get_polynomial_parameter(cp_thumb);
+          complex_plane_set_polynomial_member(cp, x + y*I, cp_par);
+          complex_plane_set_polynomial_parameter(cp_thumb, cp_par);
+          draw_from_options(event_box, data);
+          break;
       }
       break;
   }
@@ -1166,7 +1174,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   //Plot type box
   gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_function_type), NULL, "Quadratic");
   gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_function_type), NULL, "Polynomial");
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_function_type), NULL, "Newton's Algorithm");
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_function_type), NULL, "Newton's Fractal");
   gtk_combo_box_set_active(GTK_COMBO_BOX(combo_function_type), complex_plane_get_function_type(cp));
   gtk_widget_set_tooltip_text(combo_function_type, "Set type of function to plot");
   gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(input_plot_type), NULL, "parameter_space");
@@ -1341,7 +1349,11 @@ void draw_main_window(GtkWidget *widget, gpointer data){
 
         if (complex_plane_get_polynomial_parameter(cp) == -1){
           complex_plane_set_polynomial_parameter(cp, polynomial_order);
-          gtk_combo_box_set_active(GTK_COMBO_BOX(combo_polynomial_parameter), polynomial_order);
+          if (complex_plane_get_function_type(cp) == 1){
+            gtk_combo_box_set_active(GTK_COMBO_BOX(combo_polynomial_parameter), polynomial_order);
+          } else {
+            gtk_combo_box_set_active(GTK_COMBO_BOX(combo_polynomial_parameter), polynomial_order + 1);
+          }
         } else {
           gtk_combo_box_set_active(GTK_COMBO_BOX(combo_polynomial_parameter), complex_plane_get_polynomial_parameter(cp));
         }

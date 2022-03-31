@@ -6,6 +6,8 @@
 
 #include <opencl_funcs.h>
 
+#include <complex_function.h>
+
 typedef struct ComplexPlane ComplexPlane;
 
 //---Complex plane setters and getters

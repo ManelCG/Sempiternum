@@ -3,17 +3,17 @@ SDIR = src
 
 IDIR = include
 CC = gcc
-CFLAGS = -I$(IDIR) `pkg-config --cflags --libs gtk+-3.0`
+CFLAGS = -I$(IDIR) `pkg-config --cflags --libs gtk+-3.0` -Wall
 
 ODIR=.obj
 LDIR=lib
 
 LIBS = -lm -lOpenCL -lpthread
 
-_DEPS = lodepng.h draw_julia.h opencl_funcs.h file_io.h ComplexPlane.h image_manipulation.h gui_gen_video.h
+_DEPS = lodepng.h draw_julia.h opencl_funcs.h file_io.h ComplexPlane.h image_manipulation.h gui_gen_video.h complex_function.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = lodepng.o draw_julia.o opencl_funcs.o file_io.o ComplexPlane.o image_manipulation.o
+_OBJ = lodepng.o draw_julia.o opencl_funcs.o file_io.o ComplexPlane.o image_manipulation.o complex_function.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 _OBJ_cli = main.o
