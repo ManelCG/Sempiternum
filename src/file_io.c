@@ -11,7 +11,7 @@
 char *gen_dir_name(double c[2], const char *plot_type){
   const char *rootd = "/home/hrad/Universidad/4o/TFG/sketch_code/beta1";
   char *out_folder = calloc(300, 1);
-  snprintf(out_folder, 300, "%s/out/%s_%f+%fi_VIDEO_FRAMES\0", rootd, plot_type, c[0], c[1]);
+  snprintf(out_folder, 300, "%s/out/%s_%f+%fi_VIDEO_FRAMES", rootd, plot_type, c[0], c[1]);
 
   DIR *d = opendir(out_folder);
   if (d){
