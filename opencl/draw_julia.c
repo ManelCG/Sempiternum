@@ -130,6 +130,25 @@ void complex_div(double a0, double b0, double a1, double b1, double *ar, double 
   *br = num2/den;
 }
 
+double complex_norm(double a, double b){
+  return native_sqrt(pow(a, 2) + pow(b, 2));
+}
+
+const double PI = 3.141592;
+void cartesian_to_polar(double a, double b, double *r, double *t){
+  double theta;
+
+  theta = atan(b/a);
+  if (a < 0){
+    theta += PI;
+  } else if (b < 0){
+    theta += 2*PI;
+  }
+
+  *r = complex_norm(a, b);
+  *t = theta;
+}
+
 void compute_polynomial(double *polynomial_real, double *polynomial_imag,
                       int order, double *result_real, double *result_imag,
                       double *param, double *z, int parameter){
@@ -279,11 +298,14 @@ __kernel void polynomial_fraction(__global unsigned char *m,
                                   __global int *parameter_p,
                                   __global double *Sx,
                                   __global double *Sy) {
+  const double PI = 3.141592;
 
   int parameter = *parameter_p;
   int w = *wp, h = *hp;
   int N = *Np;
   int order = *orderp;
+
+  double tol = 0.00000001;
 
   const int y = get_global_id(0);
   const int x = get_global_id(1);
@@ -296,14 +318,24 @@ __kernel void polynomial_fraction(__global unsigned char *m,
   newy = newy * (Sy[1] - Sy[0]) + Sy[0];
   double param[2] = {newx, newy};
   double z[2] = {numerator_real[order+1], numerator_imag[order+1]};
-  double z_abs;
 
-  double max_abs = 1000000;
+  int converged = 0;
 
+  double oldz[2];
   for (int i = 0; i < N; i++){
     double num0 = 0, num1 = 0;
     double den0 = 0, den1 = 0;
     double auxz0 = 0, auxz1 = 0;
+    double diff[2] = {0, 0};
+    double diff_abs = 0;
+
+    if (parameter == order + 1){
+      oldz[0] = param[0];
+      oldz[1] = param[1];
+    } else {
+      oldz[0] = z[0];
+      oldz[1] = z[1];
+    }
 
     if (parameter == order){              //Parameter is c -> deriv doesnt have parameter
       compute_polynomial(denominator_real, denominator_imag,
@@ -318,7 +350,6 @@ __kernel void polynomial_fraction(__global unsigned char *m,
     }
 
     if (den0 == 0 && den1 == 0){
-      z_abs = max_abs;
       break;
     }
 
@@ -330,39 +361,81 @@ __kernel void polynomial_fraction(__global unsigned char *m,
     if (parameter == order + 1){  //z is param
       param[0] = param[0] - auxz0;
       param[1] = param[1] - auxz1;
-      z_abs = native_sqrt(pow(param[0], 2) + pow(param[1], 2));
+
+      diff[0] = oldz[0] - param[0];
+      diff[1] = oldz[1] - param[1];
     } else {  //z is z
       z[0] = z[0] - auxz0;
       z[1] = z[1] - auxz1;
-      z_abs = native_sqrt(pow(z[0], 2) + pow(z[1], 2));
+
+      diff[0] = oldz[0] - z[0];
+      diff[1] = oldz[1] - z[1];
     }
-  }
+
+    diff_abs = complex_norm(diff[0], diff[1]);
+
+    if (diff_abs < tol){
+      converged = 1;
+      break;
+    }
+
+  } //Main loop finished
 
   if (parameter == order + 1){  //z is param
     z[0] = param[0];
     z[1] = param[1];
   }
 
-  if (z_abs >= max_abs){
+  if (converged == 1){ //Color points
+    double r, theta;
+    cartesian_to_polar(z[0], z[1], &r, &theta);
+    theta = fmod(theta, 2*PI);
+
+    //Theta en [0, 2PI]
+    double hp = theta / (PI/3);
+    double C = 1;
+
+    double X = C * (1 - fabs(fmod(hp, 2) - 1));
+    X = floor(X*255);
+    C = floor(C*255);
+
+    int Xi = (int) X;
+    int Ci = (int) C;
+
+    if (0 <= hp && hp < 1){
+      m[(y*w + x)*3+0] = Ci;
+      m[(y*w + x)*3+1] = Xi;
+      m[(y*w + x)*3+2] = 0;
+    } else if (1 <= hp && hp < 2){
+      m[(y*w + x)*3+0] = Xi;
+      m[(y*w + x)*3+1] = Ci;
+      m[(y*w + x)*3+2] = 0;
+    } else if (2 <= hp && hp < 3){
+      m[(y*w + x)*3+0] = 0;
+      m[(y*w + x)*3+1] = Ci;
+      m[(y*w + x)*3+2] = Xi;
+    } else if (3 <= hp && hp < 4){
+      m[(y*w + x)*3+0] = 0;
+      m[(y*w + x)*3+1] = Xi;
+      m[(y*w + x)*3+2] = Ci;
+    } else if (4 <= hp && hp < 5){
+      m[(y*w + x)*3+0] = Xi;
+      m[(y*w + x)*3+1] = 0;
+      m[(y*w + x)*3+2] = Ci;
+    } else if (5 <= hp && hp < 6){
+      m[(y*w + x)*3+0] = Ci;
+      m[(y*w + x)*3+1] = 0;
+      m[(y*w + x)*3+2] = Xi;
+    } else {
+    }
+
+
+  } else {
     m[(y*w + x)*3+0] = 0;
     m[(y*w + x)*3+1] = 0;
     m[(y*w + x)*3+2] = 0;
-    // double ni = log10((double) i);
-    // double n = log10((double) N);
-    // m[(y*w + x)*3] = 255;
-    // m[(y*w + x)*3+1] = (int) floor( ((double) ni / (double) n) * 255);
-    // m[(y*w + x)*3+0] = abs((int) floor(cos((double) i/200.0) * 255));
-    // m[(y*w + x)*3+1] = abs((int) floor(sin((double) i/50.0) * 255));
-    // m[(y*w + x)*3+2] = abs((int) floor(sin((double) i/200.0) * 255));
-  } else {
-    m[(y*w + x)*3+0] = abs((int) floor(z[0] + z[1]) * 50 + 64) % 256;
-    m[(y*w + x)*3+1] = abs((int) floor(z[0] + z[1]) * 50) % 128;
-    m[(y*w + x)*3+2] = abs((int) floor(z[0] + z[1]) * 50) % 64;
-    // m[(y*w + x)*3+0] = 255;
-    // m[(y*w + x)*3+1] = 255;
-    // m[(y*w + x)*3+2] = 255;
-
   }
+
 }
 
 __kernel void clone(__global unsigned char *result,
