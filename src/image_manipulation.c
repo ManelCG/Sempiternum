@@ -198,9 +198,7 @@ unsigned char *merge_sets(unsigned char *full, unsigned char *empty, int h, int 
 
   const size_t worksize[] = {h, w};
 
-  cl_int status;
-
-  status = clEnqueueNDRangeKernel(prog->command_queue,
+  clEnqueueNDRangeKernel(prog->command_queue,
                          prog->kernel, 2, NULL,
                          worksize,
                          NULL,
@@ -322,9 +320,7 @@ unsigned char *image_manipulation_clone_image(unsigned char *source, int h, int 
 
   const size_t worksize[] = {h, w};
 
-  cl_int status;
-
-  status = clEnqueueNDRangeKernel(prog->command_queue,
+  clEnqueueNDRangeKernel(prog->command_queue,
                          prog->kernel, 2, NULL,
                          worksize,
                          NULL,
