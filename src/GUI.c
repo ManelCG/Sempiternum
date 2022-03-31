@@ -53,7 +53,6 @@ void insert_text_event_int(GtkEditable *editable, const gchar *text, gint length
 }
 
 void insert_text_event_float(GtkEditable *editable, const gchar *text, gint length, gint *position, gpointer data){
-  int i;
   for (int i = 0; i < length; i++){
     if (!isdigit(text[i]) && !(text[i] == '.')){
       g_signal_stop_emission_by_name(G_OBJECT(editable), "insert-text");
@@ -67,7 +66,6 @@ void save_polynomial_member(GtkWidget *widget, gpointer data){
 
   const char *name = gtk_widget_get_name(widget);
   char type = *name;
-  name;
   int box = atoi(name + 1);
 
   if (type == 'r'){
@@ -175,6 +173,7 @@ void *render_video(void *data){
       lodepng_encode24_file(framename, complex_plane_get_plot(cp), w, h);
     }
   }
+  return NULL;
 }
 
 void render_video_handler(GtkWidget *widget, gpointer data){
@@ -261,8 +260,8 @@ void save_plot_handler(GtkWidget *widget, gpointer data){
   entry_choose_resolution[1] =  gtk_entry_new();
   gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_resolution[0]), default_entry_size);
   gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_resolution[1]), default_entry_size);
-  gtk_entry_set_placeholder_text(GTK_ENTRY(entry_choose_resolution[0]), g_strdup_printf("%d", default_resolution_x, NULL));
-  gtk_entry_set_placeholder_text(GTK_ENTRY(entry_choose_resolution[1]), g_strdup_printf("%d", default_resolution_y, NULL));
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entry_choose_resolution[0]), g_strdup_printf("%d", default_resolution_x));
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entry_choose_resolution[1]), g_strdup_printf("%d", default_resolution_y));
   gtk_widget_set_name(entry_choose_resolution[0], "0");
   gtk_widget_set_name(entry_choose_resolution[1], "1");
   printf("FIRST FUNCTION; %d %d\n", complex_plane_get_width(cp), complex_plane_get_height(cp));
@@ -292,8 +291,8 @@ void save_plot_handler(GtkWidget *widget, gpointer data){
     entry_choose_spans[i] = gtk_entry_new();
     gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_spans[i]), default_entry_size);
   }
-  gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[0]), g_strdup_printf("%.16g", complex_plane_get_spanx(cp), NULL));
-  gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[1]), g_strdup_printf("%.16g", complex_plane_get_spany(cp), NULL));
+  gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[0]), g_strdup_printf("%.16g", complex_plane_get_spanx(cp)));
+  gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[1]), g_strdup_printf("%.16g", complex_plane_get_spany(cp)));
   gtk_widget_set_name(entry_choose_spans[0], "2");
   gtk_widget_set_name(entry_choose_spans[1], "3");
   button_config_span_set_ratio = gtk_button_new_with_label("Lock ratio");
@@ -420,8 +419,8 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   entry_choose_resolution[1] =  gtk_entry_new();
   gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_resolution[0]), default_entry_size);
   gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_resolution[1]), default_entry_size);
-  gtk_entry_set_placeholder_text(GTK_ENTRY(entry_choose_resolution[0]), g_strdup_printf("%d", default_resolution_x, NULL));
-  gtk_entry_set_placeholder_text(GTK_ENTRY(entry_choose_resolution[1]), g_strdup_printf("%d", default_resolution_y, NULL));
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entry_choose_resolution[0]), g_strdup_printf("%d", default_resolution_x));
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entry_choose_resolution[1]), g_strdup_printf("%d", default_resolution_y));
   gtk_widget_set_name(entry_choose_resolution[0], "0");
   gtk_widget_set_name(entry_choose_resolution[1], "1");
   printf("FIRST FUNCTION; %d %d\n", complex_plane_get_width(cp), complex_plane_get_height(cp));
@@ -453,8 +452,8 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
     entry_choose_spans[i] = gtk_entry_new();
     gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_spans[i]), default_entry_size);
   }
-  gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[0]), g_strdup_printf("%.16g", complex_plane_get_spanx(cp), NULL));
-  gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[1]), g_strdup_printf("%.16g", complex_plane_get_spany(cp), NULL));
+  gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[0]), g_strdup_printf("%.16g", complex_plane_get_spanx(cp)));
+  gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[1]), g_strdup_printf("%.16g", complex_plane_get_spany(cp)));
   gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[2]), "1e-15");
   gtk_entry_set_text(GTK_ENTRY(entry_choose_spans[3]), "1e-15");
   gtk_widget_set_name(entry_choose_spans[0], "2");
@@ -707,7 +706,6 @@ void plot_zoom(GtkWidget *widget, double zoomratio, complex double p, gpointer d
   #ifdef DEBUG_GUI
   printf("Zooming in %f %f\n", creal(p), cimag(p));
   #endif
-  char buffer[500];
 
   complex_plane_set_center(cp, p);
   complex_plane_set_spanx(cp,  complex_plane_get_spanx(cp) * zoomratio);
@@ -769,14 +767,12 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
   ComplexPlane *cp = planes[0];
   ComplexPlane *cp_thumb = planes[1];
 
-  char buffer[500];
   #ifdef DEBUG_GUI
   printf("%d\n", event->button);
   #endif
 
-  double w_ev = gtk_widget_get_allocated_width(event_box);
   double h_ev = gtk_widget_get_allocated_height(event_box);
-  int w = complex_plane_get_width(cp), h = complex_plane_get_height(cp);
+  int h = complex_plane_get_height(cp);
 
   event->y = event->y + (h - h_ev)/2;
 
@@ -789,7 +785,6 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
            * complex_plane_get_spany(cp)
            + complex_plane_get_spany0(cp);
 
-  double point_clicked[2] = {x, y};
   gchar *point = g_strdup_printf("%.16g %+.16gi", x, y);
   gtk_label_set_text(GTK_LABEL(point_targeted), point);
 
@@ -904,12 +899,12 @@ void draw_box(GtkWidget *event_box, GdkEventButton *event, gpointer data){
   int x0 = event->x;
   int y0 = event->y;
   int w = complex_plane_get_width(cp), h = complex_plane_get_height(cp);
-  double spanx = complex_plane_get_spanx(cp), spany = complex_plane_get_spany(cp);
+  // double spanx = complex_plane_get_spanx(cp), spany = complex_plane_get_spany(cp);
 
   int x1 = complex_plane_zoom_point1_get_pixel_value_x(cp);
   int y1 = complex_plane_zoom_point1_get_pixel_value_y(cp);
 
-  complex_plane_free_drawn_plot(cp) != 1;
+  complex_plane_free_drawn_plot(cp);
 
   complex_plane_alloc_drawn_plot(cp);
   complex_plane_copy_plot(cp);
@@ -953,7 +948,7 @@ void draw_sequence(GtkWidget *window, GdkEventButton *event, gpointer data){
 
   double p[2] = {x, y};
 
-  complex_plane_free_drawn_plot(cp) != 1;
+  complex_plane_free_drawn_plot(cp);
 
   complex_plane_alloc_drawn_plot(cp);
   complex_plane_copy_plot(cp);
@@ -1280,8 +1275,8 @@ void draw_main_window(GtkWidget *widget, gpointer data){
           g_signal_connect(G_OBJECT(input_polynomial_settings_vector_imag[i]), "insert-text", G_CALLBACK(insert_text_event_float), NULL);
           g_signal_connect(G_OBJECT(input_polynomial_settings_vector_real[i]), "key_release_event", G_CALLBACK(save_polynomial_handler), (gpointer) planes);
           g_signal_connect(G_OBJECT(input_polynomial_settings_vector_imag[i]), "key_release_event", G_CALLBACK(save_polynomial_handler), (gpointer) planes);
-          gtk_widget_set_name(input_polynomial_settings_vector_real[i], g_strdup_printf("r%d", i, NULL));
-          gtk_widget_set_name(input_polynomial_settings_vector_imag[i], g_strdup_printf("i%d", i, NULL));
+          gtk_widget_set_name(input_polynomial_settings_vector_real[i], g_strdup_printf("r%d", i));
+          gtk_widget_set_name(input_polynomial_settings_vector_imag[i], g_strdup_printf("i%d", i));
 
           if (polynomial != NULL){
             if (creal(polynomial[i]) != 0.0){
