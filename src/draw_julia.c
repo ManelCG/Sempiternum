@@ -26,7 +26,7 @@ unsigned char *draw_julia_polynomial_fraction
          int parameter,
          struct OpenCL_Program **cl_prog, _Bool init_new_cl){
 
-  unsigned char *m = calloc(w * h * 3, 1);
+  unsigned char *m = malloc(w * h * 3);
 
   double *numerator_real   = malloc(sizeof(double) * (order + 2));
   double *numerator_imag   = malloc(sizeof(double) * (order + 2));
@@ -40,12 +40,12 @@ unsigned char *draw_julia_polynomial_fraction
     denominator_imag[i] = cimag(denominator[i]);
   }
 
-  double c_num[2];
-  double c_den[2];
-  c_num[0] = creal(numerator[order]);
-  c_num[1] = cimag(numerator[order]);
-  c_den[0] = creal(denominator[order]);
-  c_den[1] = cimag(denominator[order]);
+  // double c_num[2];
+  // double c_den[2];
+  // c_num[0] = creal(numerator[order]);
+  // c_num[1] = cimag(numerator[order]);
+  // c_den[0] = creal(denominator[order]);
+  // c_den[1] = cimag(denominator[order]);
 
   struct OpenCL_Program *prog = cl_prog == NULL? NULL : *cl_prog;
   if (init_new_cl == true){
@@ -157,9 +157,7 @@ unsigned char *draw_julia_polynomial_fraction
 
   const size_t worksize[] = {h, w};
 
-  cl_int status;
-
-  status = clEnqueueNDRangeKernel(prog->command_queue,
+  clEnqueueNDRangeKernel(prog->command_queue,
                          prog->kernel, 2, NULL,
                          worksize,
                          NULL,
@@ -225,9 +223,9 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
     polynomial_real[i] = creal(polynomial[i]);
     polynomial_imag[i] = cimag(polynomial[i]);
   }
-  double c[2];
-  c[0] = creal(polynomial[order]);
-  c[1] = cimag(polynomial[order]);
+  // double c[2];
+  // c[0] = creal(polynomial[order]);
+  // c[1] = cimag(polynomial[order]);
 
   struct OpenCL_Program *prog = cl_prog == NULL? NULL : *cl_prog;
   if (init_new_cl == true){
@@ -331,9 +329,7 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
 
   const size_t worksize[] = {h, w};
 
-  cl_int status;
-
-  status = clEnqueueNDRangeKernel(prog->command_queue,
+  clEnqueueNDRangeKernel(prog->command_queue,
                          prog->kernel, 2, NULL,
                          worksize,
                          NULL,
@@ -472,9 +468,7 @@ unsigned char *draw_julia(int N, int h, int w,
 
   const size_t worksize[] = {h, w};
 
-  cl_int status;
-
-  status = clEnqueueNDRangeKernel(prog->command_queue,
+  clEnqueueNDRangeKernel(prog->command_queue,
                          prog->kernel, 2, NULL,
                          worksize,
                          NULL,
@@ -532,7 +526,7 @@ void draw_julia_zoom(int frames, int N,
     ratio = (double) h / (double) w;
   }
 
-  double c_abs = pow(pow(creal(c), 2) + pow(cimag(c), 2), 0.5);
+  // double c_abs = pow(pow(creal(c), 2) + pow(cimag(c), 2), 0.5);
   double SpanOriginal = 4;
   printf("%f\n", SpanOriginal);
   double Sx[2], Sy[2];
@@ -628,7 +622,7 @@ unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], 
   struct complexBI *new_queue_ptr = NULL;
   struct complexBI *aux_free = NULL;
 
-  int mallocs = 0, frees = 0, npoints;
+  int mallocs = 0, frees = 0;
 
   z0->p = 0.5 * (1.0 + sqrt_complex(1.0 - 4*C));
   z0->der = sqrt(pow(creal(z0->p), 2) + pow(cimag(z0->p), 2));
