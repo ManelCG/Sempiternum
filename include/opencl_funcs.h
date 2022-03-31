@@ -15,7 +15,7 @@
 
 
 struct OpenCL_Program{
-  cl_uint ret;
+  cl_int ret;
 
   cl_device_id      device;
   cl_context        context;
