@@ -283,25 +283,25 @@ const complex double *complex_plane_get_polynomial(ComplexPlane *cp){
 void complex_plane_print_polynomial(ComplexPlane *cp){
   for (int i = 0; i < cp->polynomial_order; i++){
     if (i == cp->polynomial_order){
-      printf("%gz ", cp->polynomial[i]);
+      printf("(%g %+g)z ", creal(cp->polynomial[i]), cimag(cp->polynomial[i]));
     } else {
-      printf("%gz^%d ", cp->polynomial[i], cp->polynomial_order - i);
+      printf("(%g %+g)z^%d ", creal(cp->polynomial[i]), cimag(cp->polynomial[i]), cp->polynomial_order - i);
     }
     printf("+ ");
   }
-  printf("%g", cp->polynomial[cp->polynomial_order]);
+  printf("(%g %+g)", creal(cp->polynomial[cp->polynomial_order]), cimag(cp->polynomial[cp->polynomial_order]));
   printf("\n");
 }
 void complex_plane_print_polynomial_derivative(ComplexPlane *cp){
   for (int i = 0; i < cp->polynomial_order; i++){
     if (i == cp->polynomial_order){
-      printf("%gz ", cp->polynomial_derivative[i]);
+      printf("(%g %+g)z ", creal(cp->polynomial_derivative[i]), cimag(cp->polynomial_derivative[i]));
     } else {
-      printf("%gz^%d ", cp->polynomial_derivative[i], cp->polynomial_order - i);
+      printf("(%g %+g)z^%d ", creal(cp->polynomial_derivative[i]), cimag(cp->polynomial_derivative[i]), cp->polynomial_order - i);
     }
     printf("+ ");
   }
-  printf("%g", cp->polynomial_derivative[cp->polynomial_order]);
+  printf("(%g %+g)", creal(cp->polynomial_derivative[cp->polynomial_order]), cimag(cp->polynomial_derivative[cp->polynomial_order]));
   printf("\n");
 }
 
@@ -665,11 +665,12 @@ double complex_plane_thumbnail_get_span(ComplexPlane *cp){
     default:
       return 2;
   }
+  return 2;
 
 }
 
 void draw_sequence_lines(struct ComplexPlane *C, double point[2], int w, int h){
-  double c[2], p[2], old_p[2];
+  double c[2], p[2];
   int x, y, oldx, oldy;
 
   if (strcmp(C->plot_type, "parameter_space") == 0){
@@ -689,7 +690,6 @@ void draw_sequence_lines(struct ComplexPlane *C, double point[2], int w, int h){
   }
 
   for (int i = 0; i < C->N_line; i++){
-    old_p[0] = p[0]; old_p[1] = p[1];
     oldx = x;        oldy = y;
 
     double aux = (pow(p[0], 2) - pow(p[1], 2)) + c[0];
@@ -774,7 +774,7 @@ complex complex_compute_polynomial(const complex double *polynomial,
 
 
 void draw_sequence_lines_polynomial(struct ComplexPlane *C,  double point[2], int w, int h){
-  complex param, old_p, c, z;
+  complex param, z;
   int x, y, oldx, oldy;
 
   const complex double *polynomial = C->polynomial;
@@ -795,7 +795,6 @@ void draw_sequence_lines_polynomial(struct ComplexPlane *C,  double point[2], in
   }
 
   for (int i = 0; i < C->N_line; i++){
-    old_p = z;
     oldx = x; oldy = y;
     complex auxz = 0;
 
@@ -824,7 +823,7 @@ void draw_sequence_lines_polynomial(struct ComplexPlane *C,  double point[2], in
 }
 
 void draw_sequence_lines_newton(ComplexPlane *C, double p[2], int w, int h){
-  complex param, old_p, c, z;
+  complex param, z;
   int parameter = C->polynomial_parameter;
   int x, y, oldx, oldy;
 
@@ -845,7 +844,6 @@ void draw_sequence_lines_newton(ComplexPlane *C, double p[2], int w, int h){
   }
 
   for (int i = 0; i < C->N_line; i++){
-    old_p = z;
     oldx = x; oldy = y;
     complex auxn = 0, auxd = 0;
     complex auxz = 0;
