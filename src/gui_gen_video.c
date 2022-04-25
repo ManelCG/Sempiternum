@@ -29,7 +29,7 @@ char *gui_gen_video_choose_folder(GtkWidget *w, gpointer data){
 
 }
 
-GtkWidget *gui_gen_video_generate_default_resolutions_combo_box(){
+GtkWidget *gui_gen_video_generate_default_resolutions_combo_box(int *num){
   GtkWidget *combo = gtk_combo_box_text_new();
   gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "426x240");
   gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "640x360");
@@ -38,6 +38,10 @@ GtkWidget *gui_gen_video_generate_default_resolutions_combo_box(){
   gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "1920x1080");
   gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "2560x1440");
   gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "3840x2160");
+
+  if (num != NULL){
+    *num = 7;
+  }
 
   gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 4);
 

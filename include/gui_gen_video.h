@@ -16,7 +16,7 @@ typedef struct{
 
 mainMenu *menu_main_new();
 char *gui_gen_video_choose_folder(GtkWidget *w, gpointer data);
-GtkWidget *gui_gen_video_generate_default_resolutions_combo_box();
+GtkWidget *gui_gen_video_generate_default_resolutions_combo_box(int *num);
 void gui_gen_video_resolutions_combo_box_to_entries(GtkWidget *, gpointer entries);
 void gui_gen_video_lock_span_ratio(GtkWidget *, gpointer);
 

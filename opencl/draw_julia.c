@@ -1,3 +1,7 @@
+#define FUNC_PARAMETER_SPACE 1
+#define FUNC_DYNAMIC_PLANE 2
+
+
 __kernel void rec_f(__global unsigned char *m,
                     __global int *Np,
                     __global int *hp,
@@ -117,8 +121,10 @@ __kernel void parameter_space(__global unsigned char *m,
 }
 
 void complex_mul(double a0, double b0, double a1, double b1, double *ar, double *br){
-  *ar = (a0 * a1) - (b0 * b1);
-  *br = (a0 * b1) + (b0 * a1);
+  double auxa = (a0 * a1) - (b0 * b1);
+  double auxb = (a0 * b1) + (b0 * a1);
+  *ar = auxa;
+  *br = auxb;
 }
 
 void complex_div(double a0, double b0, double a1, double b1, double *ar, double *br){
@@ -147,6 +153,43 @@ void cartesian_to_polar(double a, double b, double *r, double *t){
 
   *r = complex_norm(a, b);
   *t = theta;
+}
+
+void compute_polynomial_p(double *result_real,     double *result_imag,
+                          double *polynomial_real, double *polynomial_imag,
+                          double param_real,       double param_imag,
+                          double z_ini_real,       double z_ini_imag,
+                          int order){
+
+  double auxz0 = 0, auxz1 = 0, auxr2 = 0, auxi2 = 0, auxr = 0, auxi = 0;
+  double z[2] = {z_ini_real, z_ini_imag};
+
+  for (int j = order; j >= 0; j--){
+    if (j == order){    //Add C
+      auxz0 = polynomial_real[j];
+      auxz1 = polynomial_imag[j];
+      // complex_mul(polynomial_real[j], polynomial_imag[j], param_real, param_imag, &auxz0, &auxz1);
+    } else if (j == order -1){  //add a*Z
+      if ((polynomial_real[j] != 0 || polynomial_imag[j] != 0) && (param_real != 0 || param_imag != 0)){
+        complex_mul(polynomial_real[j], polynomial_imag[j], z[0], z[1], &auxr2, &auxi2);
+        complex_mul(auxr2, auxi2, param_real, param_imag, &auxr2, &auxi2);
+        auxz0 += auxr2; auxz1 += auxi2;
+      }
+    } else {  //Exponientiate
+      if ((polynomial_real[j] != 0 || polynomial_imag[j] != 0) && (param_real != 0 || param_imag != 0)){
+        auxr = z[0]; auxi = z[1];
+        for (int k = 0; k < order-j-1; k++){
+          complex_mul(auxr, auxi, z[0], z[1], &auxr, &auxi);
+        }
+        complex_mul(auxr, auxi, polynomial_real[j], polynomial_imag[j], &auxr, &auxi);
+        complex_mul(auxr, auxi, param_real, param_imag, &auxr, &auxi);
+        auxz0 += auxr, auxz1 += auxi;
+      }
+    }
+  }
+
+  *result_real = auxz0; *result_imag = auxz1;
+
 }
 
 void compute_polynomial(double *polynomial_real, double *polynomial_imag,
@@ -286,6 +329,188 @@ __kernel void polynomial(__global unsigned char *m,
   }
 }
 
+void color_matrix_radial(unsigned char *m, unsigned x, unsigned y, unsigned w, double zreal, double zimag){
+  double r, theta;
+
+  double zr[2] = {zreal, zimag};
+
+  cartesian_to_polar(zr[0], zr[1], &r, &theta);
+  theta = fmod(theta, 2*PI);
+
+  //Theta en [0, 2PI]
+  double hp = theta / (PI/3);
+  double C = 1;
+
+  double X = C * (1 - fabs(fmod(hp, 2) - 1));
+  X = floor(X*255);
+  C = floor(C*255);
+
+  int Xi = (int) X;
+  int Ci = (int) C;
+
+  if (0 <= hp && hp < 1){
+    m[(y*w + x)*3+0] = Ci;
+    m[(y*w + x)*3+1] = Xi;
+    m[(y*w + x)*3+2] = 0;
+  } else if (1 <= hp && hp < 2){
+    m[(y*w + x)*3+0] = Xi;
+    m[(y*w + x)*3+1] = Ci;
+    m[(y*w + x)*3+2] = 0;
+  } else if (2 <= hp && hp < 3){
+    m[(y*w + x)*3+0] = 0;
+    m[(y*w + x)*3+1] = Ci;
+    m[(y*w + x)*3+2] = Xi;
+  } else if (3 <= hp && hp < 4){
+    m[(y*w + x)*3+0] = 0;
+    m[(y*w + x)*3+1] = Xi;
+    m[(y*w + x)*3+2] = Ci;
+  } else if (4 <= hp && hp < 5){
+    m[(y*w + x)*3+0] = Xi;
+    m[(y*w + x)*3+1] = 0;
+    m[(y*w + x)*3+2] = Ci;
+  } else if (5 <= hp && hp < 6){
+    m[(y*w + x)*3+0] = Ci;
+    m[(y*w + x)*3+1] = 0;
+    m[(y*w + x)*3+2] = Xi;
+  }
+}
+
+int newton_method(double *result_real, double *result_imag, double zr, double zi,
+                   double *polynm_real, double *polynm_imag, double *polynp_real, double *polynp_imag,
+                   double *param_real,  double *param_imag,  double *paramp_real, double *paramp_imag,
+                   double ar, double ai, int order){
+
+  double auxr, auxi;
+  double denr, deni;
+  double numr, numi;
+
+  compute_polynomial_p(&denr, &deni, polynp_real, polynp_imag, 1, 0, zr, zi, order);
+  compute_polynomial_p(&auxr, &auxi, paramp_real, paramp_imag, ar, ai, zr, zi, order);
+  denr += auxr; deni += auxi;
+
+  if (denr == 0 && deni == 0){
+    return -1;
+  }
+
+  compute_polynomial_p(&numr, &numi, polynm_real, polynm_imag, 1, 0, zr, zi, order);
+  compute_polynomial_p(&auxr, &auxi, param_real, param_imag, ar, ai, zr, zi, order);
+  numr += auxr; numi += auxi;
+
+  complex_div(numr, numi, denr, deni, &auxr, &auxi);
+
+  *result_real = zr - auxr;
+  *result_imag = zi - auxi;
+
+  return 0;
+}
+
+__kernel void numerical_method(__global unsigned char *m,
+                               __global int *Np,
+                               __global int *hp,
+                               __global int *wp,
+                               __global int *orderp,
+                               __global double *polynomial_real,
+                               __global double *polynomial_imag,
+                               __global double *polynomial_derivative_real,
+                               __global double *polynomial_derivative_imag,
+                               __global double *polynomial_second_derivative_real,
+                               __global double *polynomial_second_derivative_imag,
+                               __global double *polynomial_parameters_real,
+                               __global double *polynomial_parameters_imag,
+                               __global double *polynomial_parameters_derivative_real,
+                               __global double *polynomial_parameters_derivative_imag,
+                               __global double *polynomial_parameters_second_derivative_real,
+                               __global double *polynomial_parameters_second_derivative_imag,
+                               __global double *critical_real,   __global double *critical_imag,
+                               __global double *Sx,              __global double *Sy){
+
+  int func_type = FUNC_PARAMETER_SPACE;
+
+  const int w = *wp; const int h = *hp;
+  const int order = *orderp;
+  const int N = *Np;
+
+  const int y = get_global_id(0);
+  const int x = get_global_id(1);
+
+  //Map x and y to range between -R and R
+  double newx = (double) x / (double) w;
+  newx = newx * (Sx[1] - Sx[0]) + Sx[0];
+  double newy = -(y - h);
+  newy = (double) newy / (double) h;
+  newy = newy * (Sy[1] - Sy[0]) + Sy[0];
+
+  double tol = 0.0000000001;
+  double far_tol = 100;
+  int death_counter = 0;
+  int death_tolerance = 5;
+
+  double a[2];
+  double z[2];
+  double zr[2];
+  double oldz[2];
+
+  double norm;
+  double old_norm;
+
+  int ret;
+
+  if (func_type == FUNC_PARAMETER_SPACE){
+    a[0] = newx; a[1] = newy;
+    compute_polynomial_p(&z[0], &z[1], critical_real, critical_imag, 1, 0, a[0], a[1], order);
+  } else if (func_type == FUNC_DYNAMIC_PLANE){
+    //TODO: Pass a by arguments to opencl function!!!!!!!!!!
+    a[0] = 1; a[1] = 1;
+    z[0] = newx; z[1] = newy;
+  }
+
+
+  zr[0] = z[0]; zr[1] = z[1];
+  norm = complex_norm(zr[0], zr[1]);
+  for (int i = 0; i < N; i++){
+    oldz[0] = zr[0]; oldz[1] = zr[1];
+    old_norm = norm;
+
+    ret = newton_method(&zr[0], &zr[1], zr[0], zr[1], polynomial_real, polynomial_imag,
+                        polynomial_derivative_real, polynomial_derivative_imag,
+                        polynomial_parameters_real, polynomial_parameters_imag,
+                        polynomial_parameters_derivative_real, polynomial_parameters_derivative_imag,
+                        a[0], a[1], order);
+
+    norm = complex_norm(zr[0], zr[1]);
+    if (norm > far_tol && norm > old_norm){
+      death_counter++;
+    } else {
+      death_counter = 0;
+    }
+
+
+    if (ret == -1 || death_counter >= death_tolerance){                 //Divide by 0 or diverge
+      m[(y*w + x)*3+0] = 255;
+      m[(y*w + x)*3+1] = 255;
+      m[(y*w + x)*3+2] = 255;
+      // m[(y*w + x)*3+0] = abs((int) floor(cos((double) i/200.0) * 255));
+      // m[(y*w + x)*3+1] = abs((int) floor(sin((double) i/50.0) * 255));
+      // m[(y*w + x)*3+2] = abs((int) floor(sin((double) i/200.0) * 255));
+      return;
+    }
+
+    if (fabs(norm - old_norm) <= tol){ //Converges!
+      color_matrix_radial(m, x, y, w, zr[0], zr[1]);
+      return;
+    }
+
+  }
+
+
+  //Doesnt converge nor diverge!
+  m[(y*w + x)*3+0] = 0;
+  m[(y*w + x)*3+1] = 0;
+  m[(y*w + x)*3+2] = 0;
+
+}
+
+
 __kernel void polynomial_fraction(__global unsigned char *m,
                                   __global int *Np,
                                   __global int *hp,
@@ -387,49 +612,7 @@ __kernel void polynomial_fraction(__global unsigned char *m,
   }
 
   if (converged == 1){ //Color points
-    double r, theta;
-    cartesian_to_polar(z[0], z[1], &r, &theta);
-    theta = fmod(theta, 2*PI);
-
-    //Theta en [0, 2PI]
-    double hp = theta / (PI/3);
-    double C = 1;
-
-    double X = C * (1 - fabs(fmod(hp, 2) - 1));
-    X = floor(X*255);
-    C = floor(C*255);
-
-    int Xi = (int) X;
-    int Ci = (int) C;
-
-    if (0 <= hp && hp < 1){
-      m[(y*w + x)*3+0] = Ci;
-      m[(y*w + x)*3+1] = Xi;
-      m[(y*w + x)*3+2] = 0;
-    } else if (1 <= hp && hp < 2){
-      m[(y*w + x)*3+0] = Xi;
-      m[(y*w + x)*3+1] = Ci;
-      m[(y*w + x)*3+2] = 0;
-    } else if (2 <= hp && hp < 3){
-      m[(y*w + x)*3+0] = 0;
-      m[(y*w + x)*3+1] = Ci;
-      m[(y*w + x)*3+2] = Xi;
-    } else if (3 <= hp && hp < 4){
-      m[(y*w + x)*3+0] = 0;
-      m[(y*w + x)*3+1] = Xi;
-      m[(y*w + x)*3+2] = Ci;
-    } else if (4 <= hp && hp < 5){
-      m[(y*w + x)*3+0] = Xi;
-      m[(y*w + x)*3+1] = 0;
-      m[(y*w + x)*3+2] = Ci;
-    } else if (5 <= hp && hp < 6){
-      m[(y*w + x)*3+0] = Ci;
-      m[(y*w + x)*3+1] = 0;
-      m[(y*w + x)*3+2] = Xi;
-    } else {
-    }
-
-
+    color_matrix_radial(m, x, y, w, z[0], z[1]);
   } else {
     m[(y*w + x)*3+0] = 0;
     m[(y*w + x)*3+1] = 0;

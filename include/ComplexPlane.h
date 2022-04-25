@@ -122,8 +122,23 @@ int complex_plane_get_polynomial_parameter(ComplexPlane *);
 _Bool complex_plane_polynomial_is_null(ComplexPlane *);
 int complex_plane_copy_polynomial(ComplexPlane *dest, ComplexPlane *src); //-1 if fail
 const complex double *complex_plane_get_polynomial(ComplexPlane *);
+const complex double *complex_plane_get_critical(ComplexPlane *cp);
 void complex_plane_print_polynomial(ComplexPlane *);
 void complex_plane_print_polynomial_derivative(ComplexPlane *);
+void complex_plane_print_polynomial_parameters_derivative(ComplexPlane *cp);
+void complex_plane_print_critical_point(ComplexPlane *cp);
+void complex_plane_format_polynomial(ComplexPlane *cp);
+void complex_plane_format_derivative(ComplexPlane *cp);
+void complex_plane_format_second_derivative(ComplexPlane *cp);
+void complex_plane_format_polynomial_critical_point(ComplexPlane *cp);
+void complex_plane_format_arbitrary_polynomial(complex double *p, complex double *par, int order, char cvar, char cpar);
+void complex_plane_set_polynomial_critical_point_member(ComplexPlane *cp, complex v, int index);
+
+
+void complex_plane_free_polynomial_parameters(ComplexPlane *cp);
+void complex_plane_set_parameters_vector_member(ComplexPlane *cp, complex double v, int i);
+complex double complex_plane_get_parameters_vector_member(ComplexPlane *cp, int i);
+void complex_plane_print_parameters(ComplexPlane *cp);
 
 
 //---Complex algebra

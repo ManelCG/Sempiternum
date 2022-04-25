@@ -17,7 +17,7 @@
 #include <draw_julia.h>
 #include <image_manipulation.h>
 
-// #define DEBUG_DRAW_JULIA_C
+#define DEBUG_DRAW_JULIA_C
 
 unsigned char *draw_julia_polynomial_fraction
         (int N, int h, int w, int order,
@@ -208,6 +208,253 @@ unsigned char *draw_julia_polynomial_fraction
   return m;
 }
 
+unsigned char *draw_julia_numerical_method(int N, int h, int w,
+                                           int order,
+                                           complex double *polynomial,
+                                           complex double *polynomial_derivative,
+                                           complex double *polynomial_second_derivative,
+                                           complex double *polynomial_parameters,
+                                           complex double *polynomial_parameters_derivative,
+                                           complex double *polynomial_parameters_second_derivative,
+                                           complex double *polynomial_critical_point,
+                                           double Sx[2], double Sy[2],
+                                           struct OpenCL_Program **cl_prog, _Bool init_new_cl){
+
+  unsigned char *m = calloc(h*w*3*sizeof(unsigned char), 1);
+
+  double *polynomial_real = calloc(sizeof(double) * (order + 2), 1);
+  double *polynomial_imag = calloc(sizeof(double) * (order + 2), 1);
+  double *polynomial_derivative_real = calloc(sizeof(double) * (order + 2), 1);
+  double *polynomial_derivative_imag = calloc(sizeof(double) * (order + 2), 1);
+  double *polynomial_second_derivative_real = calloc(sizeof(double) * (order + 2), 1);
+  double *polynomial_second_derivative_imag = calloc(sizeof(double) * (order + 2), 1);
+  double *polynomial_parameters_real = calloc(sizeof(double) * (order + 2), 1);
+  double *polynomial_parameters_imag = calloc(sizeof(double) * (order + 2), 1);
+  double *polynomial_parameters_derivative_real = calloc(sizeof(double) * (order + 2), 1);
+  double *polynomial_parameters_derivative_imag = calloc(sizeof(double) * (order + 2), 1);
+  double *polynomial_parameters_second_derivative_real = calloc(sizeof(double) * (order + 2), 1);
+  double *polynomial_parameters_second_derivative_imag = calloc(sizeof(double) * (order + 2), 1);
+  double *polynomial_critical_point_real = calloc(sizeof(double) * (order + 2), 1);
+  double *polynomial_critical_point_imag = calloc(sizeof(double) * (order + 2), 1);
+
+  for (int i = 0; i < order+2; i++){
+    polynomial_real[i] = creal(polynomial[i]);
+    polynomial_imag[i] = cimag(polynomial[i]);
+    polynomial_derivative_real[i] = creal(polynomial_derivative[i]);
+    polynomial_derivative_imag[i] = cimag(polynomial_derivative[i]);
+    polynomial_second_derivative_real[i] = creal(polynomial_second_derivative[i]);
+    polynomial_second_derivative_imag[i] = cimag(polynomial_second_derivative[i]);
+    polynomial_parameters_real[i] = creal(polynomial_parameters[i]);
+    polynomial_parameters_imag[i] = cimag(polynomial_parameters[i]);
+    polynomial_parameters_derivative_real[i] = creal(polynomial_parameters_derivative[i]);
+    polynomial_parameters_derivative_imag[i] = cimag(polynomial_parameters_derivative[i]);
+    polynomial_parameters_second_derivative_real[i] = creal(polynomial_parameters_second_derivative[i]);
+    polynomial_parameters_second_derivative_imag[i] = cimag(polynomial_parameters_second_derivative[i]);
+    polynomial_critical_point_real[i] = creal(polynomial_critical_point[i]);
+    polynomial_critical_point_imag[i] = cimag(polynomial_critical_point[i]);
+  }
+
+  struct OpenCL_Program *prog = cl_prog == NULL? NULL : *cl_prog;
+
+  if (init_new_cl == true){
+    if (cl_prog == NULL){
+      prog = get_opencl_info();
+    } else {
+      *cl_prog = get_opencl_info();
+      prog = *cl_prog;
+    }
+    FILE *fp;
+    char *filename = "opencl/draw_julia.c";
+
+    fp = fopen(filename, "r");
+    if (!fp){
+      fprintf(stderr, "Failed to load kernel.\n");
+      exit(1);
+    }
+
+    prog->src = (char *) calloc(MAX_SOURCE_SIZE, 1);
+    prog->src_size = fread(prog->src, 1, MAX_SOURCE_SIZE, fp);
+
+    fclose(fp);
+
+    #ifdef DEBUG_DRAW_JULIA_C
+    printf("Executing:\n------------------------\n%s\n------------------------\n", prog->src);
+    #endif
+
+    prog->context = clCreateContext(NULL, 1, &(prog->device), NULL, NULL, &(prog->ret));
+    #ifdef DEBUG_DRAW_JULIA_C
+    printf("OpenCL context created. Return code: %d\n", prog->ret);
+    #endif
+  }
+
+  prog->command_queue = clCreateCommandQueue(prog->context, prog->device, 0, &(prog->ret));
+  #ifdef DEBUG_DRAW_JULIA_C
+  printf("OpenCL CommandQueue created. Return code: %d\n", prog->ret);
+  #endif
+
+  //Create all memory objects for Julia set Drawing
+  //Memobjects for images and dmap
+  cl_mem mem_m      = clCreateBuffer(prog->context, CL_MEM_WRITE_ONLY,w*h*3, NULL, &(prog->ret));
+  cl_mem mem_N      = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int), NULL, &(prog->ret));
+  cl_mem mem_h      = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int), NULL, &(prog->ret));
+  cl_mem mem_w      = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int), NULL, &(prog->ret));
+  cl_mem mem_order  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int), NULL, &(prog->ret));
+  cl_mem mem_polr   = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_poli   = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_polrd  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_polid  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_polrd2 = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_polid2 = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_parr   = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_pari   = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_parrd  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_parid  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_parrd2 = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_parid2 = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_critr  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_criti  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_Sx     = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*2, NULL, &(prog->ret));
+  cl_mem mem_Sy     = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*2, NULL, &(prog->ret));
+
+  //Write data to mem objects
+  clEnqueueWriteBuffer(prog->command_queue, mem_N,      CL_TRUE, 0, sizeof(int),              &N,                                           0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_h,      CL_TRUE, 0, sizeof(int),              &h,                                           0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_w,      CL_TRUE, 0, sizeof(int),              &w,                                           0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_order,  CL_TRUE, 0, sizeof(int),              &order,                                       0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_polr,   CL_TRUE, 0, sizeof(double)*(order+2), polynomial_real,                              0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_poli,   CL_TRUE, 0, sizeof(double)*(order+2), polynomial_imag,                              0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_polrd,  CL_TRUE, 0, sizeof(double)*(order+2), polynomial_derivative_real,                   0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_polid,  CL_TRUE, 0, sizeof(double)*(order+2), polynomial_derivative_imag,                   0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_polrd2, CL_TRUE, 0, sizeof(double)*(order+2), polynomial_second_derivative_real,            0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_polid2, CL_TRUE, 0, sizeof(double)*(order+2), polynomial_second_derivative_imag,            0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_parr,   CL_TRUE, 0, sizeof(double)*(order+2), polynomial_parameters_real,                   0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_pari,   CL_TRUE, 0, sizeof(double)*(order+2), polynomial_parameters_imag,                   0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_parrd,  CL_TRUE, 0, sizeof(double)*(order+2), polynomial_parameters_derivative_real,        0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_parid,  CL_TRUE, 0, sizeof(double)*(order+2), polynomial_parameters_derivative_imag,        0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_parrd2, CL_TRUE, 0, sizeof(double)*(order+2), polynomial_parameters_second_derivative_real, 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_parid2, CL_TRUE, 0, sizeof(double)*(order+2), polynomial_parameters_second_derivative_imag, 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_critr,  CL_TRUE, 0, sizeof(double)*(order+2), polynomial_critical_point_real,               0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_criti,  CL_TRUE, 0, sizeof(double)*(order+2), polynomial_critical_point_imag,               0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_Sx,     CL_TRUE, 0, sizeof(double)*2,         Sx,                                           0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_Sy,     CL_TRUE, 0, sizeof(double)*2,         Sy,                                           0, NULL, NULL);
+
+
+  if (init_new_cl){
+    prog->program = clCreateProgramWithSource(prog->context,
+                                              1,
+                                              (const char **)  &(prog->src),
+                                              (const size_t *) &(prog->src_size),
+                                              &(prog->ret));
+    fflush(stdout);
+    clBuildProgram(prog->program, 1, &(prog->device), NULL, NULL, NULL);
+  }
+
+  prog->kernel = clCreateKernel(prog->program, "numerical_method", &(prog->ret));
+
+  #ifdef DEBUG_DRAW_JULIA_C
+  printf("OpenCL Kernel created. Return code: %d\n\n", prog->ret);
+  #endif
+
+
+  clSetKernelArg(prog->kernel, 0, sizeof(mem_m),        (void *)&mem_m);
+  clSetKernelArg(prog->kernel, 1, sizeof(mem_N),        (void *) &mem_N);
+  clSetKernelArg(prog->kernel, 2, sizeof(mem_h),        (void *) &mem_h);
+  clSetKernelArg(prog->kernel, 3, sizeof(mem_w),        (void *) &mem_w);
+  clSetKernelArg(prog->kernel, 4, sizeof(mem_order),    (void *) &mem_order);
+  clSetKernelArg(prog->kernel, 5, sizeof(mem_polr),     (void *) &mem_polr);
+  clSetKernelArg(prog->kernel, 6, sizeof(mem_poli),     (void *) &mem_poli);
+  clSetKernelArg(prog->kernel, 7, sizeof(mem_polrd),    (void *) &mem_polrd);
+  clSetKernelArg(prog->kernel, 8, sizeof(mem_polid),    (void *) &mem_polid);
+  clSetKernelArg(prog->kernel, 9, sizeof(mem_polrd2),   (void *) &mem_polrd2);
+  clSetKernelArg(prog->kernel, 10, sizeof(mem_polid2),  (void *) &mem_polid2);
+  clSetKernelArg(prog->kernel, 11, sizeof(mem_parr),    (void *) &mem_parr);
+  clSetKernelArg(prog->kernel, 12, sizeof(mem_pari),    (void *) &mem_pari);
+  clSetKernelArg(prog->kernel, 13, sizeof(mem_parrd),   (void *) &mem_parrd);
+  clSetKernelArg(prog->kernel, 14, sizeof(mem_parid),   (void *) &mem_parid);
+  clSetKernelArg(prog->kernel, 15, sizeof(mem_parrd2),  (void *) &mem_parrd2);
+  clSetKernelArg(prog->kernel, 16, sizeof(mem_parid2),  (void *) &mem_parid2);
+  clSetKernelArg(prog->kernel, 17, sizeof(mem_critr),   (void *) &mem_critr);
+  clSetKernelArg(prog->kernel, 18, sizeof(mem_criti),   (void *) &mem_criti);
+  clSetKernelArg(prog->kernel, 19, sizeof(mem_Sx),      (void *) &mem_Sx);
+  clSetKernelArg(prog->kernel, 20, sizeof(mem_Sy),      (void *) &mem_Sy);
+
+  fflush(stdout);
+
+  const size_t worksize[] = {h, w};
+
+  clEnqueueNDRangeKernel(prog->command_queue,
+                         prog->kernel, 2, NULL,
+                         worksize,
+                         NULL,
+                         0, NULL, NULL);
+
+  clFlush(prog->command_queue);
+  clFinish(prog->command_queue);
+
+  clEnqueueReadBuffer(prog->command_queue,
+                      mem_m,
+                      CL_TRUE,
+                      0,
+                      w*h*3,
+                      m,
+                      0,
+                      NULL, NULL);
+
+  clReleaseCommandQueue(prog->command_queue);
+  clReleaseKernel(prog->kernel);
+  prog->init = true;
+
+  clReleaseMemObject(mem_m);
+  clReleaseMemObject(mem_N);
+  clReleaseMemObject(mem_h);
+  clReleaseMemObject(mem_w);
+  clReleaseMemObject(mem_order);
+  clReleaseMemObject(mem_polr);
+  clReleaseMemObject(mem_poli);
+  clReleaseMemObject(mem_polrd);
+  clReleaseMemObject(mem_polid);
+  clReleaseMemObject(mem_polrd2);
+  clReleaseMemObject(mem_polid2);
+  clReleaseMemObject(mem_parr);
+  clReleaseMemObject(mem_pari);
+  clReleaseMemObject(mem_parrd);
+  clReleaseMemObject(mem_parid);
+  clReleaseMemObject(mem_parrd2);
+  clReleaseMemObject(mem_parid2);
+  clReleaseMemObject(mem_critr);
+  clReleaseMemObject(mem_criti);
+  clReleaseMemObject(mem_Sx);
+  clReleaseMemObject(mem_Sy);
+
+  free(polynomial_real);
+  free(polynomial_imag);
+  free(polynomial_derivative_real);
+  free(polynomial_derivative_imag);
+  free(polynomial_second_derivative_real);
+  free(polynomial_second_derivative_imag);
+  free(polynomial_parameters_real);
+  free(polynomial_parameters_imag);
+  free(polynomial_parameters_derivative_real);
+  free(polynomial_parameters_derivative_imag);
+  free(polynomial_parameters_second_derivative_real);
+  free(polynomial_parameters_second_derivative_imag);
+  free(polynomial_critical_point_real);
+  free(polynomial_critical_point_imag);
+
+
+  if (cl_prog == NULL){
+    clReleaseProgram(prog->program);
+    clReleaseDevice(prog->device);
+    clReleaseContext(prog->context);
+
+    free(prog->src);
+    free(prog);
+  }
+
+  return m;
+}
+
+
 unsigned char *draw_julia_polynomial(int N, int h, int w,
                                      int order, complex double *polynomial,
                                      double Sx[2], double Sy[2],
@@ -223,9 +470,6 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
     polynomial_real[i] = creal(polynomial[i]);
     polynomial_imag[i] = cimag(polynomial[i]);
   }
-  // double c[2];
-  // c[0] = creal(polynomial[order]);
-  // c[1] = cimag(polynomial[order]);
 
   struct OpenCL_Program *prog = cl_prog == NULL? NULL : *cl_prog;
   if (init_new_cl == true){

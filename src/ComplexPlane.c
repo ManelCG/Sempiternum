@@ -37,6 +37,11 @@ typedef struct ComplexPlane{
   int polynomial_parameter;
   complex double *polynomial;
   complex double *polynomial_derivative;
+  complex double *second_polynomial_derivative;
+  complex double *polynomial_parameters;
+  complex double *polynomial_parameters_derivative;
+  complex double *second_polynomial_parameters_derivative;
+  complex double *polynomial_critical_point;
   int w, h, a;
   int N, N_line;
 
@@ -56,6 +61,11 @@ ComplexPlane *complex_plane_new(ComplexPlane **cp){
 
   new->polynomial = NULL;
   new->polynomial_derivative = NULL;
+  new->polynomial_parameters = NULL;
+  new->polynomial_parameters_derivative = NULL;
+  new->second_polynomial_derivative = NULL;
+  new->second_polynomial_parameters_derivative = NULL;
+  new->polynomial_critical_point = NULL;
 
   complex_plane_set_function_type(new, 0);
 
@@ -123,6 +133,25 @@ void complex_plane_print(ComplexPlane *cp){
   }
   printf("Center:         %g %+gi\n", creal(cp->center), cimag(cp->center));
   printf("Spans:          %g, %g\n", cp->SpanX, cp->SpanY);
+
+  // printf("Polynomial: ");
+  // complex_plane_print_polynomial(cp);
+  // printf("Parameters: ");
+  // complex_plane_print_parameters(cp);
+  // printf("Polynomial param deriv: ");
+  // complex_plane_print_polynomial_parameters_derivative(cp);
+  printf("p(z)   = ");
+  complex_plane_format_polynomial(cp);
+  printf("p'(z)  = ");
+  complex_plane_format_derivative(cp);
+  printf("p''(z) = ");
+  complex_plane_format_second_derivative(cp);
+  printf("critic = ");
+  complex_plane_format_polynomial_critical_point(cp);
+  printf("\n\n");
+  complex_plane_print_polynomial(cp);
+  complex_plane_print_polynomial_parameters_derivative(cp);
+  complex_plane_print_critical_point(cp);
 }
 
 void complex_plane_set_id(ComplexPlane *cp, int id){
@@ -178,9 +207,9 @@ char *complex_plane_get_plot_type(ComplexPlane *cp, char **r){
 }
 void complex_plane_set_function_type(ComplexPlane *cp, int type){
   cp->function_type = type;
-  if (type == 0){
-    complex_plane_set_polynomial_order(cp, -1);
-  }
+  // if (type == 0){
+  complex_plane_set_polynomial_order(cp, -1);
+  // }
 }
 int complex_plane_get_function_type(ComplexPlane *cp){
   return cp->function_type;
@@ -201,11 +230,35 @@ _Bool complex_plane_is_drawing_lines_active(ComplexPlane *cp){
 }
 
 //---polynomial
+void complex_plane_set_polynomial_critical_point_member(ComplexPlane *cp, complex v, int index){
+  if (index > cp->polynomial_order){
+    return;
+  }
+  cp->polynomial_critical_point[index] = v;
+}
 void complex_plane_set_polynomial_derivative_member(ComplexPlane *cp, complex v, int index){
   if (index > cp->polynomial_order){
     return;
   }
   cp->polynomial_derivative[index] = v;
+}
+void complex_plane_set_second_polynomial_derivative_member(ComplexPlane *cp, complex v, int index){
+  if (index > cp->polynomial_order){
+    return;
+  }
+  cp->second_polynomial_derivative[index] = v;
+}
+void complex_plane_set_polynomial_parameters_derivative_member(ComplexPlane *cp, complex v, int index){
+  if (index > cp->polynomial_order){
+    return;
+  }
+  cp->polynomial_parameters_derivative[index] = v;
+}
+void complex_plane_set_second_polynomial_parameters_derivative_member(ComplexPlane *cp, complex v, int index){
+  if (index > cp->polynomial_order){
+    return;
+  }
+  cp->second_polynomial_parameters_derivative[index] = v;
 }
 void complex_plane_set_polynomial_order(ComplexPlane *cp, int o){
   complex_plane_free_polynomial(cp);
@@ -215,7 +268,12 @@ void complex_plane_set_polynomial_order(ComplexPlane *cp, int o){
 
   if (o > 0){
     cp->polynomial = calloc(sizeof(complex double) * (o+2), 1);
+    cp->polynomial_parameters = calloc(sizeof(complex double) * (o+2), 1);
     cp->polynomial_derivative = calloc(sizeof(complex double) * (o+2), 1);
+    cp->polynomial_parameters_derivative = calloc(sizeof(complex double) * (o+2), 1);
+    cp->second_polynomial_derivative = calloc(sizeof(complex double) * (o+2), 1);
+    cp->second_polynomial_parameters_derivative = calloc(sizeof(complex double) * (o+2), 1);
+    cp->polynomial_critical_point = calloc(sizeof(complex double) * (o+2), 1);
     for (int i = 0; i <= o+1; i++){
       complex_plane_set_polynomial_member(cp, 0, i);
     }
@@ -223,7 +281,6 @@ void complex_plane_set_polynomial_order(ComplexPlane *cp, int o){
       complex_plane_set_polynomial_derivative_member(cp, 0, i);
     }
   }
-
 }
 int complex_plane_get_polynomial_order(ComplexPlane *cp){
   return cp->polynomial_order;
@@ -238,10 +295,17 @@ void complex_plane_set_polynomial_member(ComplexPlane *cp, complex v, int index)
   if (index < order){
     complex_plane_set_polynomial_derivative_member(cp, (order - index) * v, index + 1);
   }
+  if (index < order -1){
+    complex_plane_set_second_polynomial_derivative_member(cp, (order - index - 1)*(order - index) * v, index + 2);
+  }
+
 
 }
 complex complex_plane_get_polynomial_member(ComplexPlane *cp, int index){
   return cp->polynomial[index];
+}
+complex complex_plane_get_polynomial_critical_point_member(ComplexPlane *cp, int index){
+  return cp->polynomial_critical_point[index];
 }
 _Bool complex_plane_polynomial_is_null(ComplexPlane *cp){
   return (cp->polynomial == NULL);
@@ -250,13 +314,29 @@ void complex_plane_free_polynomial(ComplexPlane *cp){
   if (cp->polynomial != NULL){
     free(cp->polynomial);
     free(cp->polynomial_derivative);
+    free(cp->second_polynomial_derivative);
     cp->polynomial = NULL;
+  }
+  complex_plane_free_polynomial_parameters(cp);
+}
+void complex_plane_free_polynomial_parameters(ComplexPlane *cp){
+  if (cp->polynomial_parameters != NULL){
+    free(cp->polynomial_parameters);
+    free(cp->polynomial_parameters_derivative);
+    free(cp->second_polynomial_parameters_derivative);
+    free(cp->polynomial_critical_point);
+    cp->polynomial_parameters = NULL;
   }
 }
 int complex_plane_set_polynomial_parameter(ComplexPlane *cp, int p){
   if (p > cp->polynomial_order+1){
     return -1;
   }
+  // if (p == -1){
+  //   complex_plane_free_polynomial_parameters(cp);
+  // } else {
+  //   cp->polynomial_parameters[p] = 1;
+  // }
   cp->polynomial_parameter = p;
   return 0;
 }
@@ -280,6 +360,9 @@ int complex_plane_copy_polynomial(ComplexPlane *d, ComplexPlane *s){
 const complex double *complex_plane_get_polynomial(ComplexPlane *cp){
   return cp->polynomial;
 }
+const complex double *complex_plane_get_critical(ComplexPlane *cp){
+  return cp->polynomial_critical_point;
+}
 void complex_plane_print_polynomial(ComplexPlane *cp){
   for (int i = 0; i < cp->polynomial_order; i++){
     if (i == cp->polynomial_order){
@@ -292,6 +375,33 @@ void complex_plane_print_polynomial(ComplexPlane *cp){
   printf("(%g %+g)", creal(cp->polynomial[cp->polynomial_order]), cimag(cp->polynomial[cp->polynomial_order]));
   printf("\n");
 }
+void complex_plane_print_critical_point(ComplexPlane *cp){
+  for (int i = 0; i < cp->polynomial_order; i++){
+    if (i == cp->polynomial_order){
+      printf("(%g %+g)z ", creal(cp->polynomial_critical_point[i]), cimag(cp->polynomial_critical_point[i]));
+    } else {
+      printf("(%g %+g)z^%d ", creal(cp->polynomial_critical_point[i]), cimag(cp->polynomial_critical_point[i]), cp->polynomial_order - i);
+    }
+    printf("+ ");
+  }
+  printf("(%g %+g)", creal(cp->polynomial_critical_point[cp->polynomial_order]), cimag(cp->polynomial_critical_point[cp->polynomial_order]));
+  printf("\n");
+}
+void complex_plane_print_parameters(ComplexPlane *cp){
+  for (int i = 0; i < cp->polynomial_order; i++){
+    if (i == cp->polynomial_order){
+      printf("(%g %+g)z ", creal(cp->polynomial_parameters[i]), cimag(cp->polynomial_parameters[i]));
+    } else {
+      printf("(%g %+g)z^%d ", creal(cp->polynomial_parameters[i]), cimag(cp->polynomial_parameters[i]), cp->polynomial_order - i);
+    }
+    printf("+ ");
+  }
+  printf("(%g %+g)", creal(cp->polynomial_parameters[cp->polynomial_order]), cimag(cp->polynomial_parameters[cp->polynomial_order]));
+  printf("\n");
+}
+void complex_plane_format_polynomial(ComplexPlane *cp){
+  complex_plane_format_arbitrary_polynomial(cp->polynomial, cp->polynomial_parameters, cp->polynomial_order, 'z', 'a');
+}
 void complex_plane_print_polynomial_derivative(ComplexPlane *cp){
   for (int i = 0; i < cp->polynomial_order; i++){
     if (i == cp->polynomial_order){
@@ -303,6 +413,109 @@ void complex_plane_print_polynomial_derivative(ComplexPlane *cp){
   }
   printf("(%g %+g)", creal(cp->polynomial_derivative[cp->polynomial_order]), cimag(cp->polynomial_derivative[cp->polynomial_order]));
   printf("\n");
+}
+void complex_plane_format_second_derivative(ComplexPlane *cp){
+  complex_plane_format_arbitrary_polynomial(cp->second_polynomial_derivative, cp->second_polynomial_parameters_derivative, cp->polynomial_order, 'z', 'a');
+}
+void complex_plane_format_derivative(ComplexPlane *cp){
+  complex_plane_format_arbitrary_polynomial(cp->polynomial_derivative, cp->polynomial_parameters_derivative, cp->polynomial_order, 'z', 'a');
+}
+void complex_plane_format_polynomial_critical_point(ComplexPlane *cp){
+  complex_plane_format_arbitrary_polynomial(cp->polynomial_critical_point, NULL, cp->polynomial_order, 'a', '0');
+}
+void complex_plane_format_arbitrary_polynomial(complex double *polynomial, complex double *polynomial_parameters, int polynomial_order, char cvar, char cpar){
+  for (int i = 0; i < polynomial_order; i++){
+    if (i == polynomial_order - 1){
+      if (polynomial[i] != 0){
+        if (polynomial[i] == creal(polynomial[i])){
+          printf("%+g%c ", creal(polynomial[i]), cvar);
+        } else if (polynomial[i] == cimag(polynomial[i])){
+          printf("%+gi%c ", cimag(polynomial[i]), cvar);
+        } else {
+          printf("(%+g %+gi)%c ", creal(polynomial[i]), cimag(polynomial[i]), cvar);
+        }
+      }
+      if (polynomial_parameters != NULL){
+        if (polynomial_parameters[i] != 0){
+          if (polynomial_parameters[i] == creal(polynomial_parameters[i])){
+            printf("%+g%c%c ", creal(polynomial_parameters[i]), cpar, cvar);
+          } else if (polynomial_parameters[i] == cimag(polynomial_parameters[i])){
+            printf("%+gi%c%c ", cimag(polynomial_parameters[i]), cpar, cvar);
+          } else {
+            printf("+(%+g %+gi)%c%c ", creal(polynomial_parameters[i]), cimag(polynomial_parameters[i]), cpar, cvar);
+          }
+        }
+      }
+    } else {
+      if (polynomial[i] != 0){
+        if (polynomial[i] == creal(polynomial[i])){
+          printf("%+g%c^%d ", creal(polynomial[i]), cvar, polynomial_order - i);
+        } else if (polynomial[i] == cimag(polynomial[i])){
+          printf("%+gi%c^%d ", cimag(polynomial[i]), cvar, polynomial_order - i);
+        } else {
+          printf("(%+g %+gi)%c^%d ", creal(polynomial[i]), cimag(polynomial[i]), cvar, polynomial_order - i);
+        }
+      }
+      if (polynomial_parameters != NULL){
+        if (polynomial_parameters[i] != 0){
+          if (polynomial_parameters[i] == creal(polynomial_parameters[i])){
+            printf("%+g%c%c^%d ", creal(polynomial_parameters[i]), cpar, cvar, polynomial_order - i);
+          } else if (polynomial_parameters[i] == cimag(polynomial_parameters[i])){
+            printf("%+gi%c%c^%d ", cimag(polynomial_parameters[i]), cpar, cvar, polynomial_order - i);
+          } else {
+            printf("+(%+g %+gi)%c%c^%d ", creal(polynomial_parameters[i]), cimag(polynomial_parameters[i]), cpar, cvar, polynomial_order - i);
+          }
+        }
+      }
+    }
+  }
+  if (polynomial[polynomial_order] != 0){
+    if (polynomial[polynomial_order] == creal(polynomial[polynomial_order])){
+      printf("%+g ", creal(polynomial[polynomial_order]));
+    } else if (polynomial[polynomial_order] == cimag(polynomial[polynomial_order])){
+      printf("%+gi ", cimag(polynomial[polynomial_order]));
+    } else {
+      printf("+(%g %+gi) ", creal(polynomial[polynomial_order]), cimag(polynomial[polynomial_order]));
+    }
+  }
+  if (polynomial_parameters != NULL){
+    if (polynomial_parameters[polynomial_order] != 0){
+      if (polynomial_parameters[polynomial_order] == creal(polynomial_parameters[polynomial_order])){
+        printf("%+g%c ", creal(polynomial_parameters[polynomial_order]), cpar);
+      } else if (polynomial_parameters[polynomial_order] == cimag(polynomial_parameters[polynomial_order])){
+        printf("%+gi%c ", cimag(polynomial_parameters[polynomial_order]), cpar);
+      } else {
+        printf("+(%g %+gi)%c ", creal(polynomial_parameters[polynomial_order]), cimag(polynomial_parameters[polynomial_order]), cpar);
+      }
+    }
+  }
+  printf("\n");
+}
+void complex_plane_print_polynomial_parameters_derivative(ComplexPlane *cp){
+  for (int i = 0; i < cp->polynomial_order; i++){
+    if (i == cp->polynomial_order){
+      printf("(%g %+g)z ", creal(cp->polynomial_parameters_derivative[i]), cimag(cp->polynomial_parameters_derivative[i]));
+    } else {
+      printf("(%g %+g)z^%d ", creal(cp->polynomial_parameters_derivative[i]), cimag(cp->polynomial_parameters_derivative[i]), cp->polynomial_order - i);
+    }
+    printf("+ ");
+  }
+  printf("(%g %+g)", creal(cp->polynomial_parameters_derivative[cp->polynomial_order]), cimag(cp->polynomial_parameters_derivative[cp->polynomial_order]));
+  printf("\n");
+}
+void complex_plane_set_parameters_vector_member(ComplexPlane *cp, complex double v, int i){
+  printf("Setting: %g %g\n", creal(v), cimag(v));
+  int order = cp->polynomial_order;
+  cp->polynomial_parameters[i] = v;
+  if (i < order){
+    complex_plane_set_polynomial_parameters_derivative_member(cp, (order - i) * v, i + 1);
+  }
+  if (i < order -1){
+    complex_plane_set_second_polynomial_parameters_derivative_member(cp, (order - i - 1)*(order - i) * v, i + 2);
+  }
+}
+complex double complex_plane_get_parameters_vector_member(ComplexPlane *cp, int i){
+  return cp->polynomial_parameters[i];
 }
 
 
@@ -571,7 +784,7 @@ void complex_plane_gen_plot(ComplexPlane *cp){
         complex_plane_alloc_empty_plot(cp);
       }
       break;
-    case 2:   //Newton's method
+    case 2:   //Newton's fractal
       if (complex_plane_get_polynomial_order(cp) != -1){
         cp->plot = draw_julia_polynomial_fraction(cp->N,
                                                   cp->h,
@@ -584,6 +797,25 @@ void complex_plane_gen_plot(ComplexPlane *cp){
                                                   cp->polynomial_parameter,
                                                   &(cp->cl), !cp->cl->init);
       }
+      break;
+    case 3:   //Newton's method
+      if (complex_plane_get_polynomial_order(cp) != -1){
+        cp->plot = draw_julia_numerical_method(cp->N,
+                                               cp->h, cp->w,
+                                               cp->polynomial_order,
+                                               cp->polynomial,
+                                               cp->polynomial_derivative,
+                                               cp->second_polynomial_derivative,
+                                               cp->polynomial_parameters,
+                                               cp->polynomial_parameters_derivative,
+                                               cp->second_polynomial_parameters_derivative,
+                                               cp->polynomial_critical_point,
+                                               cp->Sx, cp->Sy,
+                                               &(cp->cl), !cp->cl->init);
+      }
+      break;
+    default:
+      cp->plot = calloc(complex_plane_get_size(cp), 1);
       break;
   }
 }
