@@ -31,16 +31,19 @@ char *gui_gen_video_choose_folder(GtkWidget *w, gpointer data){
 
 GtkWidget *gui_gen_video_generate_default_resolutions_combo_box(int *num){
   GtkWidget *combo = gtk_combo_box_text_new();
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "426x240");
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "640x360");
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "854x480");
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "1280x720");
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "1920x1080");
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "2560x1440");
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "3840x2160");
+  int numr = 0;
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "426x240");   numr++;
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "640x360");   numr++;
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "854x480");   numr++;
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "1280x720");  numr++;
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "1920x1080"); numr++;
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "1920x1200"); numr++;
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "2560x1440"); numr++;
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "3840x2160"); numr++;
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo), NULL, "7680x4320"); numr++;
 
   if (num != NULL){
-    *num = 7;
+    *num = numr;
   }
 
   gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 4);
