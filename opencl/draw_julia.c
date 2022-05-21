@@ -1,6 +1,7 @@
 #define FUNC_PARAMETER_SPACE 1
 #define FUNC_DYNAMIC_PLANE 2
 
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
 
 __kernel void rec_f(__global unsigned char *m,
                     __global int *Np,
@@ -140,8 +141,8 @@ double complex_norm(double a, double b){
   return native_sqrt(pow(a, 2) + pow(b, 2));
 }
 
-const double PI = 3.141592;
 void cartesian_to_polar(double a, double b, double *r, double *t){
+  const double PI = 3.141592;
   double theta;
 
   theta = atan(b/a);
@@ -156,7 +157,7 @@ void cartesian_to_polar(double a, double b, double *r, double *t){
 }
 
 void compute_polynomial_p(double *result_real,     double *result_imag,
-                          double *polynomial_real, double *polynomial_imag,
+                          __global double *polynomial_real, __global double *polynomial_imag,
                           double param_real,       double param_imag,
                           double z_ini_real,       double z_ini_imag,
                           int order){
@@ -192,7 +193,7 @@ void compute_polynomial_p(double *result_real,     double *result_imag,
 
 }
 
-void compute_polynomial(double *polynomial_real, double *polynomial_imag,
+void compute_polynomial(__global double *polynomial_real, __global double *polynomial_imag,
                       int order, double *result_real, double *result_imag,
                       double *param, double *z, int parameter){
 
@@ -329,7 +330,8 @@ __kernel void polynomial(__global unsigned char *m,
   }
 }
 
-void color_matrix_radial(unsigned char *m, unsigned x, unsigned y, unsigned w, double zreal, double zimag){
+void color_matrix_radial(__global unsigned char *m, unsigned x, unsigned y, unsigned w, double zreal, double zimag){
+  const double PI = 3.141592;
   double r, theta;
 
   double zr[2] = {zreal, zimag};
@@ -376,9 +378,9 @@ void color_matrix_radial(unsigned char *m, unsigned x, unsigned y, unsigned w, d
 }
 
 int newton_method(double *result_real, double *result_imag, double zr, double zi,
-                   double *polynm_real, double *polynm_imag, double *polynp_real, double *polynp_imag,
-                   double *param_real,  double *param_imag,  double *paramp_real, double *paramp_imag,
-                   double ar, double ai, int order){
+                  __global double *polynm_real, __global double *polynm_imag, __global double *polynp_real, __global double *polynp_imag,
+                  __global double *param_real,  __global double *param_imag,  __global double *paramp_real, __global double *paramp_imag,
+                  double ar, double ai, int order){
 
   double auxr, auxi;
   double denr, deni;

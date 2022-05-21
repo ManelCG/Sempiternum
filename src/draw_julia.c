@@ -69,9 +69,9 @@ unsigned char *draw_julia_polynomial_fraction
 
     fclose(fp);
 
-    #ifdef DEBUG_DRAW_JULIA_C
-    printf("Executing:\n------------------------\n%s\n------------------------\n", prog->src);
-    #endif
+    // #ifdef DEBUG_DRAW_JULIA_C
+    // printf("Executing:\n------------------------\n%s\n------------------------\n", prog->src);
+    // #endif
 
     prog->context = clCreateContext(NULL, 1, &(prog->device), NULL, NULL, &(prog->ret));
     #ifdef DEBUG_DRAW_JULIA_C
@@ -133,6 +133,11 @@ unsigned char *draw_julia_polynomial_fraction
     fflush(stdout);
     clBuildProgram(prog->program, 1, &(prog->device), NULL, NULL, NULL);
   }
+
+
+  #ifdef DEBUG_DRAW_JULIA_C
+  printf("OpenCL program built created. Return code: %d\n\n", prog->ret);
+  #endif
 
   prog->kernel = clCreateKernel(prog->program, "polynomial_fraction", &(prog->ret));
 
@@ -277,9 +282,9 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
 
     fclose(fp);
 
-    #ifdef DEBUG_DRAW_JULIA_C
-    printf("Executing:\n------------------------\n%s\n------------------------\n", prog->src);
-    #endif
+    // #ifdef DEBUG_DRAW_JULIA_C
+    // printf("Executing:\n------------------------\n%s\n------------------------\n", prog->src);
+    // #endif
 
     prog->context = clCreateContext(NULL, 1, &(prog->device), NULL, NULL, &(prog->ret));
     #ifdef DEBUG_DRAW_JULIA_C
@@ -493,9 +498,9 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
 
     fclose(fp);
 
-    #ifdef DEBUG_DRAW_JULIA_C
-    printf("Executing:\n------------------------\n%s\n------------------------\n", prog->src);
-    #endif
+    // #ifdef DEBUG_DRAW_JULIA_C
+    // printf("Executing:\n------------------------\n%s\n------------------------\n", prog->src);
+    // #endif
 
     prog->context = clCreateContext(NULL, 1, &(prog->device), NULL, NULL, &(prog->ret));
     #ifdef DEBUG_DRAW_JULIA_C
@@ -694,10 +699,21 @@ unsigned char *draw_julia(int N, int h, int w,
     clBuildProgram(prog->program, 1, &(prog->device), NULL, NULL, NULL);
   }
 
+  printf("OpenCL Program build. Return code: %d\n\n", prog->ret);
+
+  {
+    size_t log_size;
+    clGetProgramBuildInfo(prog->program, prog->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+
+    char *log = malloc(log_size);
+    clGetProgramBuildInfo(prog->program, prog->device, CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
+    printf("%s\n", log);
+  }
   prog->kernel = clCreateKernel(prog->program, plot_type, &(prog->ret));
 
   #ifdef DEBUG_DRAW_JULIA_C
-  printf("OpenCL Kernel created. Return code: %d\n\n", prog->ret);
+  printf("OpenCL Kernel created. Return code: %d\n", prog->ret);
+  printf("Kernel %s\n\n", plot_type);
   #endif
 
   clSetKernelArg(prog->kernel, 0, sizeof(mem_m),  (void *)&mem_m);

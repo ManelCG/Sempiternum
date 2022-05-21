@@ -140,18 +140,22 @@ void complex_plane_print(ComplexPlane *cp){
   // complex_plane_print_parameters(cp);
   // printf("Polynomial param deriv: ");
   // complex_plane_print_polynomial_parameters_derivative(cp);
-  printf("p(z)   = ");
-  complex_plane_format_polynomial(cp);
-  printf("p'(z)  = ");
-  complex_plane_format_derivative(cp);
-  printf("p''(z) = ");
-  complex_plane_format_second_derivative(cp);
-  printf("critic = ");
-  complex_plane_format_polynomial_critical_point(cp);
-  printf("\n\n");
-  complex_plane_print_polynomial(cp);
-  complex_plane_print_polynomial_parameters_derivative(cp);
-  complex_plane_print_critical_point(cp);
+
+
+  if (cp->polynomial != NULL){
+    printf("p(z)   = ");
+    complex_plane_format_polynomial(cp);
+    printf("p'(z)  = ");
+    complex_plane_format_derivative(cp);
+    printf("p''(z) = ");
+    complex_plane_format_second_derivative(cp);
+    printf("critic = ");
+    complex_plane_format_polynomial_critical_point(cp);
+    printf("\n\n");
+    complex_plane_print_polynomial(cp);
+    complex_plane_print_polynomial_parameters_derivative(cp);
+    complex_plane_print_critical_point(cp);
+  }
 }
 
 void complex_plane_set_id(ComplexPlane *cp, int id){
@@ -364,28 +368,36 @@ const complex double *complex_plane_get_critical(ComplexPlane *cp){
   return cp->polynomial_critical_point;
 }
 void complex_plane_print_polynomial(ComplexPlane *cp){
-  for (int i = 0; i < cp->polynomial_order; i++){
-    if (i == cp->polynomial_order){
-      printf("(%g %+g)z ", creal(cp->polynomial[i]), cimag(cp->polynomial[i]));
-    } else {
-      printf("(%g %+g)z^%d ", creal(cp->polynomial[i]), cimag(cp->polynomial[i]), cp->polynomial_order - i);
+  if (cp->polynomial != NULL){
+    for (int i = 0; i < cp->polynomial_order; i++){
+      if (i == cp->polynomial_order){
+        printf("(%g %+g)z ", creal(cp->polynomial[i]), cimag(cp->polynomial[i]));
+      } else {
+        printf("(%g %+g)z^%d ", creal(cp->polynomial[i]), cimag(cp->polynomial[i]), cp->polynomial_order - i);
+      }
+      printf("+ ");
     }
-    printf("+ ");
+    printf("(%g %+g)", creal(cp->polynomial[cp->polynomial_order]), cimag(cp->polynomial[cp->polynomial_order]));
+    printf("\n");
+  } else {
+    printf("(null)\n");
   }
-  printf("(%g %+g)", creal(cp->polynomial[cp->polynomial_order]), cimag(cp->polynomial[cp->polynomial_order]));
-  printf("\n");
 }
 void complex_plane_print_critical_point(ComplexPlane *cp){
-  for (int i = 0; i < cp->polynomial_order; i++){
-    if (i == cp->polynomial_order){
-      printf("(%g %+g)z ", creal(cp->polynomial_critical_point[i]), cimag(cp->polynomial_critical_point[i]));
-    } else {
-      printf("(%g %+g)z^%d ", creal(cp->polynomial_critical_point[i]), cimag(cp->polynomial_critical_point[i]), cp->polynomial_order - i);
+  if (cp->polynomial_critical_point != NULL){
+    for (int i = 0; i < cp->polynomial_order; i++){
+      if (i == cp->polynomial_order){
+        printf("(%g %+g)z ", creal(cp->polynomial_critical_point[i]), cimag(cp->polynomial_critical_point[i]));
+      } else {
+        printf("(%g %+g)z^%d ", creal(cp->polynomial_critical_point[i]), cimag(cp->polynomial_critical_point[i]), cp->polynomial_order - i);
+      }
+      printf("+ ");
     }
-    printf("+ ");
+    printf("(%g %+g)", creal(cp->polynomial_critical_point[cp->polynomial_order]), cimag(cp->polynomial_critical_point[cp->polynomial_order]));
+    printf("\n");
+  } else {
+    printf("(null)\n");
   }
-  printf("(%g %+g)", creal(cp->polynomial_critical_point[cp->polynomial_order]), cimag(cp->polynomial_critical_point[cp->polynomial_order]));
-  printf("\n");
 }
 void complex_plane_print_parameters(ComplexPlane *cp){
   for (int i = 0; i < cp->polynomial_order; i++){
@@ -424,72 +436,76 @@ void complex_plane_format_polynomial_critical_point(ComplexPlane *cp){
   complex_plane_format_arbitrary_polynomial(cp->polynomial_critical_point, NULL, cp->polynomial_order, 'a', '0');
 }
 void complex_plane_format_arbitrary_polynomial(complex double *polynomial, complex double *polynomial_parameters, int polynomial_order, char cvar, char cpar){
-  for (int i = 0; i < polynomial_order; i++){
-    if (i == polynomial_order - 1){
-      if (polynomial[i] != 0){
-        if (polynomial[i] == creal(polynomial[i])){
-          printf("%+g%c ", creal(polynomial[i]), cvar);
-        } else if (polynomial[i] == cimag(polynomial[i])){
-          printf("%+gi%c ", cimag(polynomial[i]), cvar);
-        } else {
-          printf("(%+g %+gi)%c ", creal(polynomial[i]), cimag(polynomial[i]), cvar);
-        }
-      }
-      if (polynomial_parameters != NULL){
-        if (polynomial_parameters[i] != 0){
-          if (polynomial_parameters[i] == creal(polynomial_parameters[i])){
-            printf("%+g%c%c ", creal(polynomial_parameters[i]), cpar, cvar);
-          } else if (polynomial_parameters[i] == cimag(polynomial_parameters[i])){
-            printf("%+gi%c%c ", cimag(polynomial_parameters[i]), cpar, cvar);
+  if (polynomial != NULL){
+    for (int i = 0; i < polynomial_order; i++){
+      if (i == polynomial_order - 1){
+        if (polynomial[i] != 0){
+          if (polynomial[i] == creal(polynomial[i])){
+            printf("%+g%c ", creal(polynomial[i]), cvar);
+          } else if (polynomial[i] == cimag(polynomial[i])){
+            printf("%+gi%c ", cimag(polynomial[i]), cvar);
           } else {
-            printf("+(%+g %+gi)%c%c ", creal(polynomial_parameters[i]), cimag(polynomial_parameters[i]), cpar, cvar);
+            printf("(%+g %+gi)%c ", creal(polynomial[i]), cimag(polynomial[i]), cvar);
           }
         }
-      }
-    } else {
-      if (polynomial[i] != 0){
-        if (polynomial[i] == creal(polynomial[i])){
-          printf("%+g%c^%d ", creal(polynomial[i]), cvar, polynomial_order - i);
-        } else if (polynomial[i] == cimag(polynomial[i])){
-          printf("%+gi%c^%d ", cimag(polynomial[i]), cvar, polynomial_order - i);
-        } else {
-          printf("(%+g %+gi)%c^%d ", creal(polynomial[i]), cimag(polynomial[i]), cvar, polynomial_order - i);
-        }
-      }
-      if (polynomial_parameters != NULL){
-        if (polynomial_parameters[i] != 0){
-          if (polynomial_parameters[i] == creal(polynomial_parameters[i])){
-            printf("%+g%c%c^%d ", creal(polynomial_parameters[i]), cpar, cvar, polynomial_order - i);
-          } else if (polynomial_parameters[i] == cimag(polynomial_parameters[i])){
-            printf("%+gi%c%c^%d ", cimag(polynomial_parameters[i]), cpar, cvar, polynomial_order - i);
-          } else {
-            printf("+(%+g %+gi)%c%c^%d ", creal(polynomial_parameters[i]), cimag(polynomial_parameters[i]), cpar, cvar, polynomial_order - i);
+        if (polynomial_parameters != NULL){
+          if (polynomial_parameters[i] != 0){
+            if (polynomial_parameters[i] == creal(polynomial_parameters[i])){
+              printf("%+g%c%c ", creal(polynomial_parameters[i]), cpar, cvar);
+            } else if (polynomial_parameters[i] == cimag(polynomial_parameters[i])){
+              printf("%+gi%c%c ", cimag(polynomial_parameters[i]), cpar, cvar);
+            } else {
+              printf("+(%+g %+gi)%c%c ", creal(polynomial_parameters[i]), cimag(polynomial_parameters[i]), cpar, cvar);
+            }
           }
         }
-      }
-    }
-  }
-  if (polynomial[polynomial_order] != 0){
-    if (polynomial[polynomial_order] == creal(polynomial[polynomial_order])){
-      printf("%+g ", creal(polynomial[polynomial_order]));
-    } else if (polynomial[polynomial_order] == cimag(polynomial[polynomial_order])){
-      printf("%+gi ", cimag(polynomial[polynomial_order]));
-    } else {
-      printf("+(%g %+gi) ", creal(polynomial[polynomial_order]), cimag(polynomial[polynomial_order]));
-    }
-  }
-  if (polynomial_parameters != NULL){
-    if (polynomial_parameters[polynomial_order] != 0){
-      if (polynomial_parameters[polynomial_order] == creal(polynomial_parameters[polynomial_order])){
-        printf("%+g%c ", creal(polynomial_parameters[polynomial_order]), cpar);
-      } else if (polynomial_parameters[polynomial_order] == cimag(polynomial_parameters[polynomial_order])){
-        printf("%+gi%c ", cimag(polynomial_parameters[polynomial_order]), cpar);
       } else {
-        printf("+(%g %+gi)%c ", creal(polynomial_parameters[polynomial_order]), cimag(polynomial_parameters[polynomial_order]), cpar);
+        if (polynomial[i] != 0){
+          if (polynomial[i] == creal(polynomial[i])){
+            printf("%+g%c^%d ", creal(polynomial[i]), cvar, polynomial_order - i);
+          } else if (polynomial[i] == cimag(polynomial[i])){
+            printf("%+gi%c^%d ", cimag(polynomial[i]), cvar, polynomial_order - i);
+          } else {
+            printf("(%+g %+gi)%c^%d ", creal(polynomial[i]), cimag(polynomial[i]), cvar, polynomial_order - i);
+          }
+        }
+        if (polynomial_parameters != NULL){
+          if (polynomial_parameters[i] != 0){
+            if (polynomial_parameters[i] == creal(polynomial_parameters[i])){
+              printf("%+g%c%c^%d ", creal(polynomial_parameters[i]), cpar, cvar, polynomial_order - i);
+            } else if (polynomial_parameters[i] == cimag(polynomial_parameters[i])){
+              printf("%+gi%c%c^%d ", cimag(polynomial_parameters[i]), cpar, cvar, polynomial_order - i);
+            } else {
+              printf("+(%+g %+gi)%c%c^%d ", creal(polynomial_parameters[i]), cimag(polynomial_parameters[i]), cpar, cvar, polynomial_order - i);
+            }
+          }
+        }
       }
     }
+    if (polynomial[polynomial_order] != 0){
+      if (polynomial[polynomial_order] == creal(polynomial[polynomial_order])){
+        printf("%+g ", creal(polynomial[polynomial_order]));
+      } else if (polynomial[polynomial_order] == cimag(polynomial[polynomial_order])){
+        printf("%+gi ", cimag(polynomial[polynomial_order]));
+      } else {
+        printf("+(%g %+gi) ", creal(polynomial[polynomial_order]), cimag(polynomial[polynomial_order]));
+      }
+    }
+    if (polynomial_parameters != NULL){
+      if (polynomial_parameters[polynomial_order] != 0){
+        if (polynomial_parameters[polynomial_order] == creal(polynomial_parameters[polynomial_order])){
+          printf("%+g%c ", creal(polynomial_parameters[polynomial_order]), cpar);
+        } else if (polynomial_parameters[polynomial_order] == cimag(polynomial_parameters[polynomial_order])){
+          printf("%+gi%c ", cimag(polynomial_parameters[polynomial_order]), cpar);
+        } else {
+          printf("+(%g %+gi)%c ", creal(polynomial_parameters[polynomial_order]), cimag(polynomial_parameters[polynomial_order]), cpar);
+        }
+      }
+    }
+    printf("\n");
+  } else {
+    printf("(null)\n");
   }
-  printf("\n");
 }
 void complex_plane_print_polynomial_parameters_derivative(ComplexPlane *cp){
   for (int i = 0; i < cp->polynomial_order; i++){
