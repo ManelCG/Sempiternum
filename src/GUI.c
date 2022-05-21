@@ -1376,7 +1376,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
           gtk_box_pack_start(GTK_BOX(polynomial_config_hbox), polynomial_settings_input_vbox, true, false, 0);
 
 
-          char buffer[10];
+          char buffer[64];
           //Set polynomial z labels
           if (i < polynomial_order + 1){
             if (i < polynomial_order -1){
