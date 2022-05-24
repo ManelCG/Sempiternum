@@ -948,6 +948,8 @@ void draw_sequence_lines(struct ComplexPlane *C, double point[2], int w, int h){
     c[1] = cimag(C->param);
     x = (int) floor((p[0]                              - C->Sx[0])/(C->Sx[1]-C->Sx[0]) * w);
     y = (int) floor((-(p[1]-complex_plane_get_center_imag(C) - ((C->Sy[0]+C->Sy[1])/2)) - C->Sy[0])/(C->Sy[1]-C->Sy[0]) * h);
+  } else {
+    return;
   }
 
   for (int i = 0; i < C->N_line; i++){

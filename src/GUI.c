@@ -218,7 +218,6 @@ void *render_video(void *data){
       lodepng_encode24_file(framename, complex_plane_get_plot(cp), w, h);
     }
 
-    printf("After saving image\n");
   }
   complex_plane_free(cp);
   return NULL;
@@ -769,11 +768,13 @@ void zoom_button_handler(GtkWidget *widget, gpointer data){
   ComplexPlane *cp = planes[0];
 
   gchar *arg = g_strdup_printf("%s", gtk_button_get_label(GTK_BUTTON(widget)));
-  double zoomratio;
+  double zoomratio = 1;
   if (strcmp(arg, " + ") == 0){
     zoomratio = 0.5;
   } else if (strcmp(arg, "  -  ") == 0){
     zoomratio = 2;
+  } else {
+    return;
   }
   plot_zoom(widget, zoomratio, complex_plane_get_center(cp), data);
 }
@@ -1099,7 +1100,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   GtkWidget *polynomial_order_box;
 
   GtkWidget *combo_polynomial_parameter;
-  GtkWidget *combo_polynomial_parameter_thumb;
+  GtkWidget *combo_polynomial_parameter_thumb = gtk_combo_box_text_new();
 
   GtkWidget *plot_options_label;
 
@@ -1270,6 +1271,16 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_box_pack_start(GTK_BOX(options_box), zoom_lines_box, true, false, 0);
 
 
+
+ //configure scroll_box
+ scroll_box = gtk_scrolled_window_new(NULL, NULL);
+ gtk_container_add(GTK_CONTAINER(scroll_box), vbox);
+ gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll_box), GTK_POLICY_NEVER, GTK_POLICY_EXTERNAL);
+ gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(scroll_box), true);
+
+ //Populate vbox
+ gtk_box_pack_start(GTK_BOX(vbox), options_box, true, false, 0);
+
   //Gui depending on function type
   int ftype = complex_plane_get_function_type(cp);
   switch (ftype){
@@ -1277,6 +1288,8 @@ void draw_main_window(GtkWidget *widget, gpointer data){
       button_mandelbrot = gtk_button_new_with_label("Default Mandelbrot");
       gtk_widget_set_tooltip_text(button_mandelbrot, "Generate and plot Mandelbrot Set");
       g_signal_connect(button_mandelbrot, "clicked", G_CALLBACK(button_mandelbrot_handler), (gpointer) planes);
+
+      gtk_box_pack_start(GTK_BOX(vbox), button_mandelbrot, true, false, 0);
       break;
     case 1:   //Polynomial
     case 2:   //Newton fractal
@@ -1311,7 +1324,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
         polynomial_config_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 
         combo_polynomial_parameter = gtk_combo_box_text_new();
-        combo_polynomial_parameter_thumb = gtk_combo_box_text_new();
+        // combo_polynomial_parameter_thumb = gtk_combo_box_text_new();
 
         input_polynomial_settings_vector_real = malloc(sizeof(GtkWidget *) * (polynomial_order + 2));
         input_polynomial_settings_vector_imag = malloc(sizeof(GtkWidget *) * (polynomial_order + 2));
@@ -1427,6 +1440,8 @@ void draw_main_window(GtkWidget *widget, gpointer data){
         g_signal_connect(combo_polynomial_parameter, "changed", G_CALLBACK(combo_polynomial_parameter_handler), (gpointer) cp);
         g_signal_connect(combo_polynomial_parameter_thumb, "changed", G_CALLBACK(combo_polynomial_parameter_handler), (gpointer) cp_thumb);
 
+        gtk_box_pack_end(GTK_BOX(thumb_options_box), combo_polynomial_parameter_thumb, true, false, 0);
+
         if (complex_plane_get_polynomial_parameter(cp) == -1){
           complex_plane_set_polynomial_parameter(cp, polynomial_order);
           if (complex_plane_get_function_type(cp) == 1){
@@ -1443,6 +1458,9 @@ void draw_main_window(GtkWidget *widget, gpointer data){
       gtk_box_pack_start(GTK_BOX(polynomial_order_box), order_label, false, false, 0);
       gtk_box_pack_start(GTK_BOX(polynomial_order_box), input_polynomial_order, false, false, 0);
       gtk_box_pack_start(GTK_BOX(polynomial_config_vbox), polynomial_order_box, true, false, 0);
+
+      //Populate vbox
+      gtk_box_pack_start(GTK_BOX(vbox), polynomial_config_vbox, true, false, 0);
       break;
   }
   //Thumbnails
@@ -1486,7 +1504,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
     gtk_box_pack_end(GTK_BOX(thumb_box), thumb_options_box, true, false, 0);
 
     if (complex_plane_get_polynomial_order(cp) > 0){
-      gtk_box_pack_start(GTK_BOX(thumb_options_box), combo_polynomial_parameter_thumb, true, false, 0);
+      // gtk_box_pack_start(GTK_BOX(thumb_options_box), combo_polynomial_parameter_thumb, true, false, 0);
       gtk_entry_set_width_chars(GTK_ENTRY(input_thumbN), 5);
 
       if (complex_plane_get_polynomial_parameter(cp_thumb) == -1){
@@ -1504,23 +1522,12 @@ void draw_main_window(GtkWidget *widget, gpointer data){
       gtk_combo_box_set_active(GTK_COMBO_BOX(combo_polynomial_parameter_thumb), complex_plane_get_polynomial_parameter(cp_thumb));
     }
   }
-
- //configure scroll_box
- scroll_box = gtk_scrolled_window_new(NULL, NULL);
- gtk_container_add(GTK_CONTAINER(scroll_box), vbox);
- gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll_box), GTK_POLICY_NEVER, GTK_POLICY_EXTERNAL);
- gtk_scrolled_window_set_propagate_natural_width(GTK_SCROLLED_WINDOW(scroll_box), true);
-
- //Populate vbox
- gtk_box_pack_start(GTK_BOX(vbox), options_box, true, false, 0);
  switch (complex_plane_get_function_type(cp)){
    case 0:
-     gtk_box_pack_start(GTK_BOX(vbox), button_mandelbrot, true, false, 0);
      break;
    case 1:
    case 2:
    case 3:
-     gtk_box_pack_start(GTK_BOX(vbox), polynomial_config_vbox, true, false, 0);
      break;
  }
  gtk_box_pack_start(GTK_BOX(vbox), thumb_box, true, false, 0);

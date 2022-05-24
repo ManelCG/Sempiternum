@@ -8,7 +8,7 @@ mainMenu *menu_main_new(){
 
 char *gui_gen_video_choose_folder(GtkWidget *w, gpointer data){
   GtkWidget *dialog;
-  char *filename;
+  char *filename = "./";
   GtkWidget *entry = (GtkWidget *) data;
 
   dialog = gtk_file_chooser_dialog_new("Choose folder",
