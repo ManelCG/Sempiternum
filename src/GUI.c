@@ -86,8 +86,10 @@ void save_polynomial_member(GtkWidget *widget, gpointer data){
       break;
   }
 
+  #ifdef DEBUG_GUI
   complex_plane_print_polynomial(cp);
   complex_plane_print_polynomial_derivative(cp);
+  #endif //DEBUG_GUI
 }
 
 void change_polynomial_order(GtkWidget *widget, GdkEventKey *event, gpointer data){
@@ -219,6 +221,7 @@ void *render_video(void *data){
     }
 
   }
+  printf("\nDone! Rendering to video file\n");
   complex_plane_free(cp);
   return NULL;
 }
@@ -235,7 +238,6 @@ void render_video_handler(GtkWidget *widget, gpointer data){
 void generate_video_input_handler(GtkWidget *wid, gpointer data){
   ComplexPlane *cp = (ComplexPlane *) data;
   int w, h;
-  printf("%s\n", gtk_widget_get_name(wid));
   switch(gtk_widget_get_name(wid)[0]){
     case '0':
       h = complex_plane_get_height(cp);
@@ -258,8 +260,10 @@ void generate_video_input_handler(GtkWidget *wid, gpointer data){
       complex_plane_set_center_imag(cp, strtod(gtk_entry_get_text(GTK_ENTRY(wid)), NULL));
       break;
   }
+  #ifdef DEBUG_GUI
   printf("SECOND FUNCTION; %d %d\n", complex_plane_get_width(cp), complex_plane_get_height(cp));
   complex_plane_print(cp);
+  #endif //DEBUG_GUI
 }
 
 void button_cancel_render_handler(GtkWidget *widget, gpointer data){
@@ -313,13 +317,18 @@ void save_plot_handler(GtkWidget *widget, gpointer data){
   gtk_entry_set_placeholder_text(GTK_ENTRY(entry_choose_resolution[1]), g_strdup_printf("%d", default_resolution_y));
   gtk_widget_set_name(entry_choose_resolution[0], "0");
   gtk_widget_set_name(entry_choose_resolution[1], "1");
+
+  #ifdef DEBUG_GUI
   printf("FIRST FUNCTION; %d %d\n", complex_plane_get_width(cp), complex_plane_get_height(cp));
+  #endif //DEBUG_GUI
 
   GtkWidget *combo_default_resolutions = gui_gen_video_generate_default_resolutions_combo_box(&num_resolutions);
   gtk_widget_set_size_request(combo_default_resolutions, default_buttons_size, 0);
   g_signal_connect(combo_default_resolutions, "changed", G_CALLBACK(gui_gen_video_resolutions_combo_box_to_entries), (gpointer) entry_choose_resolution);
 
+  #ifdef DEBUG_GUI
   complex_plane_print(cp);
+  #endif //DEBUG_GUI
 
   g_signal_connect(GTK_ENTRY(entry_choose_resolution[0]), "changed", G_CALLBACK(generate_video_input_handler), (gpointer) cp);
   g_signal_connect(GTK_ENTRY(entry_choose_resolution[1]), "changed", G_CALLBACK(generate_video_input_handler), (gpointer) cp);
@@ -460,13 +469,18 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   gtk_entry_set_placeholder_text(GTK_ENTRY(entry_choose_resolution[1]), g_strdup_printf("%d", default_resolution_y));
   gtk_widget_set_name(entry_choose_resolution[0], "0");
   gtk_widget_set_name(entry_choose_resolution[1], "1");
+
+  #ifdef DEBUG_GUI
   printf("FIRST FUNCTION; %d %d\n", complex_plane_get_width(cp), complex_plane_get_height(cp));
+  #endif
 
   GtkWidget *combo_default_resolutions = gui_gen_video_generate_default_resolutions_combo_box(NULL);
   gtk_widget_set_size_request(combo_default_resolutions, default_buttons_size, 0);
   g_signal_connect(combo_default_resolutions, "changed", G_CALLBACK(gui_gen_video_resolutions_combo_box_to_entries), (gpointer) entry_choose_resolution);
 
+  #ifdef DEBUG_GUI
   complex_plane_print(cp);
+  #endif //DEBUG_GUI
 
   g_signal_connect(GTK_ENTRY(entry_choose_resolution[0]), "changed", G_CALLBACK(generate_video_input_handler), (gpointer) cp);
   g_signal_connect(GTK_ENTRY(entry_choose_resolution[1]), "changed", G_CALLBACK(generate_video_input_handler), (gpointer) cp);
@@ -681,10 +695,12 @@ void save_polynomial_handler(GtkWidget *widget, GdkEventKey *event, gpointer dat
   save_polynomial_member(widget, planes[0]);
   save_polynomial_member(widget, planes[1]);
 
+  #ifdef DEBUG_GUI
   complex_plane_print(planes[0]);
 
-//   complex_plane_print_polynomial(planes[0]);
-//   complex_plane_print_polynomial_derivative(planes[0]);
+  complex_plane_print_polynomial(planes[0]);
+  complex_plane_print_polynomial_derivative(planes[0]);
+  #endif //DEBUG_GUI
 
   if (event != NULL && strcmp(gdk_keyval_name (event->keyval), "Return") == 0){
     draw_from_options(widget, data);
@@ -711,7 +727,9 @@ void input_parameters_vector_handler(GtkWidget *widget, gpointer data){
   int index = atoi(gtk_widget_get_name(widget));
 
   complex_plane_set_parameters_vector_member(cp, param, index);
+  #ifdef DEBUG_GUI
   complex_plane_print(cp);
+  #endif //DEBUG_GUI
 }
 
 

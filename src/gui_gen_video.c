@@ -1,5 +1,7 @@
 #include <gui_gen_video.h>
 
+//#define DEBUG_GUI_GEN_VIDEO_C
+
 mainMenu *menu_main_new(){
   mainMenu *menu = malloc(sizeof(mainMenu));
 
@@ -73,7 +75,9 @@ void gui_gen_video_lock_span_ratio(GtkWidget *widget, gpointer data){
   double maxspanx;
 
   double ratio = (double) w / (double) h;
+  #ifdef DEBUG_GUI_GEN_VIDEO_C
   printf("RATIO %f\n", ratio);
+  #endif
 
   minspanx = minspany * ratio;
   maxspanx = maxspany * ratio;

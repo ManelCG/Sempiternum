@@ -1,6 +1,6 @@
 #include <opencl_funcs.h>
 
-#define DEBUG_OPENCL_FUNCS_C
+// #define DEBUG_OPENCL_FUNCS_C
 
 struct OpenCL_Program *get_opencl_info(){
   struct OpenCL_Program *prog = malloc(sizeof (struct OpenCL_Program));
@@ -31,7 +31,9 @@ struct OpenCL_Program *get_opencl_info(){
     exit(EXIT_FAILURE);
   }
 
+  #ifdef DEBUG_OPENCL_FUNCS_C
   printf("Found %d platforms\n", num_platforms_available);
+  #endif
 
   // for (int i = 0; i < num_platforms_available -1; i++){
   int i = 0;

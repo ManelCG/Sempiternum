@@ -17,7 +17,7 @@
 #include <draw_julia.h>
 #include <image_manipulation.h>
 
-#define DEBUG_DRAW_JULIA_C
+// #define DEBUG_DRAW_JULIA_C
 
 unsigned char *draw_julia_polynomial_fraction
         (int N, int h, int w, int order,
@@ -694,16 +694,18 @@ unsigned char *draw_julia(int N, int h, int w,
     clBuildProgram(prog->program, 1, &(prog->device), NULL, NULL, NULL);
   }
 
+  #ifdef DEBUG_DRAW_JULIA_C
   printf("OpenCL Program build. Return code: %d\n\n", prog->ret);
-
   {
     size_t log_size;
     clGetProgramBuildInfo(prog->program, prog->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
 
     char *log = malloc(log_size);
     clGetProgramBuildInfo(prog->program, prog->device, CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
-    printf("%s\n", log);
+    printf("########\nProgram build log:\n%s\n########\n", log);
   }
+  #endif
+
   prog->kernel = clCreateKernel(prog->program, plot_type, &(prog->ret));
 
   #ifdef DEBUG_DRAW_JULIA_C
