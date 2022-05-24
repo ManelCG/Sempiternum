@@ -17,12 +17,17 @@
 
 #define COMPLEX_PLANE_THUMBNAIL_ID 69
 #define USE_THREADS 1
+
+#define GUI_ACTION_RENDER_VIDEO 1
+#define GUI_ACTION_GEN_FRAMES 2
+
 // #define DEBUG_GUI
 
 struct genVideoData{
   ComplexPlane *cp;
   GtkWidget **option_widgets;
   int num_resolutions;
+  int action;
   _Bool stop;
 };
 
@@ -165,20 +170,58 @@ void save_plot_with_name(GtkWidget *widget, ComplexPlane *cp, char *filename){
 }
 
 void *render_video(void *data){
+  struct genVideoData *videodata = (struct genVideoData *) data;
+  int action = videodata->action;
+
+
+  int pidFFMPEG;
+  int pipeFFMPEG[2];
+
   double zoomratio = 0.99;
   double fps = 60;
   int frames;
-
-  struct genVideoData *videodata = (struct genVideoData *) data;
   ComplexPlane *cp_original = videodata->cp;
   ComplexPlane *cp = complex_plane_copy(NULL, cp_original);
   GtkWidget **widgets = videodata->option_widgets;
 
   const char *folder = gtk_entry_get_text(GTK_ENTRY(widgets[8]));
   const char *videofile = gtk_entry_get_text(GTK_ENTRY(widgets[9]));
-  if (strcmp(folder, "") == 0 || strcmp(videofile, "") == 0){
-    return NULL;
+  char *fullvideopath;
+  if (strcmp(folder, "") == 0){
+    folder = "./";
   }
+  if (strcmp(videofile, "") == 0){
+    videofile = "video.mp4";
+  }
+
+  fullvideopath = malloc(strlen(folder) + strlen(videofile) + 5);
+  strcpy(fullvideopath, folder);
+  strcat(fullvideopath, "/");
+  strcat(fullvideopath, videofile);
+
+  if (action == GUI_ACTION_RENDER_VIDEO){
+    printf("Will render video to mp4 format with ffmpeg\n");
+    if (pipe(pipeFFMPEG) == -1){
+      perror("Couldnt pipe");
+      return NULL;
+    }
+    if ((pidFFMPEG = fork()) == -1){
+      perror("Couldnt fork");
+      return NULL;
+    }
+    if (pidFFMPEG == 0){
+      close(0);
+      dup(pipeFFMPEG[0]);
+      close(pipeFFMPEG[0]);
+      close(pipeFFMPEG[1]);
+
+      execlp("ffmpeg", "ffmpeg", "-y", "-framerate", "60", "-i", "-", "-c:v", "libx264", "-pix_fmt", "yuv420p", fullvideopath, NULL);
+      perror("Couldnt execl");
+      return NULL;
+    }
+    close(pipeFFMPEG[0]);
+  }
+
 
   //Get CP data
   int w = complex_plane_get_width(cp), h = complex_plane_get_height(cp);
@@ -205,27 +248,42 @@ void *render_video(void *data){
     if (videodata->stop){
       break;
     }
-    char framename[50];
-    sprintf(framename, "%s/%010d.png", folder, i);
-
-
-    printf("\33[2K\r");
-    printf("Frame %d of %d... %.2f%% saving in %s", i, frames, ((double) i / (double) frames) * 100, framename);
-    fflush(stdout);
-
     complex_plane_set_spanx(cp, complex_plane_get_spanx(cp) * zoomratio);
     complex_plane_set_spany(cp, complex_plane_get_spany(cp) * zoomratio);
-    if (access(framename, F_OK) != 0){
+
+
+    if (action == GUI_ACTION_GEN_FRAMES){
+      char framename[50];
+      sprintf(framename, "%s/%010d.png", folder, i);
+
+      printf("\33[2K\r"); //Clear line
+      printf("Frame %d of %d... %.2f%% saving in %s", i, frames, ((double) i / (double) frames) * 100, framename);
+      fflush(stdout);
+      if (access(framename, F_OK) != 0){
+        complex_plane_gen_plot(cp);
+        lodepng_encode24_file(framename, complex_plane_get_plot(cp), w, h);
+      }
+    } else if (action == GUI_ACTION_RENDER_VIDEO){
       complex_plane_gen_plot(cp);
-      lodepng_encode24_file(framename, complex_plane_get_plot(cp), w, h);
+
+      unsigned char *png;
+      size_t pngsize;
+      lodepng_encode24(&png, &pngsize, complex_plane_get_plot(cp), w, h);
+      write(pipeFFMPEG[1], png, pngsize);
+      free(png);
     }
 
   }
-  printf("\nDone! Rendering to video file\n");
   complex_plane_free(cp);
+  close(pipeFFMPEG[1]);
+  printf("Done!\n");
   return NULL;
 }
 
+void destroy_cp_from_gpointer(gpointer gp){
+  ComplexPlane *cp = (ComplexPlane *) gp;
+  complex_plane_free(cp);
+}
 void render_video_handler(GtkWidget *widget, gpointer data){
   if (USE_THREADS == 1){
     pthread_t thread;
@@ -264,6 +322,19 @@ void generate_video_input_handler(GtkWidget *wid, gpointer data){
   printf("SECOND FUNCTION; %d %d\n", complex_plane_get_width(cp), complex_plane_get_height(cp));
   complex_plane_print(cp);
   #endif //DEBUG_GUI
+}
+
+void radio_render_video_handler(GtkWidget *widget, gpointer data){
+  struct genVideoData *d = (struct genVideoData *) data;
+  if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget))){
+    d->action = GUI_ACTION_RENDER_VIDEO;
+  }
+}
+void radio_gen_frames_handler(GtkWidget *widget, gpointer data){
+  struct genVideoData *d = (struct genVideoData *) data;
+  if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget))){
+    d->action = GUI_ACTION_GEN_FRAMES;
+  }
 }
 
 void button_cancel_render_handler(GtkWidget *widget, gpointer data){
@@ -401,6 +472,7 @@ void save_plot_handler(GtkWidget *widget, gpointer data){
   gtk_box_pack_start(GTK_BOX(file_input_hbox), button_cancel, false, false, 0);
 
   g_signal_connect(button_begin_render, "clicked", G_CALLBACK(save_plot_as), (gpointer) cp);
+  g_signal_connect(button_cancel, "clicked", G_CALLBACK(destroy_cp_from_gpointer), (gpointer) cp);
   g_signal_connect(button_cancel, "clicked", G_CALLBACK(destroy), (gpointer) zoom_window);
   g_signal_connect(button_all_resolutions, "clicked", G_CALLBACK(generate_all_resolutions), (gpointer) videodata);
 
@@ -421,6 +493,7 @@ void save_plot_handler(GtkWidget *widget, gpointer data){
 
 void generate_video_zoom(GtkWidget *widget, gpointer data){
   struct genVideoData *videodata = malloc(sizeof(struct genVideoData));
+  videodata->action = GUI_ACTION_RENDER_VIDEO;
 
   ComplexPlane *cp_old = (ComplexPlane *) data;
   // ComplexPlane *cp = (ComplexPlane *) data;
@@ -457,6 +530,10 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   GtkWidget **entry_choose_spans        = malloc(sizeof(GtkWidget *) * 4);
   GtkWidget **entry_choose_center_point = malloc(sizeof(GtkWidget *) * 2);
   GtkWidget **video_input_widgets       = malloc(sizeof(GtkWidget *) * 10);
+
+  //Toggleables
+  GtkWidget *radio_render_video;
+  GtkWidget *radio_gen_frames;
 
   //Config input resolution
   GtkWidget *label_choose_resolution = gtk_label_new("Choose video resolution:");
@@ -512,6 +589,12 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   button_config_span_set_ratio = gtk_button_new_with_label("Lock ratio");
   gtk_widget_set_size_request(button_config_span_set_ratio, default_buttons_size, 0);
 
+  //Render video or gen frames
+  radio_render_video = gtk_radio_button_new_with_label(NULL, "Render video");
+  radio_gen_frames = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(radio_render_video), "Gen frames");
+  g_signal_connect(GTK_RADIO_BUTTON(radio_render_video), "toggled", G_CALLBACK(radio_render_video_handler), (gpointer) videodata);
+  g_signal_connect(GTK_RADIO_BUTTON(radio_gen_frames), "toggled", G_CALLBACK(radio_gen_frames_handler), (gpointer) videodata);
+
   g_signal_connect(GTK_ENTRY(entry_choose_spans[0]), "changed", G_CALLBACK(generate_video_input_handler), (gpointer) cp);
   g_signal_connect(GTK_ENTRY(entry_choose_spans[1]), "changed", G_CALLBACK(generate_video_input_handler), (gpointer) cp);
 
@@ -524,6 +607,7 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   gtk_box_pack_start(GTK_BOX(config_spans_final_hbox), label_choose_final_span, false, false, 0);
   gtk_box_pack_start(GTK_BOX(config_spans_final_hbox), entry_choose_spans[2], false, false, 0);
   gtk_box_pack_start(GTK_BOX(config_spans_final_hbox), entry_choose_spans[3], false, false, 0);
+  gtk_box_pack_start(GTK_BOX(config_spans_final_hbox), radio_render_video, false, false, 0);
 
   //Config center point
   GtkWidget *label_choose_center_point = gtk_label_new("Choose center point:");
@@ -542,6 +626,7 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   gtk_box_pack_start(GTK_BOX(config_center_hbox), label_choose_center_point, false, false, 0);
   gtk_box_pack_start(GTK_BOX(config_center_hbox), entry_choose_center_point[0], false, false, 0);
   gtk_box_pack_start(GTK_BOX(config_center_hbox), entry_choose_center_point[1], false, false, 0);
+  gtk_box_pack_start(GTK_BOX(config_center_hbox), radio_gen_frames, false, false, 0);
 
   //Config vbox
   config_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
