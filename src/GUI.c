@@ -168,7 +168,8 @@ void *render_video(void *data){
   int frames;
 
   struct genVideoData *videodata = (struct genVideoData *) data;
-  ComplexPlane *cp = videodata->cp;
+  ComplexPlane *cp_original = videodata->cp;
+  ComplexPlane *cp = complex_plane_copy(NULL, cp_original);
   GtkWidget **widgets = videodata->option_widgets;
 
   const char *folder = gtk_entry_get_text(GTK_ENTRY(widgets[8]));
@@ -216,7 +217,10 @@ void *render_video(void *data){
       complex_plane_gen_plot(cp);
       lodepng_encode24_file(framename, complex_plane_get_plot(cp), w, h);
     }
+
+    printf("After saving image\n");
   }
+  complex_plane_free(cp);
   return NULL;
 }
 

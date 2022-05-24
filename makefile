@@ -2,8 +2,9 @@ BDIR = build
 SDIR = src
 
 IDIR = include
+#CC = x86_64-w64-mingw32-gcc
 CC = gcc
-CFLAGS = -I$(IDIR) `pkg-config --cflags --libs gtk+-3.0` -Wall
+CFLAGS = -I$(IDIR) `pkg-config --cflags --libs gtk+-3.0` -Wall -O2
 
 ODIR=.obj
 LDIR=lib

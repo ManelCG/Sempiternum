@@ -196,12 +196,7 @@ unsigned char *draw_julia_polynomial_fraction
   clReleaseMemObject(mem_Sy);
 
   if (cl_prog == NULL){
-    clReleaseProgram(prog->program);
-    clReleaseDevice(prog->device);
-    clReleaseContext(prog->context);
-
-    free(prog->src);
-    free(prog);
+    opencl_free(prog);
   }
 
 

@@ -30,5 +30,6 @@ struct OpenCL_Program{
 };
 
 struct OpenCL_Program *get_opencl_info();
+void opencl_free(struct OpenCL_Program *cl);
 
 #endif //OPENCL_FUNCS_H

@@ -17,7 +17,11 @@ char *gen_dir_name(double c[2], const char *plot_type){
   if (d){
     closedir(d);
   } else {
+    #ifdef __unix__
     mkdir(out_folder, 0755);
+    #elif defined(_WIN32) || defined (WIN32)
+    mkdir(out_folder);
+    #endif
   }
 
   return out_folder;

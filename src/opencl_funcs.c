@@ -88,3 +88,13 @@ struct OpenCL_Program *get_opencl_info(){
 
   return prog;
 }
+
+void opencl_free(struct OpenCL_Program *cl){
+  clReleaseProgram(cl->program);
+  clReleaseDevice(cl->device);
+  clReleaseContext(cl->context);
+
+  free(cl->src);
+  free(cl);
+  printf("Post cl free\n");
+}

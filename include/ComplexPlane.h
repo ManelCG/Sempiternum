@@ -20,6 +20,7 @@ int complex_plane_get_id(ComplexPlane *);
 
 //Copies complex plane. Returns & saves in arg
 ComplexPlane *complex_plane_copy(ComplexPlane **dest, ComplexPlane *src);
+void complex_plane_free(ComplexPlane *cp);
 
 //IO
 void complex_plane_print(ComplexPlane *cp);
