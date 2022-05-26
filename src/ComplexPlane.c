@@ -52,6 +52,7 @@ void complex_plane_free(ComplexPlane *cp){
   complex_plane_free_plot(cp);
   complex_plane_free_drawn_plot(cp);
 
+
   free(cp->plot_type);
   complex_plane_free_polynomial(cp);
   complex_plane_free_polynomial_parameters(cp);
