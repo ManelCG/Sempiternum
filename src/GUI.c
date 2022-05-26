@@ -16,6 +16,7 @@
 #include <pthread.h>
 
 #include <gui_gen_video.h>
+#include <gui_templates.h>
 
 #define COMPLEX_PLANE_THUMBNAIL_ID 69
 #define USE_THREADS 1
@@ -448,6 +449,8 @@ void save_plot_handler(GtkWidget *widget, gpointer data){
 
   char *strbuf;
 
+  GtkAccelGroup *accel_group;
+
   //Boxes
   GtkWidget *main_vbox;
   GtkWidget *file_input_hbox;
@@ -569,6 +572,10 @@ void save_plot_handler(GtkWidget *widget, gpointer data){
   g_signal_connect(button_config_span_set_ratio, "clicked", G_CALLBACK(gui_gen_video_lock_span_ratio), (gpointer) video_input_widgets);
   gui_gen_video_lock_span_ratio(NULL, (gpointer) video_input_widgets);
 
+  accel_group = gtk_accel_group_new();
+  gtk_window_add_accel_group(GTK_WINDOW(zoom_window), accel_group);
+  gtk_widget_add_accelerator(button_cancel, "clicked", accel_group, GDK_KEY_Escape, 0, GTK_ACCEL_VISIBLE);
+
 
   //Main vbox
   main_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
@@ -577,6 +584,7 @@ void save_plot_handler(GtkWidget *widget, gpointer data){
 
   gtk_container_add(GTK_CONTAINER(zoom_window), main_vbox);
 
+  gtk_window_set_keep_above(GTK_WINDOW(zoom_window), true);
   gtk_widget_show_all(GTK_WIDGET(zoom_window));
 }
 
@@ -606,6 +614,8 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
 
   char *strbuf;
 
+  GtkAccelGroup *accel_group;
+
   //Boxes
   GtkWidget *main_vbox;
   GtkWidget *main_hbox;
@@ -632,7 +642,7 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   GtkWidget *radio_gen_frames;
 
   //Preview and progress
-  GtkWidget *progress_bar_separator;
+  // GtkWidget *progress_bar_separator;
   GtkWidget *vertical_separator;
   GtkWidget *progress_bar;
   GtkWidget *video_preview;
@@ -776,7 +786,7 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
 
   file_input = gtk_entry_new();
 
-  progress_bar_separator = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+  // progress_bar_separator = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
   vertical_separator = gtk_separator_new(GTK_ORIENTATION_VERTICAL);
   progress_bar = gtk_progress_bar_new();
   gtk_progress_bar_set_show_text(GTK_PROGRESS_BAR(progress_bar), true);
@@ -851,7 +861,13 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
 
   gtk_container_add(GTK_CONTAINER(zoom_window), main_hbox);
 
+  //Accel group //shortcuts
+  accel_group = gtk_accel_group_new();
+  gtk_window_add_accel_group(GTK_WINDOW(zoom_window), accel_group);
+  gtk_widget_add_accelerator(button_cancel, "clicked", accel_group, GDK_KEY_Escape, 0, GTK_ACCEL_VISIBLE);
 
+
+  gtk_window_set_keep_above(GTK_WINDOW(zoom_window), true);
   gtk_widget_show_all(GTK_WIDGET(zoom_window));
 }
 
@@ -987,21 +1003,6 @@ void draw_from_options(GtkWidget *widget, gpointer data){
 
 void quit_app(GtkWidget *w, gpointer data){
   gtk_main_quit();
-}
-
-void clear_container(GtkWidget *window){
-  GList *children, *iter;
-  children = gtk_container_get_children(GTK_CONTAINER(window));
-  for (iter = children; iter != NULL; iter = g_list_next(iter)){
-    gtk_widget_destroy(GTK_WIDGET(iter->data));
-  }
-  g_list_free(children);
-}
-
-void destroy(GtkWidget *w, gpointer data){
-  GtkWidget *window = (GtkWidget *) data;
-  clear_container(window);
-  gtk_widget_destroy(window);
 }
 
 void plot_zoom(GtkWidget *widget, double zoomratio, complex double p, gpointer data){
@@ -1312,6 +1313,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   }
 
   //Define all local widgets
+  GtkAccelGroup *accel_group;
 
   //Input widgets
   GtkWidget *input_N;
@@ -1373,6 +1375,12 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   GtkWidget *menu_button_save_plot;
   GtkWidget *menu_button_render_video;
 
+  //Help menu
+  GtkWidget *menu_helpmenu;
+  GtkWidget *menu_helpMi;
+  GtkWidget *menu_button_help;
+  GtkWidget *menu_button_about;
+
   //Initialize input widgets
   input_N = gtk_entry_new();
   input_N_line = gtk_entry_new();
@@ -1409,12 +1417,14 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   //Main menu
   menu_menubar = gtk_menu_bar_new();
   menu_filemenu = gtk_menu_new();
+  menu_helpmenu = gtk_menu_new();
 
   //File submenu
   menu_fileMi = gtk_menu_item_new_with_label("File");
-  menu_button_quit = gtk_menu_item_new_with_label("Quit");
-  gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_fileMi), menu_filemenu);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_menubar), menu_fileMi);
+  gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_fileMi), menu_filemenu);
+
+  menu_button_quit = gtk_menu_item_new_with_label("Quit");
   g_signal_connect(menu_button_quit, "activate", G_CALLBACK(quit_app), NULL);
 
   menu_button_save_plot = gtk_menu_item_new_with_label("Save plot as...");
@@ -1425,8 +1435,22 @@ void draw_main_window(GtkWidget *widget, gpointer data){
 
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_button_save_plot);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_button_render_video);
-
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_button_quit);
+
+  //Help submenu
+  menu_helpMi = gtk_menu_item_new_with_label("Help");
+  gtk_menu_shell_append(GTK_MENU_SHELL(menu_menubar), menu_helpMi);
+  gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_helpMi), menu_helpmenu);
+
+  menu_button_help = gtk_menu_item_new_with_label("Help");
+  g_signal_connect(menu_button_help, "activate", G_CALLBACK(gui_templates_show_help_window), NULL);
+
+  menu_button_about = gtk_menu_item_new_with_label("About");
+  g_signal_connect(menu_button_about, "activate", G_CALLBACK(gui_templates_show_about_window), NULL);
+
+  gtk_menu_shell_append(GTK_MENU_SHELL(menu_helpmenu), menu_button_help);
+  gtk_menu_shell_append(GTK_MENU_SHELL(menu_helpmenu), menu_button_about);
+
 
 
   //Iter box
@@ -1529,6 +1553,15 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_box_pack_start(GTK_BOX(options_box), draw_apply_box, true, false, 0);
   gtk_box_pack_start(GTK_BOX(options_box), zoom_lines_box, true, false, 0);
 
+  //Accelerators
+  accel_group = gtk_accel_group_new();
+  gtk_window_add_accel_group(GTK_WINDOW(window), accel_group);
+  gtk_widget_add_accelerator(menu_button_quit, "activate", accel_group, GDK_KEY_q, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+  gtk_widget_add_accelerator(menu_button_save_plot, "activate", accel_group, GDK_KEY_s, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+  gtk_widget_add_accelerator(menu_button_render_video, "activate", accel_group, GDK_KEY_s, GDK_CONTROL_MASK | GDK_SHIFT_MASK, GTK_ACCEL_VISIBLE);
+
+  gtk_widget_add_accelerator(menu_button_help, "activate", accel_group, GDK_KEY_F1, 0, GTK_ACCEL_VISIBLE);
+  gtk_widget_add_accelerator(menu_button_about, "activate", accel_group, GDK_KEY_question, 0, GTK_ACCEL_VISIBLE);
 
 
  //configure scroll_box
