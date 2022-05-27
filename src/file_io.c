@@ -48,6 +48,19 @@ char *gen_filename(const char *dirname, const char *filename){
   return f;
 }
 
+int *parse_dimensions(char *dimensions){
+  int *dim = malloc(sizeof(int) * 2);
+  char *s = "x";
+  char *token;
+  token = strtok(dimensions, s);
+  for (int i = 0; i < 2; i++){
+    dim[i] = atoi(token);
+    token = strtok(NULL, s);
+  }
+
+  return dim;
+}
+
 char *get_root_folder(const char *exec_path){
   char *p = realpath(exec_path, NULL);
   int n_slashes = 0;

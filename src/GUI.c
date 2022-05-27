@@ -161,30 +161,41 @@ void save_plot_as(GtkWidget *widget, gpointer data){
   gtk_widget_destroy(dialog);
 }
 
-//TODO:
 void generate_all_resolutions(GtkWidget *widget, gpointer data){
   struct genVideoData *imdata = (struct genVideoData *) data;
-  // ComplexPlane *cp = imdata->cp;
+  ComplexPlane *cp = imdata->cp;
   GtkWidget *combo = imdata->option_widgets[6];
   int num_resolutions = imdata->num_resolutions;
   char *foldername = gui_gen_video_choose_folder(NULL, NULL);
   char *filename;
-  printf("%s\n", foldername);
+  char *filename_aux;
+  char *progress;
+
+  GtkWidget *label_progress = imdata->option_widgets[7];
+
+  int previous = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
 
   for (int i = 0; i < num_resolutions; i++){
-    printf("%d\n", i);
     gtk_combo_box_set_active(GTK_COMBO_BOX(combo), i);
-    filename = gen_filename(foldername, gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(combo)));
+    filename_aux = gen_filename(foldername, gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(combo)));
+    filename = g_strdup_printf("%s.png", filename_aux);
 
-    printf("%s\n", filename);
-    // complex_plane_gen_plot(cp);
+    int *dim = parse_dimensions(gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(combo)));
 
-    // lodepng_encode24_file(filename,
-    //                       complex_plane_get_plot(cp),
-    //                       complex_plane_get_width(cp),
-    //                       complex_plane_get_height(cp));
-    // free(filename);
+    progress = g_strdup_printf("%d / %d: %dx%d\n", i+1, num_resolutions, dim[0], dim[1]);
+    gtk_label_set_text(GTK_LABEL(label_progress), progress);
+
+    complex_plane_set_dimensions(cp, dim[0], dim[1]);
+    complex_plane_gen_plot(cp);
+
+    lodepng_encode24_file(filename, complex_plane_get_plot(cp), dim[0], dim[1]);
+    free(filename);
+    free(filename_aux);
+    free(dim);
+    free(progress);
   }
+
+  gtk_combo_box_set_active(GTK_COMBO_BOX(combo), previous);
 }
 void save_plot_with_name(GtkWidget *widget, ComplexPlane *cp, char *filename){
   complex_plane_gen_plot(cp);
@@ -267,6 +278,13 @@ void *render_video(void *data){
   char *fullvideopath;
   if (strcmp(folder, "") == 0){
     folder = "./";
+    #ifdef __linux__
+    folder=g_strdup_printf("%s/Videos/", getenv("HOME"));
+    #endif
+    #ifdef _WIN32
+    folder=g_strdup_printf("%s/Desktop/", getenv("HOMEPATH"));
+    #endif
+
   }
   if (strcmp(videofile, "") == 0){
     videofile = "video.mp4";
@@ -517,6 +535,8 @@ void save_plot_handler(GtkWidget *widget, gpointer data){
   GtkWidget **entry_choose_spans        = malloc(sizeof(GtkWidget *) * 4);
   GtkWidget **video_input_widgets       = malloc(sizeof(GtkWidget *) * 10);
 
+  GtkWidget *label_progress;
+
   //Config input resolution
   GtkWidget *label_choose_resolution = gtk_label_new("Choose image resolution:");
   gtk_widget_set_size_request(label_choose_resolution, default_label_size, 0);
@@ -591,6 +611,8 @@ void save_plot_handler(GtkWidget *widget, gpointer data){
   GtkWidget *button_begin_render;
   GtkWidget *button_all_resolutions;
 
+  label_progress = gtk_label_new(NULL);
+
   video_input_widgets[0] = entry_choose_resolution[0];
   video_input_widgets[1] = entry_choose_resolution[1];
   video_input_widgets[2] = entry_choose_spans[0];
@@ -598,22 +620,24 @@ void save_plot_handler(GtkWidget *widget, gpointer data){
   video_input_widgets[4] = entry_choose_spans[2];
   video_input_widgets[5] = entry_choose_spans[3];
   video_input_widgets[6] = combo_default_resolutions;
+  video_input_widgets[7] = label_progress;
 
   videodata->cp = cp;
   videodata->option_widgets = video_input_widgets;
   videodata->num_resolutions = num_resolutions;
 
   button_cancel = gtk_button_new_with_label("Cancel");
-  button_begin_render = gtk_button_new_with_label("Render");
-  button_all_resolutions = gtk_button_new_with_label("Render all default resolutions");
+  button_begin_render = gtk_button_new_with_label("  Save");
+  button_all_resolutions = gtk_button_new_with_label("Render all");
   gtk_widget_set_size_request(button_cancel, default_buttons_size, 20);
-  gtk_widget_set_size_request(button_begin_render, default_buttons_size, 20);
-  gtk_widget_set_size_request(button_all_resolutions, default_buttons_size, 20);
+  gtk_widget_set_size_request(button_begin_render, default_buttons_size + 13, 20);
+  gtk_widget_set_size_request(button_all_resolutions, default_buttons_size + 13, 20);
 
   file_input_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-  gtk_box_pack_start(GTK_BOX(file_input_hbox), button_begin_render, false, false, 0);
-  gtk_box_pack_start(GTK_BOX(file_input_hbox), button_all_resolutions, false, false, 0);
-  gtk_box_pack_start(GTK_BOX(file_input_hbox), button_cancel, false, false, 0);
+  gtk_box_pack_start(GTK_BOX(file_input_hbox), label_progress, true, false, 0);
+  gtk_box_pack_end(GTK_BOX(file_input_hbox), button_cancel, false, false, 0);
+  gtk_box_pack_end(GTK_BOX(file_input_hbox), button_all_resolutions, false, false, 0);
+  gtk_box_pack_end(GTK_BOX(file_input_hbox), button_begin_render, false, false, 0);
 
   g_signal_connect(button_begin_render, "clicked", G_CALLBACK(save_plot_as), (gpointer) cp);
   g_signal_connect(button_cancel, "clicked", G_CALLBACK(destroy_cp_from_gpointer), (gpointer) cp);
@@ -870,7 +894,7 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
 
   folder_input = gtk_entry_new();
   gtk_entry_set_placeholder_text(GTK_ENTRY(folder_input), "Output folder");
-  button_choose_folder = gtk_button_new_with_label("Explore");
+  button_choose_folder = gtk_button_new_with_label("  Explore");
   g_signal_connect(button_choose_folder, "clicked", G_CALLBACK(gui_gen_video_choose_folder), (gpointer) folder_input);
   gtk_widget_set_size_request(button_choose_folder, default_buttons_size, 20);
 
@@ -954,10 +978,10 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   gtk_box_pack_start(GTK_BOX(main_hbox), main_vbox, true, true, 0);
 
 
-  //Pause resume stop
-  button_pause = gtk_button_new_with_label("Pause");
-  button_resume = gtk_button_new_with_label("Resume");
-  button_stop = gtk_button_new_with_label("Stop");
+  //pause resume stop
+  button_pause =  gtk_button_new_with_label("  Pause");
+  button_resume = gtk_button_new_with_label("  Resume");
+  button_stop =   gtk_button_new_with_label("  Stop");
 
   gtk_widget_set_size_request(button_pause, prs_buttons_size, 0);
   gtk_widget_set_size_request(button_resume, prs_buttons_size, 0);
