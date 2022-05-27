@@ -1,5 +1,6 @@
 #include <gtk/gtk.h>
 #include <stdbool.h>
+#include <signal.h>
 #include <ctype.h>
 
 #include <sys/time.h>
@@ -32,6 +33,9 @@ struct genVideoData{
   int num_resolutions;
   int action;
   _Bool stop;
+  _Bool pause;
+  _Bool rendering;
+  pthread_t thread;
 };
 
 struct videoProgress{
@@ -46,6 +50,8 @@ struct videoProgress{
   int total_frames;
   int start_frame;
 };
+
+void ignore_signal();
 
 
 //Chose between quadratic, polynomial, etc
@@ -64,6 +70,10 @@ void save_polynomial_member(GtkWidget *widget, gpointer data);
 void draw_box(GtkWidget *window, GdkEventButton *event, gpointer data);
 void destroy(GtkWidget *w, gpointer data);
 void plot_zoom(GtkWidget *widget, double zoomratio, complex double p, gpointer data);
+
+void ignore_signal(){
+  return;
+}
 
 void insert_text_event_int(GtkEditable *editable, const gchar *text, gint length, gint *position, gpointer data){
   for (int i = 0; i < length; i++){
@@ -228,21 +238,29 @@ void *update_video_preview(gpointer data){
 void *render_video(void *data){
   struct genVideoData *videodata = (struct genVideoData *) data;
   int action = videodata->action;
-
+  videodata->pause = false;
+  videodata->stop = false;
+  videodata->rendering = true;
 
   int pidFFMPEG;
   int pipeFFMPEG[2];
 
-  double zoomratio = 0.99;
-  double fps = 60;
   int frames;
   ComplexPlane *cp_original = videodata->cp;
   ComplexPlane *cp = complex_plane_copy(NULL, cp_original);
   GtkWidget **widgets = videodata->option_widgets;
 
+  double zoomratio = strtod(gtk_entry_get_text(GTK_ENTRY(widgets[13])), NULL);
+  const char *fps_str = gtk_entry_get_text(GTK_ENTRY(widgets[12]));
+  double fps = strtod(fps_str, NULL);
+
+  if (fps == 0){
+    fps_str = "60";
+    fps = 60;
+  }
+
   GtkWidget *progress_bar = widgets[10];
   GtkWidget *video_preview = widgets[11];
-
 
   const char *folder = gtk_entry_get_text(GTK_ENTRY(widgets[8]));
   const char *videofile = gtk_entry_get_text(GTK_ENTRY(widgets[9]));
@@ -275,7 +293,7 @@ void *render_video(void *data){
       close(pipeFFMPEG[0]);
       close(pipeFFMPEG[1]);
 
-      execlp("ffmpeg", "ffmpeg", "-y", "-framerate", "60", "-i", "-", "-c:v", "libx264", "-pix_fmt", "yuv420p", fullvideopath, NULL);
+      execlp("ffmpeg", "ffmpeg", "-y", "-framerate", fps_str, "-i", "-", "-c:v", "libx264", "-pix_fmt", "yuv420p", fullvideopath, NULL);
       perror("Couldnt execl");
       return NULL;
     }
@@ -312,9 +330,19 @@ void *render_video(void *data){
   video_progress->start_frame = 0;
   gettimeofday(&video_progress->start_time, NULL);
 
+  sigset_t set;
+  sigemptyset(&set);
+  sigaddset(&set, SIGUSR1);
+  sigprocmask(SIG_BLOCK, &set, NULL);
+  int sig;
   for (int i = 1; i <= frames; i++){
     if (videodata->stop){
       break;
+    }
+    while (videodata->pause){
+      sigwait(&set, &sig);
+      video_progress->start_frame = i-1;
+      gettimeofday(&video_progress->start_time, NULL);
     }
     complex_plane_set_spanx(cp, complex_plane_get_spanx(cp) * zoomratio);
     complex_plane_set_spany(cp, complex_plane_get_spany(cp) * zoomratio);
@@ -360,6 +388,7 @@ void *render_video(void *data){
   complex_plane_free(cp);
   close(pipeFFMPEG[1]);
   gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progress_bar), "Done!");
+  videodata->rendering = false;
   free(video_progress);
   printf("Done!\n");
   return NULL;
@@ -370,9 +399,15 @@ void destroy_cp_from_gpointer(GtkWidget *widget, gpointer gp){
   complex_plane_free(cp);
 }
 void render_video_handler(GtkWidget *widget, gpointer data){
+  struct genVideoData *d = (struct genVideoData *) data;
+  if (d->rendering){
+    printf("Already rendering a video!\n");
+    return;
+  }
   if (USE_THREADS == 1){
     pthread_t thread;
     pthread_create(&thread, NULL, render_video, (void *) data);
+    d->thread = thread;
   } else {
     render_video((void *) data);
   }
@@ -424,7 +459,23 @@ void radio_gen_frames_handler(GtkWidget *widget, gpointer data){
 
 void button_cancel_render_handler(GtkWidget *widget, gpointer data){
   struct genVideoData *d = (struct genVideoData *) data;
-  d->stop = true;
+  if (d->rendering){
+    d->stop = true;
+    d->rendering = false;
+  }
+}
+void button_pause_render_handler(GtkWidget *widget, gpointer data){
+  struct genVideoData *d = (struct genVideoData *) data;
+  if (d->rendering){
+    d->pause = true;
+  }
+}
+void button_resume_render_handler(GtkWidget *widget, gpointer data){
+  struct genVideoData *d = (struct genVideoData *) data;
+  if (d->rendering){
+    d->pause = false;
+    pthread_kill(d->thread, SIGUSR1);
+  }
 }
 
 void save_plot_handler(GtkWidget *widget, gpointer data){
@@ -444,7 +495,7 @@ void save_plot_handler(GtkWidget *widget, gpointer data){
   g_signal_connect(zoom_window, "destroy", G_CALLBACK(destroy), (gpointer) zoom_window);
 
   int default_resolution_x = 1920, default_resolution_y = 1080;
-  int default_label_size = 150, default_entry_size = 15;
+  int default_label_size = 160, default_entry_size = 15;
   int default_buttons_size = 125;
 
   char *strbuf;
@@ -592,6 +643,7 @@ void save_plot_handler(GtkWidget *widget, gpointer data){
 void generate_video_zoom(GtkWidget *widget, gpointer data){
   struct genVideoData *videodata = malloc(sizeof(struct genVideoData));
   videodata->action = GUI_ACTION_RENDER_VIDEO;
+  videodata->rendering = false;
 
   ComplexPlane *cp_old = (ComplexPlane *) data;
   // ComplexPlane *cp = (ComplexPlane *) data;
@@ -611,6 +663,10 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   int default_resolution_x = 1920, default_resolution_y = 1080;
   int default_label_size = 150, default_entry_size = 15;
   int default_buttons_size = 125;
+  int prs_buttons_size = 100;
+
+  const char *default_fps = "60";
+  const char *default_zoomratio = "0.99";
 
   char *strbuf;
 
@@ -619,9 +675,11 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   //Boxes
   GtkWidget *main_vbox;
   GtkWidget *main_hbox;
-  GtkWidget *preview_vbox;
   GtkWidget *folder_input_hbox;
   GtkWidget *file_input_hbox;
+
+  GtkWidget *pause_resume_stop_hbox;
+  GtkWidget *preview_vbox;
 
   //Config
   GtkWidget *config_vbox;
@@ -629,13 +687,16 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   GtkWidget *config_spans_start_hbox;
   GtkWidget *config_spans_final_hbox;
   GtkWidget *config_center_hbox;
+  GtkWidget *config_frames_hbox;
+  GtkWidget *config_zoomratio_hbox;
 
   //Entries
   GtkWidget *label_config_window = gtk_label_new("Options for generating video:");
   GtkWidget **entry_choose_resolution   = malloc(sizeof(GtkWidget *) * 2);
   GtkWidget **entry_choose_spans        = malloc(sizeof(GtkWidget *) * 4);
   GtkWidget **entry_choose_center_point = malloc(sizeof(GtkWidget *) * 2);
-  GtkWidget **video_input_widgets       = malloc(sizeof(GtkWidget *) * 12);
+  GtkWidget *entry_fps; GtkWidget *entry_zoomratio;
+  GtkWidget **video_input_widgets       = malloc(sizeof(GtkWidget *) * 14);
 
   //Toggleables
   GtkWidget *radio_render_video;
@@ -647,8 +708,13 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   GtkWidget *progress_bar;
   GtkWidget *video_preview;
 
+  GtkWidget *button_pause;
+  GtkWidget *button_resume;
+  GtkWidget *button_stop;
+
   //Config input resolution
   GtkWidget *label_choose_resolution = gtk_label_new("Choose video resolution:");
+  gtk_label_set_justify(GTK_LABEL(label_choose_resolution), GTK_JUSTIFY_RIGHT);
   gtk_widget_set_size_request(label_choose_resolution, default_label_size, 0);
   entry_choose_resolution[0] =  gtk_entry_new();
   entry_choose_resolution[1] =  gtk_entry_new();
@@ -688,7 +754,9 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
 
   //Config zoom span
   GtkWidget *label_choose_start_span = gtk_label_new("Starting span:");
+  gtk_label_set_justify(GTK_LABEL(label_choose_start_span), GTK_JUSTIFY_RIGHT);
   GtkWidget *label_choose_final_span = gtk_label_new("Final span:");
+  gtk_label_set_justify(GTK_LABEL(label_choose_final_span), GTK_JUSTIFY_RIGHT);
   gtk_widget_set_size_request(label_choose_start_span, default_label_size, 0);
   gtk_widget_set_size_request(label_choose_final_span, default_label_size, 0);
   GtkWidget *button_config_span_set_ratio;
@@ -735,6 +803,7 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
 
   //Config center point
   GtkWidget *label_choose_center_point = gtk_label_new("Choose center point:");
+  gtk_label_set_justify(GTK_LABEL(label_choose_center_point), GTK_JUSTIFY_RIGHT);
   gtk_widget_set_size_request(label_choose_center_point, default_label_size, 0);
   entry_choose_center_point[0] = gtk_entry_new(); gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_center_point[0]), default_entry_size);
   entry_choose_center_point[1] = gtk_entry_new(); gtk_entry_set_width_chars(GTK_ENTRY(entry_choose_center_point[1]), default_entry_size);
@@ -755,6 +824,35 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   gtk_box_pack_start(GTK_BOX(config_center_hbox), entry_choose_center_point[1], false, false, 0);
   gtk_box_pack_start(GTK_BOX(config_center_hbox), radio_gen_frames, false, false, 0);
 
+  //Config frames fps and speed hbox
+  GtkWidget *label_fps = gtk_label_new("FPS:");
+  gtk_label_set_justify(GTK_LABEL(label_fps), GTK_JUSTIFY_RIGHT);
+  gtk_widget_set_size_request(label_fps, default_label_size, 0);
+
+  entry_fps = gtk_entry_new(); gtk_entry_set_width_chars(GTK_ENTRY(entry_fps), default_entry_size);
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entry_fps), "Final video FPS");
+  gtk_widget_set_tooltip_text(entry_fps, "Final video frames per second");
+  gtk_entry_set_text(GTK_ENTRY(entry_fps), default_fps);
+
+  config_frames_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+  gtk_box_pack_start(GTK_BOX(config_frames_hbox), label_fps, false, false, 0);
+  gtk_box_pack_start(GTK_BOX(config_frames_hbox), entry_fps, false, false, 0);
+
+
+  //Zoomratio hbox
+  GtkWidget *label_zoomratio = gtk_label_new("Zoom ratio:");
+  gtk_label_set_justify(GTK_LABEL(label_zoomratio), GTK_JUSTIFY_RIGHT);
+  gtk_widget_set_size_request(label_zoomratio, default_label_size, 0);
+
+  entry_zoomratio = gtk_entry_new(); gtk_entry_set_width_chars(GTK_ENTRY(entry_zoomratio), default_entry_size);
+  gtk_entry_set_placeholder_text(GTK_ENTRY(entry_zoomratio), "Zoom ratio");
+  gtk_widget_set_tooltip_text(entry_zoomratio, "Zoom ratio in each frame");
+  gtk_entry_set_text(GTK_ENTRY(entry_zoomratio), default_zoomratio);
+
+  config_zoomratio_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+  gtk_box_pack_start(GTK_BOX(config_zoomratio_hbox), label_zoomratio, false, false, 0);
+  gtk_box_pack_start(GTK_BOX(config_zoomratio_hbox), entry_zoomratio, false, false, 0);
+
   //Config vbox
   config_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
   gtk_box_pack_start(GTK_BOX(config_vbox), label_config_window, true, true, 0);
@@ -762,6 +860,8 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   gtk_box_pack_start(GTK_BOX(config_vbox), config_spans_start_hbox, true, true, 0);
   gtk_box_pack_start(GTK_BOX(config_vbox), config_spans_final_hbox, true, true, 0);
   gtk_box_pack_start(GTK_BOX(config_vbox), config_center_hbox, true, true, 0);
+  gtk_box_pack_start(GTK_BOX(config_vbox), config_frames_hbox, true, true, 0);
+  gtk_box_pack_start(GTK_BOX(config_vbox), config_zoomratio_hbox, true, true, 0);
 
 
   //Folder input
@@ -777,6 +877,7 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   folder_input_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
   gtk_box_pack_start(GTK_BOX(folder_input_hbox), folder_input, true, true, 0);
   gtk_box_pack_start(GTK_BOX(folder_input_hbox), button_choose_folder, false, false, 0);
+
 
   //Filename/Accept/Cancel bar
   GtkWidget *file_input;
@@ -817,6 +918,8 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   video_input_widgets[9]  = file_input;
   video_input_widgets[10] = progress_bar;
   video_input_widgets[11] = video_preview;
+  video_input_widgets[12] = entry_fps;
+  video_input_widgets[13] = entry_zoomratio;
 
   videodata->option_widgets = video_input_widgets;
   videodata->cp = cp;
@@ -850,10 +953,35 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   main_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
   gtk_box_pack_start(GTK_BOX(main_hbox), main_vbox, true, true, 0);
 
+
+  //Pause resume stop
+  button_pause = gtk_button_new_with_label("Pause");
+  button_resume = gtk_button_new_with_label("Resume");
+  button_stop = gtk_button_new_with_label("Stop");
+
+  gtk_widget_set_size_request(button_pause, prs_buttons_size, 0);
+  gtk_widget_set_size_request(button_resume, prs_buttons_size, 0);
+  gtk_widget_set_size_request(button_stop, prs_buttons_size, 0);
+
+  g_signal_connect(button_pause, "clicked", G_CALLBACK(button_pause_render_handler), (gpointer) videodata);
+  g_signal_connect(button_resume, "clicked", G_CALLBACK(button_resume_render_handler), (gpointer) videodata);
+  g_signal_connect(button_stop, "clicked", G_CALLBACK(button_cancel_render_handler), (gpointer) videodata);
+
+
+  pause_resume_stop_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+  gtk_box_pack_start(GTK_BOX(pause_resume_stop_hbox), button_pause, true, false, 0);
+  gtk_box_pack_start(GTK_BOX(pause_resume_stop_hbox), button_resume, true, false, 0);
+  gtk_box_pack_start(GTK_BOX(pause_resume_stop_hbox), button_stop, true, false, 0);
+
+  //Video preview
+  GtkWidget *preview_label = gtk_label_new("Video preview:");
   preview_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+  gtk_box_pack_start(GTK_BOX(preview_vbox), preview_label, false, false, 0);
+  gtk_box_pack_start(GTK_BOX(preview_vbox), video_preview, true, true, 0);
+
+  gtk_box_pack_end(GTK_BOX(preview_vbox), pause_resume_stop_hbox, false, false, 0);
   gtk_box_pack_end(GTK_BOX(preview_vbox), progress_bar, true, true, 0);
   // gtk_box_pack_end(GTK_BOX(preview_vbox), progress_bar_separator, true, true, 3);
-  gtk_box_pack_start(GTK_BOX(preview_vbox), video_preview, true, true, 0);
 
 
   gtk_box_pack_start(GTK_BOX(main_hbox), vertical_separator, true, true, 3);
@@ -1932,7 +2060,7 @@ int main (int argc, char *argv[]) {
   // main_data->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   GtkWidget *window_root = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
-  gtk_window_set_title(GTK_WINDOW(window_root), "Julia Set Viewer");
+  gtk_window_set_title(GTK_WINDOW(window_root), "Sempiternum");
   gtk_window_set_default_size(GTK_WINDOW(window_root), w, h);
   gtk_window_set_position(GTK_WINDOW(window_root), GTK_WIN_POS_CENTER);
   g_signal_connect(window_root, "destroy",

@@ -24,7 +24,7 @@ void destroy(GtkWidget *w, gpointer data){
 
 void gui_templates_show_help_window(GtkWidget *w, gpointer data){
   GtkWindow *window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
-  gtk_window_set_title(window, "JuliaViewer documentation");
+  gtk_window_set_title(window, "Sempiternum documentation");
   gtk_window_set_resizable(window, false);
   gtk_container_set_border_width(GTK_CONTAINER(window), 15);
 
@@ -40,7 +40,7 @@ void gui_templates_show_help_window(GtkWidget *w, gpointer data){
 void gui_templates_show_about_window(GtkWidget *w, gpointer data){
   GtkWindow *window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
 
-  gtk_window_set_title(window, "About JuliaViewer");
+  gtk_window_set_title(window, "About Sempiternum");
   gtk_window_set_resizable(window, false);
   gtk_container_set_border_width(GTK_CONTAINER(window), 10);
   gtk_window_set_default_size(GTK_WINDOW(window), 420, 0);
@@ -65,11 +65,11 @@ void gui_templates_show_about_window(GtkWidget *w, gpointer data){
   GtkWidget *image = gtk_image_new_from_pixbuf(pixbuf);
 
   label_app_name = gtk_label_new(NULL);
-  gtk_label_set_markup(GTK_LABEL(label_app_name), "<b>Julia Viewer</b>");
+  gtk_label_set_markup(GTK_LABEL(label_app_name), "<b>Sempiternum</b>");
 
   label_version = gtk_label_new("Beta May '22");
 
-  label_description = gtk_label_new("Julia Viewer is a fast and easy to use interface\nfor representing different complex function dynamics\nbuilt with OpenCL and GTK");
+  label_description = gtk_label_new("Sempiternum represents the Julia sets resulting on the iteration\nof different functions on the complex plane.");
   gtk_label_set_justify(GTK_LABEL(label_description),GTK_JUSTIFY_CENTER);
   gtk_label_set_line_wrap(GTK_LABEL(label_description), true);
   gtk_label_set_max_width_chars(GTK_LABEL(label_description), 50);
@@ -78,7 +78,7 @@ void gui_templates_show_about_window(GtkWidget *w, gpointer data){
   const char *label_git_repo_text = "<a href=\"https://github.com/ManelCG/complex_function_dynamics_plotter\"> Github repository</a>";
   label_git_repo = gtk_label_new(NULL);
   gtk_label_set_markup(GTK_LABEL(label_git_repo), label_git_repo_text);
-  gtk_widget_set_tooltip_text(label_git_repo, "Go to JuliaViewer's Github repository");
+  gtk_widget_set_tooltip_text(label_git_repo, "Go to Sempiternum's Github repository");
 
   label_copyright_manel = gtk_label_new(NULL);
   gtk_label_set_markup(GTK_LABEL(label_copyright_manel), "<small>Copyright © Manel Castillo Giménez</small>");
