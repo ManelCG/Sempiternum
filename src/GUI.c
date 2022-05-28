@@ -51,9 +51,6 @@ struct videoProgress{
   int start_frame;
 };
 
-void ignore_signal();
-
-
 //Chose between quadratic, polynomial, etc
 //TODO: Remove these global variables
 
@@ -71,8 +68,37 @@ void draw_box(GtkWidget *window, GdkEventButton *event, gpointer data);
 void destroy(GtkWidget *w, gpointer data);
 void plot_zoom(GtkWidget *widget, double zoomratio, complex double p, gpointer data);
 
-void ignore_signal(){
-  return;
+int calculate_number_of_frames(double maxx, double maxy, double minx, double miny, double zoomratio){
+  int framesx = (int) floor((log((double) minx / (double) maxx))/log(zoomratio));
+  int framesy = (int) floor((log((double) miny / (double) maxy))/log(zoomratio));
+  return fmin(framesx, framesy);
+}
+void calculate_video_duration(GtkWidget *w, gpointer data){
+  GtkWidget **widgets = (GtkWidget **) data;
+  double maxx, maxy, minx, miny, zoomratio, fps;
+  int frames, seconds;
+  char *text;
+  maxx = strtod(gtk_entry_get_text(GTK_ENTRY(widgets[0])), NULL);
+  maxy = strtod(gtk_entry_get_text(GTK_ENTRY(widgets[1])), NULL);
+  minx = strtod(gtk_entry_get_text(GTK_ENTRY(widgets[2])), NULL);
+  miny = strtod(gtk_entry_get_text(GTK_ENTRY(widgets[3])), NULL);
+  zoomratio = strtod(gtk_entry_get_text(GTK_ENTRY(widgets[4])), NULL);
+  fps = strtod(gtk_entry_get_text(GTK_ENTRY(widgets[5])), NULL);
+
+  frames = calculate_number_of_frames(maxx, maxy, minx, miny, zoomratio);
+  frames = fmax(frames, 0);
+
+  seconds = (int) floor(frames / fps);
+
+  int eta_h = seconds/3600; seconds -= eta_h * 3600;
+  int eta_m = seconds/60; seconds -= eta_m * 60;
+  int eta_s = floor(seconds);
+
+  text = g_strdup_printf("Video duration: %02d:%02d:%02d", eta_h, eta_m, eta_s);
+  gtk_label_set_text(GTK_LABEL(widgets[6]), text);
+  free(text);
+  text = g_strdup_printf("Will render %d frames", frames);
+  gtk_label_set_text(GTK_LABEL(widgets[7]), text);
 }
 
 void insert_text_event_int(GtkEditable *editable, const gchar *text, gint length, gint *position, gpointer data){
@@ -206,6 +232,22 @@ void save_plot_with_name(GtkWidget *widget, ComplexPlane *cp, char *filename){
                         complex_plane_get_height(cp));
 }
 
+void *gui_set_entry_editable(gpointer w){
+  GtkWidget *wid = (GtkWidget *) w;
+  gtk_editable_set_editable(GTK_EDITABLE(wid), true);
+  gtk_widget_set_can_focus(wid, true);
+  gtk_widget_set_sensitive(wid, true);
+
+  return NULL;
+}
+void *gui_set_entry_noneditable(gpointer w){
+  GtkWidget *wid = (GtkWidget *) w;
+  gtk_editable_set_editable(GTK_EDITABLE(wid), false);
+  gtk_widget_set_can_focus(wid, false);
+  gtk_widget_set_sensitive(wid, false);
+
+  return NULL;
+}
 void *update_video_preview(gpointer data){
   struct videoProgress *p = (struct videoProgress *) data;
 
@@ -247,6 +289,20 @@ void *update_video_preview(gpointer data){
 }
 
 void *render_video(void *data){
+  // w[0]  = entry_choose_resolution[0];
+  // w[1]  = entry_choose_resolution[1];
+  // w[2]  = entry_choose_spans[0];
+  // w[3]  = entry_choose_spans[1];
+  // w[4]  = entry_choose_spans[2];
+  // w[5]  = entry_choose_spans[3];
+  // w[6]  = entry_choose_center_point[0];
+  // w[7]  = entry_choose_center_point[1];
+  // w[8]  = folder_input;
+  // w[9]  = file_input;
+  // w[10] = progress_bar;
+  // w[11] = video_preview;
+  // w[12] = entry_fps;
+  // w[13] = entry_zoomratio;
   struct genVideoData *videodata = (struct genVideoData *) data;
   int action = videodata->action;
   videodata->pause = false;
@@ -260,6 +316,14 @@ void *render_video(void *data){
   ComplexPlane *cp_original = videodata->cp;
   ComplexPlane *cp = complex_plane_copy(NULL, cp_original);
   GtkWidget **widgets = videodata->option_widgets;
+
+  printf("Making non editable...\n");
+  for (int i = 0; i <= 9; i++){
+    g_main_context_invoke(NULL, G_SOURCE_FUNC(gui_set_entry_noneditable), (gpointer) widgets[i]);
+  }
+  for (int i = 12; i <= 13; i++){
+    g_main_context_invoke(NULL, G_SOURCE_FUNC(gui_set_entry_noneditable), (gpointer) widgets[i]);
+  }
 
   double zoomratio = strtod(gtk_entry_get_text(GTK_ENTRY(widgets[13])), NULL);
   const char *fps_str = gtk_entry_get_text(GTK_ENTRY(widgets[12]));
@@ -327,14 +391,12 @@ void *render_video(void *data){
   double minspanx = strtod(gtk_entry_get_text(GTK_ENTRY(widgets[4])), NULL);
   double minspany = strtod(gtk_entry_get_text(GTK_ENTRY(widgets[5])), NULL);
 
+  printf("%f %f %f %f\n", maxspanx, maxspany, minspanx, minspany);
+
   printf("Saving data in %s. Saving video file in %s/%s\n", folder, folder, videofile);
 
 
-  { //Calculate number of frames needed:
-    int framesx = (int) floor((log((double) minspanx / (double) maxspanx))/log(zoomratio));
-    int framesy = (int) floor((log((double) minspany / (double) maxspany))/log(zoomratio));
-    frames = fmin(framesx, framesy);
-  }
+  frames = calculate_number_of_frames(maxspanx, maxspany, minspanx, minspany, zoomratio);
 
   printf("Will generate %d frames.\n", frames);
   printf("At %f fps that is %f seconds.\n", fps, (double) frames / fps);
@@ -354,13 +416,15 @@ void *render_video(void *data){
   sigprocmask(SIG_BLOCK, &set, NULL);
   int sig;
   for (int i = 1; i <= frames; i++){
-    if (videodata->stop){
-      break;
-    }
     while (videodata->pause){
       sigwait(&set, &sig);
       video_progress->start_frame = i-1;
       gettimeofday(&video_progress->start_time, NULL);
+
+      printf("Exit pause\n");
+    }
+    if (videodata->stop){
+      break;
     }
     complex_plane_set_spanx(cp, complex_plane_get_spanx(cp) * zoomratio);
     complex_plane_set_spany(cp, complex_plane_get_spany(cp) * zoomratio);
@@ -406,6 +470,15 @@ void *render_video(void *data){
   complex_plane_free(cp);
   close(pipeFFMPEG[1]);
   gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progress_bar), "Done!");
+
+  printf("Making editable...\n");
+  for (int i = 0; i <= 9; i++){
+    g_main_context_invoke(NULL, G_SOURCE_FUNC(gui_set_entry_editable), (gpointer) widgets[i]);
+  }
+  for (int i = 12; i <= 13; i++){
+    g_main_context_invoke(NULL, G_SOURCE_FUNC(gui_set_entry_editable), (gpointer) widgets[i]);
+  }
+
   videodata->rendering = false;
   free(video_progress);
   printf("Done!\n");
@@ -479,6 +552,10 @@ void button_cancel_render_handler(GtkWidget *widget, gpointer data){
   struct genVideoData *d = (struct genVideoData *) data;
   if (d->rendering){
     d->stop = true;
+    if (d->pause){
+      d->pause = false;
+      pthread_kill(d->thread, SIGUSR1);
+    }
     d->rendering = false;
   }
 }
@@ -719,8 +796,9 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   GtkWidget **entry_choose_resolution   = malloc(sizeof(GtkWidget *) * 2);
   GtkWidget **entry_choose_spans        = malloc(sizeof(GtkWidget *) * 4);
   GtkWidget **entry_choose_center_point = malloc(sizeof(GtkWidget *) * 2);
-  GtkWidget *entry_fps; GtkWidget *entry_zoomratio;
   GtkWidget **video_input_widgets       = malloc(sizeof(GtkWidget *) * 14);
+  GtkWidget **duration_calc_widgets     = malloc(sizeof(GtkWidget *) * 8);
+  GtkWidget *entry_fps; GtkWidget *entry_zoomratio;
 
   //Toggleables
   GtkWidget *radio_render_video;
@@ -850,6 +928,8 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
 
   //Config frames fps and speed hbox
   GtkWidget *label_fps = gtk_label_new("FPS:");
+  GtkWidget *label_video_duration = gtk_label_new(NULL);
+  GtkWidget *label_video_frames = gtk_label_new(NULL);
   gtk_label_set_justify(GTK_LABEL(label_fps), GTK_JUSTIFY_RIGHT);
   gtk_widget_set_size_request(label_fps, default_label_size, 0);
 
@@ -861,6 +941,7 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   config_frames_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
   gtk_box_pack_start(GTK_BOX(config_frames_hbox), label_fps, false, false, 0);
   gtk_box_pack_start(GTK_BOX(config_frames_hbox), entry_fps, false, false, 0);
+  gtk_box_pack_start(GTK_BOX(config_frames_hbox), label_video_duration, true, false, 0);
 
 
   //Zoomratio hbox
@@ -876,6 +957,7 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   config_zoomratio_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
   gtk_box_pack_start(GTK_BOX(config_zoomratio_hbox), label_zoomratio, false, false, 0);
   gtk_box_pack_start(GTK_BOX(config_zoomratio_hbox), entry_zoomratio, false, false, 0);
+  gtk_box_pack_start(GTK_BOX(config_zoomratio_hbox), label_video_frames, true, false, 0);
 
   //Config vbox
   config_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
@@ -945,6 +1027,16 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   video_input_widgets[12] = entry_fps;
   video_input_widgets[13] = entry_zoomratio;
 
+
+  duration_calc_widgets[0] = entry_choose_spans[0];
+  duration_calc_widgets[1] = entry_choose_spans[1];
+  duration_calc_widgets[2] = entry_choose_spans[2];
+  duration_calc_widgets[3] = entry_choose_spans[3];
+  duration_calc_widgets[4] = entry_zoomratio;
+  duration_calc_widgets[5] = entry_fps;
+  duration_calc_widgets[6] = label_video_duration;
+  duration_calc_widgets[7] = label_video_frames;
+
   videodata->option_widgets = video_input_widgets;
   videodata->cp = cp;
   videodata->stop = false;
@@ -983,6 +1075,10 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   button_resume = gtk_button_new_with_label("  Resume");
   button_stop =   gtk_button_new_with_label("  Stop");
 
+  gtk_widget_set_tooltip_text(button_pause, "Pauses the render process.");
+  gtk_widget_set_tooltip_text(button_resume, "If paused, resumes the render process.");
+  gtk_widget_set_tooltip_text(button_stop, "Stops the render process and saves video at the current state");
+
   gtk_widget_set_size_request(button_pause, prs_buttons_size, 0);
   gtk_widget_set_size_request(button_resume, prs_buttons_size, 0);
   gtk_widget_set_size_request(button_stop, prs_buttons_size, 0);
@@ -990,7 +1086,6 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   g_signal_connect(button_pause, "clicked", G_CALLBACK(button_pause_render_handler), (gpointer) videodata);
   g_signal_connect(button_resume, "clicked", G_CALLBACK(button_resume_render_handler), (gpointer) videodata);
   g_signal_connect(button_stop, "clicked", G_CALLBACK(button_cancel_render_handler), (gpointer) videodata);
-
 
   pause_resume_stop_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
   gtk_box_pack_start(GTK_BOX(pause_resume_stop_hbox), button_pause, true, false, 0);
@@ -1018,6 +1113,13 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   gtk_window_add_accel_group(GTK_WINDOW(zoom_window), accel_group);
   gtk_widget_add_accelerator(button_cancel, "clicked", accel_group, GDK_KEY_Escape, 0, GTK_ACCEL_VISIBLE);
 
+  calculate_video_duration(NULL, (gpointer) duration_calc_widgets);
+  g_signal_connect(GTK_ENTRY(entry_fps), "changed", G_CALLBACK(calculate_video_duration), (gpointer) duration_calc_widgets);
+  g_signal_connect(GTK_ENTRY(entry_zoomratio), "changed", G_CALLBACK(calculate_video_duration), (gpointer) duration_calc_widgets);
+  g_signal_connect(GTK_ENTRY(entry_choose_spans[0]), "changed", G_CALLBACK(calculate_video_duration), (gpointer) duration_calc_widgets);
+  g_signal_connect(GTK_ENTRY(entry_choose_spans[1]), "changed", G_CALLBACK(calculate_video_duration), (gpointer) duration_calc_widgets);
+  g_signal_connect(GTK_ENTRY(entry_choose_spans[2]), "changed", G_CALLBACK(calculate_video_duration), (gpointer) duration_calc_widgets);
+  g_signal_connect(GTK_ENTRY(entry_choose_spans[3]), "changed", G_CALLBACK(calculate_video_duration), (gpointer) duration_calc_widgets);
 
   gtk_window_set_keep_above(GTK_WINDOW(zoom_window), true);
   gtk_widget_show_all(GTK_WIDGET(zoom_window));
@@ -1714,6 +1816,9 @@ void draw_main_window(GtkWidget *widget, gpointer data){
 
   gtk_widget_add_accelerator(menu_button_help, "activate", accel_group, GDK_KEY_F1, 0, GTK_ACCEL_VISIBLE);
   gtk_widget_add_accelerator(menu_button_about, "activate", accel_group, GDK_KEY_question, 0, GTK_ACCEL_VISIBLE);
+
+  gtk_widget_add_accelerator(button_zoomin, "clicked", accel_group, GDK_KEY_plus, 0, GTK_ACCEL_VISIBLE);
+  gtk_widget_add_accelerator(button_zoomout, "clicked", accel_group, GDK_KEY_minus, 0, GTK_ACCEL_VISIBLE);
 
 
  //configure scroll_box
