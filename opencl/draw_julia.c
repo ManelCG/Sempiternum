@@ -1,7 +1,43 @@
 #define FUNC_PARAMETER_SPACE 1
 #define FUNC_DYNAMIC_PLANE 2
 
+#define COLORSCHEME_ITERATIONS_DEFAULT 1
+#define COLORSCHEME_ITERATIONS_BLUE 2
+#define COLORSCHEME_ITERATIONS_GREEN 3
+#define COLORSCHEME_ITERATIONS_GLITCH 4
+
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
+
+void color_with_iterations(int i, int N,
+                           int colorscheme,
+                           __global unsigned char *r,
+                           __global unsigned char *g,
+                           __global unsigned char *b){
+  double ni, n;
+  switch (colorscheme){
+    case COLORSCHEME_ITERATIONS_DEFAULT:
+      *r = abs((int) floor(cos((double) i/200.0) * 255));
+      *g = abs((int) floor(sin((double) i/50.0) * 255));
+      *b = abs((int) floor(sin((double) i/200.0) * 255));
+      break;
+    case COLORSCHEME_ITERATIONS_BLUE:
+      *r = abs((int) floor(sin((double) i/200.0) * 255));
+      *g = abs((int) floor(sin((double) i/50.0) * 255));
+      *b = abs((int) floor(cos((double) i/200.0) * 255));
+      break;
+    case COLORSCHEME_ITERATIONS_GREEN:
+      *b = abs((int) floor(sin((double) i/200.0) * 255));
+      *r = abs((int) floor(sin((double) i/200.0) * 255));
+      *g = abs((int) floor(cos((double) i/50.0) * 255));
+      break;
+    case COLORSCHEME_ITERATIONS_GLITCH:
+      *r = abs((int) floor(cos((double) i/200.0) * 255));
+      *g = abs((int) floor(sin((double) i/50.0) * 255));
+      *b = abs((int) floor(sin((double) i/100.0) * 255));
+      break;
+
+  }
+}
 
 __kernel void rec_f(__global unsigned char *m,
                     __global int *Np,
@@ -12,6 +48,8 @@ __kernel void rec_f(__global unsigned char *m,
                     __global double *Sy) {
   double c_abs = native_sqrt(pow(c[0], 2) +  pow(c[1],2));
   double R = (c_abs > 2)? c_abs: 2;
+
+  int colorscheme = COLORSCHEME_ITERATIONS_GLITCH;
 
   int h = *hp, w = *wp, N = *Np;
 
@@ -36,27 +74,7 @@ __kernel void rec_f(__global unsigned char *m,
     z_abs = native_sqrt(pow(z[0], 2) + pow(z[1] , 2));
 
     if (z_abs > R){
-      // // Glitch colors
-      // double ni = log10((double) i);
-      // double n = log10((double) N);
-      // // m[(y*w + x)*3] = 255;
-      // // m[(y*w + x)*3+1] = (int) floor( ((double) ni / (double) n) * 255);
-      // m[(y*w + x)*3+0] = abs((int) floor(cos((double) i/200.0) * 255));
-      // m[(y*w + x)*3+1] = abs((int) floor(sin((double) i/50.0) * 255));
-      // m[(y*w + x)*3+2] = abs((int) floor(sin((double) i/100.0) * 255));
-
-      // double ni = log10((double) i);
-      // double n = log10((double) N);
-      // m[(y*w + x)*3] = 255;
-      // m[(y*w + x)*3+1] = (int) floor( ((double) ni / (double) n) * 255);
-      m[(y*w + x)*3+0] = abs((int) floor(cos((double) i/200.0) * 255));
-      m[(y*w + x)*3+1] = abs((int) floor(sin((double) i/50.0) * 255));
-      m[(y*w + x)*3+2] = abs((int) floor(sin((double) i/200.0) * 255));
-
-      ////Blue
-      //m[(y*w + x)*3+2] = 255;
-      //m[(y*w + x)*3+0] = (int) floor( ((double) ni / (double) n) * 255);
-      //m[(y*w + x)*3+1] = i % 256;
+      color_with_iterations(i, N, colorscheme, &m[(y*w + x)*3+0], &m[(y*w + x)*3+1], &m[(y*w + x)*3+2]);
       break;
     }
   }
@@ -78,6 +96,8 @@ __kernel void parameter_space(__global unsigned char *m,
   double R = (z0_abs > 2)? z0_abs: 2;
 
   int h = *hp, w = *wp, N = *Np;
+
+  int colorscheme = COLORSCHEME_ITERATIONS_GLITCH;
 
 
   const int y = get_global_id(0);
@@ -104,13 +124,7 @@ __kernel void parameter_space(__global unsigned char *m,
     z_abs = native_sqrt(pow(z[0], 2) + pow(z[1] , 2));
 
     if (z_abs > R){
-      // double ni = log10((double) i);
-      // double n = log10((double) N);
-      // m[(y*w + x)*3] = 255;
-      // m[(y*w + x)*3+1] = (int) floor( ((double) ni / (double) n) * 255);
-      m[(y*w + x)*3+0] = abs((int) floor(cos((double) i/200.0) * 255));
-      m[(y*w + x)*3+1] = abs((int) floor(sin((double) i/50.0) * 255));
-      m[(y*w + x)*3+2] = abs((int) floor(sin((double) i/200.0) * 255));
+      color_with_iterations(i, N, colorscheme, &m[(y*w + x)*3+0], &m[(y*w + x)*3+1], &m[(y*w + x)*3+2]);
       break;
     }
   }
@@ -313,10 +327,6 @@ __kernel void polynomial(__global unsigned char *m,
       z_abs = native_sqrt(pow(z[0], 2) + pow(z[1], 2));
     }
     if (z_abs > 10){
-      // double ni = log10((double) i);
-      // double n = log10((double) N);
-      // m[(y*w + x)*3] = 255;
-      // m[(y*w + x)*3+1] = (int) floor( ((double) ni / (double) n) * 255);
       m[(y*w + x)*3+0] = abs((int) floor(cos((double) i/200.0) * 255));
       m[(y*w + x)*3+1] = abs((int) floor(sin((double) i/50.0) * 255));
       m[(y*w + x)*3+2] = abs((int) floor(sin((double) i/200.0) * 255));

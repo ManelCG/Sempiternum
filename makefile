@@ -4,7 +4,7 @@ SDIR = src
 IDIR = include
 #CC = x86_64-w64-mingw32-gcc
 CC = gcc
-CFLAGS = -I$(IDIR) `pkg-config --cflags --libs gtk+-3.0` -Wall -O2
+CFLAGS = -I$(IDIR) `pkg-config --cflags --libs gtk+-3.0` -Wall -O2 -Wno-deprecated-declarations
 
 ODIR=.obj
 LDIR=lib

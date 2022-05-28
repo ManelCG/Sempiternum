@@ -1678,14 +1678,26 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_menubar), menu_fileMi);
   gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_fileMi), menu_filemenu);
 
-  menu_button_quit = gtk_menu_item_new_with_label("Quit");
-  g_signal_connect(menu_button_quit, "activate", G_CALLBACK(quit_app), NULL);
+  {
+    menu_button_quit = gtk_image_menu_item_new_with_label("Quit");
+    g_signal_connect(menu_button_quit, "activate", G_CALLBACK(quit_app), NULL);
+    GtkWidget *icon = gtk_image_new_from_icon_name("window-close", 16);
+    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_button_quit), icon);
+  }
 
-  menu_button_save_plot = gtk_menu_item_new_with_label("Save plot as...");
-  g_signal_connect(menu_button_save_plot, "activate", G_CALLBACK(save_plot_handler), (gpointer) cp);
+  {
+    menu_button_save_plot = gtk_image_menu_item_new_with_label("Save plot as...");
+    g_signal_connect(menu_button_save_plot, "activate", G_CALLBACK(save_plot_handler), (gpointer) cp);
+    GtkWidget *icon = gtk_image_new_from_icon_name("document-save-as", 16);
+    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_button_save_plot), icon);
+  }
 
-  menu_button_render_video = gtk_menu_item_new_with_label("Generate video zoom");
-  g_signal_connect(menu_button_render_video, "activate", G_CALLBACK(generate_video_zoom), (gpointer) cp);
+  {
+    menu_button_render_video = gtk_image_menu_item_new_with_label("Generate video zoom");
+    g_signal_connect(menu_button_render_video, "activate", G_CALLBACK(generate_video_zoom), (gpointer) cp);
+    GtkWidget *icon = gtk_image_new_from_icon_name("video-x-generic", 16);
+    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_button_render_video), icon);
+  }
 
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_button_save_plot);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_button_render_video);
@@ -1696,11 +1708,19 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_menubar), menu_helpMi);
   gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_helpMi), menu_helpmenu);
 
-  menu_button_help = gtk_menu_item_new_with_label("Help");
-  g_signal_connect(menu_button_help, "activate", G_CALLBACK(gui_templates_show_help_window), NULL);
+  {
+    menu_button_help = gtk_image_menu_item_new_with_label("Help");
+    g_signal_connect(menu_button_help, "activate", G_CALLBACK(gui_templates_show_help_window), NULL);
+    GtkWidget *icon = gtk_image_new_from_icon_name("help-contents", 16);
+    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_button_help), icon);
+  }
 
-  menu_button_about = gtk_menu_item_new_with_label("About");
-  g_signal_connect(menu_button_about, "activate", G_CALLBACK(gui_templates_show_about_window), NULL);
+  {
+    menu_button_about = gtk_image_menu_item_new_with_label("About");
+    GtkWidget *icon = gtk_image_new_from_icon_name("help-about", 16);
+    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_button_about), icon);
+    g_signal_connect(menu_button_about, "activate", G_CALLBACK(gui_templates_show_about_window), NULL);
+  }
 
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_helpmenu), menu_button_help);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_helpmenu), menu_button_about);
