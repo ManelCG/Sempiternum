@@ -10,6 +10,7 @@
 #include <file_io.h>
 
 #include <ComplexPlane.h>
+#include <complex_plane_colorschemes.h>
 #include <image_manipulation.h>
 #include <draw_julia.h>
 #include <lodepng.h>
@@ -65,7 +66,6 @@ void draw_thumbnail_gui(GtkWidget *widget, double x, double y, gpointer data);
 void draw_from_options(GtkWidget *widget, gpointer data);
 void save_polynomial_member(GtkWidget *widget, gpointer data);
 void draw_box(GtkWidget *window, GdkEventButton *event, gpointer data);
-void destroy(GtkWidget *w, gpointer data);
 void plot_zoom(GtkWidget *widget, double zoomratio, complex double p, gpointer data);
 
 int calculate_number_of_frames(double maxx, double maxy, double minx, double miny, double zoomratio){
@@ -976,7 +976,9 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
 
   folder_input = gtk_entry_new();
   gtk_entry_set_placeholder_text(GTK_ENTRY(folder_input), "Output folder");
-  button_choose_folder = gtk_button_new_with_label("  Explore");
+  button_choose_folder = gtk_button_new_with_label("Explore");
+  { GtkWidget *icon = gtk_image_new_from_icon_name("folder", GTK_ICON_SIZE_MENU);
+  gtk_button_set_image(GTK_BUTTON(button_choose_folder), icon); }
   g_signal_connect(button_choose_folder, "clicked", G_CALLBACK(gui_gen_video_choose_folder), (gpointer) folder_input);
   gtk_widget_set_size_request(button_choose_folder, default_buttons_size, 20);
 
@@ -1042,8 +1044,14 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   videodata->stop = false;
 
   gtk_entry_set_placeholder_text(GTK_ENTRY(file_input), "Output file name");
-  button_cancel = gtk_button_new_with_label("Cancel");
+  button_cancel = gtk_button_new_with_label("Close");
+  { GtkWidget *icon = gtk_image_new_from_icon_name("window-close", GTK_ICON_SIZE_MENU);
+  gtk_button_set_image(GTK_BUTTON(button_cancel), icon); }
+
   button_begin_render = gtk_button_new_with_label("Render");
+  { GtkWidget *icon = gtk_image_new_from_icon_name("media-record", GTK_ICON_SIZE_MENU);
+  gtk_button_set_image(GTK_BUTTON(button_begin_render), icon); }
+
   g_signal_connect(button_cancel, "clicked", G_CALLBACK(button_cancel_render_handler), (gpointer) videodata);
   g_signal_connect(button_cancel, "clicked", G_CALLBACK(destroy_cp_from_gpointer), (gpointer) cp);
   g_signal_connect(button_cancel, "clicked", G_CALLBACK(destroy), (gpointer) zoom_window);
@@ -1071,9 +1079,15 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
 
 
   //pause resume stop
-  button_pause =  gtk_button_new_with_label("  Pause");
-  button_resume = gtk_button_new_with_label("  Resume");
-  button_stop =   gtk_button_new_with_label("  Stop");
+  button_pause =  gtk_button_new_with_label("Pause");
+  { GtkWidget *icon = gtk_image_new_from_icon_name("media-playback-pause", GTK_ICON_SIZE_MENU);
+  gtk_button_set_image(GTK_BUTTON(button_pause), icon); }
+  button_resume = gtk_button_new_with_label("Resume");
+  { GtkWidget *icon = gtk_image_new_from_icon_name("media-playback-start", GTK_ICON_SIZE_MENU);
+  gtk_button_set_image(GTK_BUTTON(button_resume), icon); }
+  button_stop =   gtk_button_new_with_label("Stop");
+  { GtkWidget *icon = gtk_image_new_from_icon_name("media-playback-stop", GTK_ICON_SIZE_MENU);
+  gtk_button_set_image(GTK_BUTTON(button_stop), icon); }
 
   gtk_widget_set_tooltip_text(button_pause, "Pauses the render process.");
   gtk_widget_set_tooltip_text(button_resume, "If paused, resumes the render process.");
@@ -1216,6 +1230,8 @@ void save_polynomial_handler(GtkWidget *widget, GdkEventKey *event, gpointer dat
 void button_mandelbrot_handler(GtkWidget *widget, gpointer data){
   ComplexPlane **planes = (ComplexPlane **) data;
   ComplexPlane *cp = planes[0];
+  ComplexPlane *thumb_cp = planes[1];
+  complex_plane_set_plot_type(thumb_cp, "rec_f");
 
   GtkWindow *window = GTK_WINDOW(gtk_widget_get_toplevel(widget));
   int w, h;
@@ -1625,9 +1641,15 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   //File menu
   GtkWidget *menu_filemenu;
   GtkWidget *menu_fileMi;
-  GtkWidget *menu_button_quit;
   GtkWidget *menu_button_save_plot;
   GtkWidget *menu_button_render_video;
+  GtkWidget *menu_separator_quit;
+  GtkWidget *menu_button_quit;
+
+  //Edit menu
+  GtkWidget *menu_editmenu;
+  GtkWidget *menu_editMi;
+  GtkWidget *menu_button_preferences;
 
   //Help menu
   GtkWidget *menu_helpmenu;
@@ -1671,19 +1693,13 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   //Main menu
   menu_menubar = gtk_menu_bar_new();
   menu_filemenu = gtk_menu_new();
+  menu_editmenu = gtk_menu_new();
   menu_helpmenu = gtk_menu_new();
 
   //File submenu
   menu_fileMi = gtk_menu_item_new_with_label("File");
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_menubar), menu_fileMi);
   gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_fileMi), menu_filemenu);
-
-  {
-    menu_button_quit = gtk_image_menu_item_new_with_label("Quit");
-    g_signal_connect(menu_button_quit, "activate", G_CALLBACK(quit_app), NULL);
-    GtkWidget *icon = gtk_image_new_from_icon_name("window-close", 16);
-    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_button_quit), icon);
-  }
 
   {
     menu_button_save_plot = gtk_image_menu_item_new_with_label("Save plot as...");
@@ -1699,9 +1715,33 @@ void draw_main_window(GtkWidget *widget, gpointer data){
     gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_button_render_video), icon);
   }
 
+  menu_separator_quit = gtk_separator_menu_item_new();
+
+  {
+    menu_button_quit = gtk_image_menu_item_new_with_label("Quit");
+    g_signal_connect(menu_button_quit, "activate", G_CALLBACK(quit_app), NULL);
+    GtkWidget *icon = gtk_image_new_from_icon_name("window-close", 16);
+    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_button_quit), icon);
+  }
+
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_button_save_plot);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_button_render_video);
+  gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_separator_quit);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_button_quit);
+
+  //Edit submenu
+  menu_editMi = gtk_menu_item_new_with_label("Edit");
+  gtk_menu_shell_append(GTK_MENU_SHELL(menu_menubar), menu_editMi);
+  gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_editMi), menu_editmenu);
+
+  {
+    menu_button_preferences = gtk_image_menu_item_new_with_label("Preferences...");
+    g_signal_connect(menu_button_preferences, "activate", G_CALLBACK(gui_templates_show_preferences_window), (gpointer) planes);
+    GtkWidget *icon = gtk_image_new_from_icon_name("applications-system", 16);
+    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_button_preferences), icon);
+  }
+
+  gtk_menu_shell_append(GTK_MENU_SHELL(menu_editmenu), menu_button_preferences);
 
   //Help submenu
   menu_helpMi = gtk_menu_item_new_with_label("Help");

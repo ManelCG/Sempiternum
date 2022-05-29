@@ -1,6 +1,9 @@
 #include <gui_templates.h>
 #include <stdbool.h>
 
+#include <ComplexPlane.h>
+#include <complex_plane_colorschemes.h>
+
 #include <stdio.h>
 
 #define GUI_TEMPLATES_BUTTON_WIDTH 85
@@ -29,6 +32,105 @@ void gui_templates_show_help_window(GtkWidget *w, gpointer data){
   gtk_container_set_border_width(GTK_CONTAINER(window), 15);
 
 
+
+  gtk_widget_show_all(GTK_WIDGET(window));
+
+  #ifdef DEBUG_GUI_TEMPLATES
+  printf("Gui templates show help window called succesfully\n");
+  #endif
+}
+
+void combo_colorscheme_handler(GtkWidget *combo, gpointer data){
+  ComplexPlane **planes = (ComplexPlane **) data;
+  ComplexPlane *cp = planes[0];
+  ComplexPlane *th = planes[1];
+
+  int colorscheme = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
+
+  complex_plane_set_colorscheme(cp, colorscheme);
+  complex_plane_set_colorscheme(th, colorscheme);
+}
+
+void gui_templates_show_preferences_window(GtkWidget *w, gpointer data){
+  ComplexPlane **planes = (ComplexPlane **) data;
+  GtkWindow *window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
+  gtk_window_set_resizable(window, false);
+  gtk_window_set_title(window, "Sempiternum Preferences");
+  gtk_window_set_default_size(GTK_WINDOW(window), 420, 600);
+  gtk_container_set_border_width(GTK_CONTAINER(window), 15);
+  g_signal_connect(window, "destroy", G_CALLBACK(destroy), (gpointer) window);
+
+  //boxes
+  GtkWidget *main_vbox;
+  GtkWidget *display_vbox;
+  GtkWidget *gpu_vbox;
+
+  GtkWidget *button_hbox;
+
+  //Menu toolbar
+  GtkWidget *toolbar;
+  GtkToolItem *displayTb;
+  GtkToolItem *gpuTb;
+
+  //Buttons
+  GtkWidget *button_help;
+  GtkWidget *button_close;
+
+  //Display
+  displayTb = gtk_tool_button_new(NULL, "Display");
+  { //Display vbox
+    GtkWidget *colorscheme_hbox;
+    { //Colorschemes
+      colorscheme_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+      GtkWidget *label_colorscheme = gtk_label_new("Colorscheme:");
+      GtkWidget *combo_colorscheme = gtk_combo_box_text_new();
+      for (int i = 0; i < complex_plane_colorschemes_get_num(); i++){
+        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_colorscheme), NULL, complex_plane_colorschemes_get_name(i));
+      }
+      gtk_combo_box_set_active(GTK_COMBO_BOX(combo_colorscheme), 0);
+
+      g_signal_connect(combo_colorscheme, "changed", G_CALLBACK(combo_colorscheme_handler), (gpointer) planes);
+
+      gtk_box_pack_start(GTK_BOX(colorscheme_hbox), label_colorscheme, false, false, 0);
+      gtk_box_pack_end(GTK_BOX(colorscheme_hbox), combo_colorscheme, false, false, 0);
+    }
+
+
+    display_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    gtk_box_pack_start(GTK_BOX(display_vbox), colorscheme_hbox, false, false, 0);
+  }
+
+  //GPU
+  gpuTb = gtk_tool_button_new(NULL, "Device");
+
+  toolbar = gtk_toolbar_new();
+  gtk_toolbar_set_style(GTK_TOOLBAR(toolbar), GTK_TOOLBAR_TEXT);
+  gtk_toolbar_insert(GTK_TOOLBAR(toolbar), displayTb, -1);
+  gtk_toolbar_insert(GTK_TOOLBAR(toolbar), gpuTb, -1);
+
+
+  //Button hbox
+  button_close = gtk_button_new_with_label("Close");
+  g_signal_connect(button_close, "clicked", G_CALLBACK(destroy), (gpointer) window);
+  { GtkWidget *icon = gtk_image_new_from_icon_name("window-close", GTK_ICON_SIZE_MENU);
+    gtk_button_set_image(GTK_BUTTON(button_close), icon); }
+
+  button_help = gtk_button_new_with_label("Help");
+  { GtkWidget *icon = gtk_image_new_from_icon_name("help-contents", GTK_ICON_SIZE_MENU);
+    gtk_button_set_image(GTK_BUTTON(button_help), icon); }
+
+  button_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+  gtk_box_pack_start(GTK_BOX(button_hbox), button_help, false, false, 0);
+  gtk_box_pack_end(GTK_BOX(button_hbox), button_close, false, false, 0);
+
+
+
+  //Vbox
+  main_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+  gtk_box_pack_start(GTK_BOX(main_vbox), toolbar, false, false, 0);
+  gtk_box_pack_start(GTK_BOX(main_vbox), display_vbox, false, false, 0);
+  gtk_box_pack_end(GTK_BOX(main_vbox), button_hbox, false, false, 0);
+  gtk_container_add(GTK_CONTAINER(window), main_vbox);
 
   gtk_widget_show_all(GTK_WIDGET(window));
 

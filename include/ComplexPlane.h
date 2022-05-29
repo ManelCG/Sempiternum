@@ -18,6 +18,9 @@ ComplexPlane *complex_plane_new(ComplexPlane **);
 void complex_plane_set_id(ComplexPlane *, int);
 int complex_plane_get_id(ComplexPlane *);
 
+void complex_plane_set_colorscheme(ComplexPlane *, int);
+int complex_plane_get_colorscheme(ComplexPlane *);
+
 //Copies complex plane. Returns & saves in arg
 ComplexPlane *complex_plane_copy(ComplexPlane **dest, ComplexPlane *src);
 void complex_plane_free(ComplexPlane *cp);

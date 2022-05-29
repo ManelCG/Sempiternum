@@ -15,13 +15,13 @@ struct complexBI{
 
 unsigned char *draw_julia(int N, int h, int w,
                           complex double c, double Sx[2], double Sy[2],
-                          const char *plot_type,
+                          const char *plot_type, int color,
                           struct OpenCL_Program **cl_prog, _Bool init_new_cl);
 
 unsigned char *draw_julia_polynomial(int N, int h, int w,
                                      int order, complex double *polynomial,
                                      double Sx[2], double Sy[2],
-                                     int parameter,
+                                     int parameter, int color,
                                      struct OpenCL_Program **cl_prog, _Bool init_new_cl);
 
 unsigned char *draw_julia_polynomial_fraction(int N, int h, int w,
@@ -29,7 +29,7 @@ unsigned char *draw_julia_polynomial_fraction(int N, int h, int w,
                                               complex double *numerator,
                                               complex double *denominator,
                                               double Sx[2], double Sy[2],
-                                              int parameter,
+                                              int parameter, int color,
                                               struct OpenCL_Program **cl_prog, _Bool init_new_cl);
 
 unsigned char *draw_julia_numerical_method(int N, int h, int w,
@@ -41,7 +41,7 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
                                            complex double *polynomial_parameters_derivative,
                                            complex double *polynomial_parameters_second_derivative,
                                            complex double *polynomial_critical_point,
-                                           double Sx[2], double Sy[2],
+                                           double Sx[2], double Sy[2], int color,
                                            struct OpenCL_Program **cl_prog, _Bool init_new_cl);
 
 void draw_julia_zoom(int frames, int N, int h, int w,

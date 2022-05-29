@@ -14,6 +14,7 @@
 
 typedef struct ComplexPlane{
   int ID;
+  int colorscheme;
 
   unsigned char *plot;
   unsigned char *drawn_plot;
@@ -94,6 +95,8 @@ ComplexPlane *complex_plane_new(ComplexPlane **cp){
   new->cl = get_opencl_info();
   new->cl->init = false;
 
+  complex_plane_set_colorscheme(new, 0);
+
   if (cp != NULL){
     *cp = new;
   }
@@ -127,12 +130,21 @@ ComplexPlane *complex_plane_copy(ComplexPlane **dest, ComplexPlane *src){
   complex_plane_set_polynomial_parameter(new, complex_plane_get_polynomial_parameter(src));
   complex_plane_copy_polynomial(new, src);
 
+  complex_plane_set_colorscheme(new, complex_plane_get_colorscheme(src));
+
   //TODO: Copy zoom_point1 & zoom_point2
 
   if (dest != NULL){
     *dest = new;
   }
   return new;
+}
+
+void complex_plane_set_colorscheme(ComplexPlane *cp, int c){
+  cp->colorscheme = c;
+}
+int complex_plane_get_colorscheme(ComplexPlane *cp){
+  return cp->colorscheme;
 }
 
 void complex_plane_print(ComplexPlane *cp){
@@ -797,6 +809,7 @@ void complex_plane_gen_plot(ComplexPlane *cp){
                             cp->Sx,
                             cp->Sy,
                             cp->plot_type,
+                            cp->colorscheme,
                             &(cp->cl), !(cp->cl->init));
       break;
     case 1:   //Polynomial function
@@ -809,6 +822,7 @@ void complex_plane_gen_plot(ComplexPlane *cp){
                                          cp->Sx,
                                          cp->Sy,
                                          cp->polynomial_parameter,
+                                         cp->colorscheme,
                                          &(cp->cl), !cp->cl->init);
       } else {
         complex_plane_alloc_empty_plot(cp);
@@ -825,6 +839,7 @@ void complex_plane_gen_plot(ComplexPlane *cp){
                                                   cp->Sx,
                                                   cp->Sy,
                                                   cp->polynomial_parameter,
+                                                  cp->colorscheme,
                                                   &(cp->cl), !cp->cl->init);
       }
       break;
@@ -841,6 +856,7 @@ void complex_plane_gen_plot(ComplexPlane *cp){
                                                cp->second_polynomial_parameters_derivative,
                                                cp->polynomial_critical_point,
                                                cp->Sx, cp->Sy,
+                                               cp->colorscheme,
                                                &(cp->cl), !cp->cl->init);
       }
       break;

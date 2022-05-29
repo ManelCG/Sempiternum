@@ -23,7 +23,7 @@ unsigned char *draw_julia_polynomial_fraction
         (int N, int h, int w, int order,
          complex double *numerator, complex double *denominator,
          double Sx[2], double Sy[2],
-         int parameter,
+         int parameter, int color,
          struct OpenCL_Program **cl_prog, _Bool init_new_cl){
 
   unsigned char *m = malloc(w * h * 3);
@@ -110,6 +110,8 @@ unsigned char *draw_julia_polynomial_fraction
                               sizeof(double)*2, NULL, &(prog->ret));
   cl_mem mem_Sy = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
                               sizeof(double)*2, NULL, &(prog->ret));
+  cl_mem mem_cs = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
+                              sizeof(int), NULL, &(prog->ret));
 
   //Write data to mem objects
   clEnqueueWriteBuffer(prog->command_queue, mem_N,     CL_TRUE, 0, sizeof(int), &N,                            0, NULL, NULL);
@@ -123,6 +125,7 @@ unsigned char *draw_julia_polynomial_fraction
   clEnqueueWriteBuffer(prog->command_queue, mem_pa,    CL_TRUE, 0, sizeof(int), &parameter,                    0, NULL, NULL);
   clEnqueueWriteBuffer(prog->command_queue, mem_Sx,    CL_TRUE, 0, sizeof(double)*2, Sx,                       0, NULL, NULL);
   clEnqueueWriteBuffer(prog->command_queue, mem_Sy,    CL_TRUE, 0, sizeof(double)*2, Sy,                       0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_cs,    CL_TRUE, 0, sizeof(int), &color,                        0, NULL, NULL);
 
   if (init_new_cl){
     prog->program = clCreateProgramWithSource(prog->context,
@@ -157,6 +160,7 @@ unsigned char *draw_julia_polynomial_fraction
   clSetKernelArg(prog->kernel, 9, sizeof(mem_pa),        (void *)&mem_pa);
   clSetKernelArg(prog->kernel, 10, sizeof(mem_Sx),       (void *)&mem_Sx);
   clSetKernelArg(prog->kernel, 11, sizeof(mem_Sy),       (void *)&mem_Sy);
+  clSetKernelArg(prog->kernel, 12, sizeof(mem_cs),       (void *)&mem_cs);
 
   fflush(stdout);
 
@@ -217,7 +221,7 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
                                            complex double *polynomial_parameters_derivative,
                                            complex double *polynomial_parameters_second_derivative,
                                            complex double *polynomial_critical_point,
-                                           double Sx[2], double Sy[2],
+                                           double Sx[2], double Sy[2], int color,
                                            struct OpenCL_Program **cl_prog, _Bool init_new_cl){
 
   unsigned char *m = calloc(h*w*3*sizeof(unsigned char), 1);
@@ -315,6 +319,7 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
   cl_mem mem_criti  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
   cl_mem mem_Sx     = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*2, NULL, &(prog->ret));
   cl_mem mem_Sy     = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*2, NULL, &(prog->ret));
+  cl_mem mem_cs     = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int),      NULL, &(prog->ret));
 
   //Write data to mem objects
   clEnqueueWriteBuffer(prog->command_queue, mem_N,      CL_TRUE, 0, sizeof(int),              &N,                                           0, NULL, NULL);
@@ -337,6 +342,7 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
   clEnqueueWriteBuffer(prog->command_queue, mem_criti,  CL_TRUE, 0, sizeof(double)*(order+2), polynomial_critical_point_imag,               0, NULL, NULL);
   clEnqueueWriteBuffer(prog->command_queue, mem_Sx,     CL_TRUE, 0, sizeof(double)*2,         Sx,                                           0, NULL, NULL);
   clEnqueueWriteBuffer(prog->command_queue, mem_Sy,     CL_TRUE, 0, sizeof(double)*2,         Sy,                                           0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_cs,     CL_TRUE, 0, sizeof(int),              &color,                                       0, NULL, NULL);
 
 
   if (init_new_cl){
@@ -377,6 +383,7 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
   clSetKernelArg(prog->kernel, 18, sizeof(mem_criti),   (void *) &mem_criti);
   clSetKernelArg(prog->kernel, 19, sizeof(mem_Sx),      (void *) &mem_Sx);
   clSetKernelArg(prog->kernel, 20, sizeof(mem_Sy),      (void *) &mem_Sy);
+  clSetKernelArg(prog->kernel, 21, sizeof(mem_cs),      (void *)&mem_cs);
 
   fflush(stdout);
 
@@ -458,7 +465,7 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
 unsigned char *draw_julia_polynomial(int N, int h, int w,
                                      int order, complex double *polynomial,
                                      double Sx[2], double Sy[2],
-                                     int parameter,
+                                     int parameter, int color,
                                      struct OpenCL_Program **cl_prog, _Bool init_new_cl){
 
   unsigned char *m = calloc(h*w*3*sizeof(unsigned char), 1);
@@ -530,6 +537,8 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
                               sizeof(double)*2, NULL, &(prog->ret));
   cl_mem mem_Sy = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
                               sizeof(double)*2, NULL, &(prog->ret));
+  cl_mem mem_cs = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
+                              sizeof(int), NULL, &(prog->ret));
 
   //Write data to mem objects
   clEnqueueWriteBuffer(prog->command_queue, mem_N,     CL_TRUE, 0, sizeof(int), &N,                           0, NULL, NULL);
@@ -541,6 +550,7 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
   clEnqueueWriteBuffer(prog->command_queue, mem_pa,    CL_TRUE, 0, sizeof(int), &parameter,                   0, NULL, NULL);
   clEnqueueWriteBuffer(prog->command_queue, mem_Sx,    CL_TRUE, 0, sizeof(double)*2, Sx,                      0, NULL, NULL);
   clEnqueueWriteBuffer(prog->command_queue, mem_Sy,    CL_TRUE, 0, sizeof(double)*2, Sy,                      0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_cs,    CL_TRUE, 0, sizeof(int), &color,                       0, NULL, NULL);
 
   if (init_new_cl){
     prog->program = clCreateProgramWithSource(prog->context,
@@ -568,6 +578,7 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
   clSetKernelArg(prog->kernel, 7, sizeof(mem_pa),       (void *)&mem_pa);
   clSetKernelArg(prog->kernel, 8, sizeof(mem_Sx),       (void *)&mem_Sx);
   clSetKernelArg(prog->kernel, 9, sizeof(mem_Sy),       (void *)&mem_Sy);
+  clSetKernelArg(prog->kernel,10, sizeof(mem_cs),       (void *)&mem_cs);
 
   fflush(stdout);
 
@@ -622,7 +633,7 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
 unsigned char *draw_julia(int N, int h, int w,
                           complex double param,
                           double Sx[2], double Sy[2],
-                          const char *plot_type,
+                          const char *plot_type, int color,
                           struct OpenCL_Program **cl_prog, _Bool init_new_cl){
 
   unsigned char *m = calloc(h*w*3*sizeof(char), 1);
@@ -676,6 +687,7 @@ unsigned char *draw_julia(int N, int h, int w,
   cl_mem mem_c = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,  sizeof(double)*2, NULL, &(prog->ret));
   cl_mem mem_Sx = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*2, NULL, &(prog->ret));
   cl_mem mem_Sy = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*2, NULL, &(prog->ret));
+  cl_mem mem_cs = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int), NULL, &(prog->ret));
 
   //Write data to mem objects
   clEnqueueWriteBuffer(prog->command_queue, mem_N, CL_TRUE, 0, sizeof(int), &N, 0, NULL, NULL);
@@ -684,6 +696,7 @@ unsigned char *draw_julia(int N, int h, int w,
   clEnqueueWriteBuffer(prog->command_queue, mem_c, CL_TRUE, 0, sizeof(double)*2, c, 0, NULL, NULL);
   clEnqueueWriteBuffer(prog->command_queue, mem_Sx, CL_TRUE, 0, sizeof(double)*2, Sx, 0, NULL, NULL);
   clEnqueueWriteBuffer(prog->command_queue, mem_Sy, CL_TRUE, 0, sizeof(double)*2, Sy, 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_cs, CL_TRUE, 0, sizeof(int), &color, 0, NULL, NULL);
 
   if (init_new_cl){
     prog->program = clCreateProgramWithSource(prog->context,
@@ -720,6 +733,7 @@ unsigned char *draw_julia(int N, int h, int w,
   clSetKernelArg(prog->kernel, 4, sizeof(mem_c),  (void *)&mem_c);
   clSetKernelArg(prog->kernel, 5, sizeof(mem_Sx),  (void *)&mem_Sx);
   clSetKernelArg(prog->kernel, 6, sizeof(mem_Sy),  (void *)&mem_Sy);
+  clSetKernelArg(prog->kernel, 7, sizeof(mem_cs),  (void *)&mem_cs);
 
   fflush(stdout);
 
@@ -824,7 +838,7 @@ void draw_julia_zoom(int frames, int N,
 
     printf("Drawing Julia...\n");
     start = clock();
-    Julia = draw_julia(N, h, w, c, Sx, Sy, plot_type, NULL, true);
+    Julia = draw_julia(N, h, w, c, Sx, Sy, plot_type, 0, NULL, true);
     printf("Saving Julia...\n");
     lodepng_encode24_file(julia_out, Julia, w, h);
     end = clock();

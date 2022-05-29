@@ -1,10 +1,10 @@
 #define FUNC_PARAMETER_SPACE 1
 #define FUNC_DYNAMIC_PLANE 2
 
-#define COLORSCHEME_ITERATIONS_DEFAULT 1
-#define COLORSCHEME_ITERATIONS_BLUE 2
-#define COLORSCHEME_ITERATIONS_GREEN 3
-#define COLORSCHEME_ITERATIONS_GLITCH 4
+#define COLORSCHEME_ITERATIONS_DEFAULT 0
+#define COLORSCHEME_ITERATIONS_BLUE 1
+#define COLORSCHEME_ITERATIONS_GREEN 2
+#define COLORSCHEME_ITERATIONS_GLITCH 3
 
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 
@@ -45,11 +45,12 @@ __kernel void rec_f(__global unsigned char *m,
                     __global int *wp,
                     __global double *c,
                     __global double *Sx,
-                    __global double *Sy) {
+                    __global double *Sy,
+                    __global int *color) {
   double c_abs = native_sqrt(pow(c[0], 2) +  pow(c[1],2));
   double R = (c_abs > 2)? c_abs: 2;
 
-  int colorscheme = COLORSCHEME_ITERATIONS_GLITCH;
+  int colorscheme = *color;
 
   int h = *hp, w = *wp, N = *Np;
 
@@ -91,13 +92,14 @@ __kernel void parameter_space(__global unsigned char *m,
                     __global int *wp,
                     __global double *z0,
                     __global double *Sx,
-                    __global double *Sy) {
+                    __global double *Sy,
+                    __global int *color) {
   double z0_abs = native_sqrt(pow(z0[0], 2) +  pow(z0[1],2));
   double R = (z0_abs > 2)? z0_abs: 2;
 
   int h = *hp, w = *wp, N = *Np;
 
-  int colorscheme = COLORSCHEME_ITERATIONS_GLITCH;
+  int colorscheme = *color;
 
 
   const int y = get_global_id(0);
@@ -290,12 +292,14 @@ __kernel void polynomial(__global unsigned char *m,
                          __global double *polynomial_imag,
                          __global int *parameter_p,
                          __global double *Sx,
-                         __global double *Sy) {
+                         __global double *Sy,
+                         __global int *color) {
 
   int parameter = *parameter_p;
   int h = *hp, w = *wp, N = *Np;
   int order = *orderp;
 
+  int colorscheme = *color;
 
   const int y = get_global_id(0);
   const int x = get_global_id(1);
@@ -327,9 +331,7 @@ __kernel void polynomial(__global unsigned char *m,
       z_abs = native_sqrt(pow(z[0], 2) + pow(z[1], 2));
     }
     if (z_abs > 10){
-      m[(y*w + x)*3+0] = abs((int) floor(cos((double) i/200.0) * 255));
-      m[(y*w + x)*3+1] = abs((int) floor(sin((double) i/50.0) * 255));
-      m[(y*w + x)*3+2] = abs((int) floor(sin((double) i/200.0) * 255));
+      color_with_iterations(i, N, colorscheme, &m[(y*w + x)*3+0], &m[(y*w + x)*3+1], &m[(y*w + x)*3+2]);
       break;
     }
   }
@@ -340,7 +342,7 @@ __kernel void polynomial(__global unsigned char *m,
   }
 }
 
-void color_matrix_radial(__global unsigned char *m, unsigned x, unsigned y, unsigned w, double zreal, double zimag){
+void color_matrix_radial(__global unsigned char *m, unsigned x, unsigned y, unsigned w, double zreal, double zimag, int colorscheme){
   const double PI = 3.141592;
   double r, theta;
 
@@ -434,7 +436,8 @@ __kernel void numerical_method(__global unsigned char *m,
                                __global double *polynomial_parameters_second_derivative_real,
                                __global double *polynomial_parameters_second_derivative_imag,
                                __global double *critical_real,   __global double *critical_imag,
-                               __global double *Sx,              __global double *Sy){
+                               __global double *Sx,              __global double *Sy,
+                               __global int *color){
 
   int func_type = FUNC_PARAMETER_SPACE;
 
@@ -444,6 +447,8 @@ __kernel void numerical_method(__global unsigned char *m,
 
   const int y = get_global_id(0);
   const int x = get_global_id(1);
+
+  int colorscheme = *color;
 
   //Map x and y to range between -R and R
   double newx = (double) x / (double) w;
@@ -508,7 +513,7 @@ __kernel void numerical_method(__global unsigned char *m,
     }
 
     if (fabs(norm - old_norm) <= tol){ //Converges!
-      color_matrix_radial(m, x, y, w, zr[0], zr[1]);
+      color_matrix_radial(m, x, y, w, zr[0], zr[1], colorscheme);
       return;
     }
 
@@ -534,13 +539,16 @@ __kernel void polynomial_fraction(__global unsigned char *m,
                                   __global double *denominator_imag,
                                   __global int *parameter_p,
                                   __global double *Sx,
-                                  __global double *Sy) {
+                                  __global double *Sy,
+                                  __global int *color) {
   const double PI = 3.141592;
 
   int parameter = *parameter_p;
   int w = *wp, h = *hp;
   int N = *Np;
   int order = *orderp;
+
+  int colorscheme = *color;
 
   double tol = 0.00000001;
 
@@ -624,7 +632,7 @@ __kernel void polynomial_fraction(__global unsigned char *m,
   }
 
   if (converged == 1){ //Color points
-    color_matrix_radial(m, x, y, w, z[0], z[1]);
+    color_matrix_radial(m, x, y, w, z[0], z[1], colorscheme);
   } else {
     m[(y*w + x)*3+0] = 0;
     m[(y*w + x)*3+1] = 0;
