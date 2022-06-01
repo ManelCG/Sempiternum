@@ -26,7 +26,7 @@
 #define GUI_ACTION_RENDER_VIDEO 1
 #define GUI_ACTION_GEN_FRAMES 2
 
-// #define DEBUG_GUI
+#define DEBUG_GUI
 
 struct genVideoData{
   ComplexPlane *cp;
@@ -408,6 +408,7 @@ void *render_video(void *data){
   video_progress->progress_bar = progress_bar;
   video_progress->preview_image = video_preview;
   video_progress->start_frame = 0;
+  video_progress->total_frames = frames;
   gettimeofday(&video_progress->start_time, NULL);
 
   sigset_t set;
@@ -443,7 +444,6 @@ void *render_video(void *data){
         complex_plane_gen_plot(cp);
 
         video_progress->frame = i;
-        video_progress->total_frames = frames;
         video_progress->cp_plot = complex_plane_get_plot(cp);
         g_main_context_invoke(NULL, G_SOURCE_FUNC(update_video_preview), (gpointer) video_progress);
 
@@ -455,7 +455,6 @@ void *render_video(void *data){
       complex_plane_gen_plot(cp);
 
       video_progress->frame = i;
-      video_progress->total_frames = frames;
       video_progress->cp_plot = complex_plane_get_plot(cp);
       g_main_context_invoke(NULL, G_SOURCE_FUNC(update_video_preview), (gpointer) video_progress);
 
@@ -1175,13 +1174,17 @@ void input_center1_handler(GtkWidget *w, GdkEventKey *event, gpointer data){
 void combo_plot_type_handler(GtkWidget *w, gpointer data){
   ComplexPlane *cp = (ComplexPlane *) data;
   if (complex_plane_get_id(cp) == COMPLEX_PLANE_THUMBNAIL_ID){  //This complex plane is our thumbnail which has oposite plot type
-    if (strcmp(gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(w)), "parameter_space") == 0){
-      complex_plane_set_plot_type(cp, "rec_f");
+    if (strcmp(gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(w)), "Parameter space") == 0){
+      complex_plane_set_plot_type(cp, COMPLEX_PLANE_DYNAMIC_PLANE);
     } else {
-      complex_plane_set_plot_type(cp, "parameter_space");
+      complex_plane_set_plot_type(cp, COMPLEX_PLANE_PARAMETER_SPACE);
     }
   } else {  //Main complex plane
-    complex_plane_set_plot_type(cp, gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(w)));
+    if (strcmp(gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(w)), "Parameter space") == 0){
+      complex_plane_set_plot_type(cp, COMPLEX_PLANE_PARAMETER_SPACE);
+    } else {
+      complex_plane_set_plot_type(cp, COMPLEX_PLANE_DYNAMIC_PLANE);
+    }
   }
 }
 void combo_function_type_handler(GtkWidget *w, gpointer data){
@@ -1231,7 +1234,7 @@ void button_mandelbrot_handler(GtkWidget *widget, gpointer data){
   ComplexPlane **planes = (ComplexPlane **) data;
   ComplexPlane *cp = planes[0];
   ComplexPlane *thumb_cp = planes[1];
-  complex_plane_set_plot_type(thumb_cp, "rec_f");
+  complex_plane_set_plot_type(thumb_cp, COMPLEX_PLANE_DYNAMIC_PLANE);
 
   GtkWindow *window = GTK_WINDOW(gtk_widget_get_toplevel(widget));
   int w, h;
@@ -1293,16 +1296,16 @@ void zoom_button_handler(GtkWidget *widget, gpointer data){
   ComplexPlane **planes = (ComplexPlane **) data;
   ComplexPlane *cp = planes[0];
 
-  gchar *arg = g_strdup_printf("%s", gtk_button_get_label(GTK_BUTTON(widget)));
+  // gchar *arg = g_strdup_printf("%s", gtk_button_get_label(GTK_BUTTON(widget)));
+  const gchar *arg = gtk_widget_get_name(widget);
   double zoomratio = 1;
-  if (strcmp(arg, " + ") == 0){
+  if (strcmp(arg, "button_zoomin") == 0){
     zoomratio = 0.5;
-  } else if (strcmp(arg, "  -  ") == 0){
+  } else if (strcmp(arg, "button_zoomout") == 0){
     zoomratio = 2;
   } else {
     return;
   }
-  g_free(arg);
   plot_zoom(widget, zoomratio, complex_plane_get_center(cp), data);
 }
 
@@ -1441,12 +1444,12 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
         case 0:
           complex_plane_set_quadratic_parameter(cp, x + y*I);
 
-          if (strcmp(complex_plane_get_plot_type(cp, NULL), "parameter_space") == 0){
-            complex_plane_set_plot_type(cp, "rec_f");
-            complex_plane_set_plot_type(cp_thumb, "parameter_space");
-          } else if (strcmp(complex_plane_get_plot_type(cp, NULL), "rec_f") == 0){
-            complex_plane_set_plot_type(cp, "parameter_space");
-            complex_plane_set_plot_type(cp_thumb, "rec_f");
+          if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_PARAMETER_SPACE){
+            complex_plane_set_plot_type(cp, COMPLEX_PLANE_DYNAMIC_PLANE);
+            complex_plane_set_plot_type(cp_thumb, COMPLEX_PLANE_PARAMETER_SPACE);
+          } else if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_DYNAMIC_PLANE){
+            complex_plane_set_plot_type(cp, COMPLEX_PLANE_PARAMETER_SPACE);
+            complex_plane_set_plot_type(cp_thumb, COMPLEX_PLANE_DYNAMIC_PLANE);
           }
 
           draw_from_options(event_box, data);
@@ -1814,10 +1817,10 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_function_type), NULL, "Newton's Method");
   gtk_combo_box_set_active(GTK_COMBO_BOX(combo_function_type), complex_plane_get_function_type(cp));
   gtk_widget_set_tooltip_text(combo_function_type, "Set type of function to plot");
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(input_plot_type), NULL, "parameter_space");
-  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(input_plot_type), NULL, "rec_f");
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(input_plot_type), NULL, "Parameter space");
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(input_plot_type), NULL, "Dynamic plane");
   gtk_combo_box_set_active(GTK_COMBO_BOX(input_plot_type), 0);
-  gtk_widget_set_tooltip_text(input_plot_type, "parameter_space or rec_f");
+  gtk_widget_set_tooltip_text(input_plot_type, "Parameter space or Dynamic plane");
   gtk_box_pack_start(GTK_BOX(plot_type_box), combo_function_type, true, true, 0);
   gtk_box_pack_start(GTK_BOX(plot_type_box), input_plot_type, true, true, 0);
   gtk_widget_set_size_request(input_plot_type, 168, 20);
@@ -1840,6 +1843,8 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   //Zoom box
   button_zoomin = gtk_button_new_with_label(" + ");
   button_zoomout = gtk_button_new_with_label("  -  ");
+  gtk_widget_set_name(button_zoomin, "button_zoomin");
+  gtk_widget_set_name(button_zoomout, "button_zoomout");
   gtk_widget_set_tooltip_text(button_zoomin, "Zoom in");
   gtk_widget_set_tooltip_text(button_zoomout, "Zoom out");
   g_signal_connect(button_zoomin, "clicked", G_CALLBACK(zoom_button_handler),  (gpointer) planes);
@@ -1848,7 +1853,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_box_pack_start(GTK_BOX(zoom_box), button_zoomout, false, false, 0);
 
   //Draw lines
-  check_draw_lines = gtk_check_button_new_with_mnemonic("Draw _lines");
+  check_draw_lines = gtk_check_button_new_with_mnemonic("Display _Orbits");
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_draw_lines), complex_plane_is_drawing_lines_active(cp));
   g_signal_connect(check_draw_lines, "toggled", G_CALLBACK(toggle_draw_lines_handler), (gpointer) cp);
 
@@ -1877,8 +1882,8 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_widget_add_accelerator(menu_button_help, "activate", accel_group, GDK_KEY_F1, 0, GTK_ACCEL_VISIBLE);
   gtk_widget_add_accelerator(menu_button_about, "activate", accel_group, GDK_KEY_question, 0, GTK_ACCEL_VISIBLE);
 
-  gtk_widget_add_accelerator(button_zoomin, "clicked", accel_group, GDK_KEY_plus, 0, GTK_ACCEL_VISIBLE);
-  gtk_widget_add_accelerator(button_zoomout, "clicked", accel_group, GDK_KEY_minus, 0, GTK_ACCEL_VISIBLE);
+  gtk_widget_add_accelerator(button_zoomin, "clicked", accel_group, GDK_KEY_plus, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+  gtk_widget_add_accelerator(button_zoomout, "clicked", accel_group, GDK_KEY_minus, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
 
 
  //configure scroll_box
@@ -2171,17 +2176,13 @@ void draw_main_window(GtkWidget *widget, gpointer data){
    gtk_entry_set_text(GTK_ENTRY(input_spanx), buffer);
    sprintf(buffer, "%g", complex_plane_get_spany(cp));
    gtk_entry_set_text(GTK_ENTRY(input_spany), buffer);
-
    free(buffer);
-   buffer = complex_plane_get_plot_type(cp, NULL);
 
-   if (strcmp(buffer, "parameter_space") == 0){
-     gtk_combo_box_set_active(GTK_COMBO_BOX(input_plot_type), 0);
-   } else if (strcmp(buffer, "rec_f") == 0){
-     gtk_combo_box_set_active(GTK_COMBO_BOX(input_plot_type), 1);
+   if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_PARAMETER_SPACE){
+     gtk_combo_box_set_active(GTK_COMBO_BOX(input_plot_type), COMPLEX_PLANE_PARAMETER_SPACE);
+   } else if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_DYNAMIC_PLANE){
+     gtk_combo_box_set_active(GTK_COMBO_BOX(input_plot_type), COMPLEX_PLANE_DYNAMIC_PLANE);
    }
-
-   free(buffer);
 
 
    int w = complex_plane_get_width(cp), h = complex_plane_get_height(cp), stride = complex_plane_get_stride(cp);
@@ -2235,7 +2236,7 @@ int main (int argc, char *argv[]) {
   complex_plane_set_dimensions(planes[1], 320, 180);
   complex_plane_set_stride(planes[1], 3);
   complex_plane_set_iterations(planes[1], 25);
-  complex_plane_set_plot_type(planes[1], "rec_f");
+  complex_plane_set_plot_type(planes[1], COMPLEX_PLANE_DYNAMIC_PLANE);
   complex_plane_set_spanx(planes[1], 6);
   complex_plane_set_spany(planes[1], 4);
   complex_plane_adjust_span_ratio(planes[1]);

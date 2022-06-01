@@ -12,6 +12,7 @@
 
 #include <lodepng.h>
 
+#include <ComplexPlane.h>
 
 #include <file_io.h>
 #include <draw_julia.h>
@@ -633,8 +634,15 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
 unsigned char *draw_julia(int N, int h, int w,
                           complex double param,
                           double Sx[2], double Sy[2],
-                          const char *plot_type, int color,
+                          int plot_type_int, int color,
                           struct OpenCL_Program **cl_prog, _Bool init_new_cl){
+
+  const char *plot_type;
+  if (plot_type_int == COMPLEX_PLANE_PARAMETER_SPACE){
+      plot_type = "parameter_space";
+  } else {
+      plot_type = "rec_f";
+  }
 
   unsigned char *m = calloc(h*w*3*sizeof(char), 1);
   double c[2] = {creal(param), cimag(param)};
@@ -784,9 +792,18 @@ unsigned char *draw_julia(int N, int h, int w,
 void draw_julia_zoom(int frames, int N,
                      int h, int w,
                      complex double c, complex double p,
-                     double zoom_ratio, const char *plot_type){
+                     double zoom_ratio, int plot_type){
+
+  const char *plot_type_str;
+  if (plot_type == COMPLEX_PLANE_PARAMETER_SPACE){
+      plot_type_str = "parameter_space";
+  } else {
+      plot_type_str = "rec_f";
+  }
+
+
   double c_arr[2] = {creal(c), cimag(c)};
-  const char *out_folder = gen_dir_name(c_arr, plot_type);
+  const char *out_folder = gen_dir_name(c_arr, plot_type_str);
 
   int i = 0;
 

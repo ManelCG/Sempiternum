@@ -7,6 +7,64 @@
 
 // #define DEBUG_IMAGE_MANIPULATION_C
 
+void cartesian_to_polar(double a, double b, double *r, double *t){
+  const double PI = 3.141592;
+  double theta;
+  theta = atan(b/a);
+  if (a < 0){
+    theta += PI;
+  } else if (b < 0){
+    theta += 2*PI;
+  }
+
+  *r = sqrt(pow(a, 2) + pow(b, 2));
+  *t = theta;
+}
+
+void color_radial(double x, double y, unsigned char *red, unsigned char *green, unsigned char *blue){
+  const double PI = 3.141592;
+  double r, theta;
+
+  cartesian_to_polar(x, y, &r, &theta);
+  theta = fmod(theta, 2*PI);
+
+  double hp = theta / (PI/3);
+  double C = 1;
+
+  double X = C * (1 - fabs(fmod(hp, 2) - 1));
+  X = floor(X*255);
+  C = floor(X*255);
+
+  int Xi = (int) X;
+  int Ci = (int) C;
+
+  if (0 <= hp && hp < 1){
+    *red = Ci;
+    *green = Xi;
+    *blue = 0;
+  } else if (1 <= hp && hp < 2){
+    *red = Xi;
+    *green = Ci;
+    *blue = 0;
+  } else if (2 <= hp && hp < 3){
+    *red = 0;
+    *green = Ci;
+    *blue = Xi;
+  } else if (3 <= hp && hp < 4){
+    *red = 0;
+    *green = Xi;
+    *blue = Ci;
+  } else if (4 <= hp && hp < 5){
+    *red = Xi;
+    *green = 0;
+    *blue = Ci;
+  } else if (5 <= hp && hp < 6){
+    *red = Ci;
+    *green = 0;
+    *blue = Xi;
+  }
+}
+
 void draw_line(unsigned char *m, int x0, int y0, int x1, int y1, int w, int h){
   void plot_px(unsigned char *m, int x, int y, double c, int w, int h){
     int br = (int) floor(c*255);

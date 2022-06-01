@@ -15,7 +15,7 @@ struct complexBI{
 
 unsigned char *draw_julia(int N, int h, int w,
                           complex double c, double Sx[2], double Sy[2],
-                          const char *plot_type, int color,
+                          int plot_type, int color,
                           struct OpenCL_Program **cl_prog, _Bool init_new_cl);
 
 unsigned char *draw_julia_polynomial(int N, int h, int w,
@@ -46,7 +46,7 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
 
 void draw_julia_zoom(int frames, int N, int h, int w,
                      complex double c, complex double p,
-                     double zoom_ratio, const char *plot_type);
+                     double zoom_ratio, int plot_type);
 
 unsigned char *draw_julia_backwards_iteration(int N, int h, int w, double c[2], long MAX_D, _Bool revisit);
 

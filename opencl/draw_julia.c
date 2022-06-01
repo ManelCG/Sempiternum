@@ -1,12 +1,20 @@
-#define FUNC_PARAMETER_SPACE 1
-#define FUNC_DYNAMIC_PLANE 2
+#define FUNC_PARAMETER_SPACE 0
+#define FUNC_DYNAMIC_PLANE 1
 
 #define COLORSCHEME_ITERATIONS_DEFAULT 0
 #define COLORSCHEME_ITERATIONS_BLUE 1
 #define COLORSCHEME_ITERATIONS_GREEN 2
 #define COLORSCHEME_ITERATIONS_GLITCH 3
 
-#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#ifdef cl_khr_fp64
+  #pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#elif defined(cl_amd_fp64)
+  #pragma OPENCL EXTENSION cl_amd_fp64 : enable
+#else
+  #error "Double precision floating point not supported by OpenCL implementation."
+#endif
+
+void cartesian_to_polar(double a, double b, double *r, double *t);
 
 void color_with_iterations(int i, int N,
                            int colorscheme,
@@ -38,6 +46,62 @@ void color_with_iterations(int i, int N,
 
   }
 }
+
+void color_matrix_radial(__global unsigned char *m, unsigned x, unsigned y, unsigned w, double zreal, double zimag, int colorscheme){
+  const double PI = 3.141592;
+  const double tol = 0.0000001;
+  if (fabs(zreal) < tol && fabs(zimag) < tol){
+    m[(y*w + x)*3+0] = 255;
+    m[(y*w + x)*3+1] = 255;
+    m[(y*w + x)*3+2] = 255;
+    return;
+  }
+
+  double r, theta;
+
+  double zr[2] = {zreal, zimag};
+
+  cartesian_to_polar(zr[0], zr[1], &r, &theta);
+  theta = fmod(theta, 2*PI);
+
+  //Theta en [0, 2PI]
+  double hp = theta / (PI/3);
+  double C = 1;
+
+  double X = C * (1 - fabs(fmod(hp, 2) - 1));
+  X = floor(X*255);
+  C = floor(C*255);
+
+  int Xi = (int) X;
+  int Ci = (int) C;
+
+  if (0 <= hp && hp < 1){
+    m[(y*w + x)*3+0] = Ci;
+    m[(y*w + x)*3+1] = Xi;
+    m[(y*w + x)*3+2] = 0;
+  } else if (1 <= hp && hp < 2){
+    m[(y*w + x)*3+0] = Xi;
+    m[(y*w + x)*3+1] = Ci;
+    m[(y*w + x)*3+2] = 0;
+  } else if (2 <= hp && hp < 3){
+    m[(y*w + x)*3+0] = 0;
+    m[(y*w + x)*3+1] = Ci;
+    m[(y*w + x)*3+2] = Xi;
+  } else if (3 <= hp && hp < 4){
+    m[(y*w + x)*3+0] = 0;
+    m[(y*w + x)*3+1] = Xi;
+    m[(y*w + x)*3+2] = Ci;
+  } else if (4 <= hp && hp < 5){
+    m[(y*w + x)*3+0] = Xi;
+    m[(y*w + x)*3+1] = 0;
+    m[(y*w + x)*3+2] = Ci;
+  } else if (5 <= hp && hp <= 6){
+    m[(y*w + x)*3+0] = Ci;
+    m[(y*w + x)*3+1] = 0;
+    m[(y*w + x)*3+2] = Xi;
+  }
+}
+
 
 __kernel void rec_f(__global unsigned char *m,
                     __global int *Np,
@@ -321,6 +385,7 @@ __kernel void polynomial(__global unsigned char *m,
     compute_polynomial(polynomial_real, polynomial_imag,
                        order, &auxz0, &auxz1, param, z, parameter);
 
+
     if (parameter == order + 1){  //z is param
       param[0] = auxz0;
       param[1] = auxz1;
@@ -339,53 +404,6 @@ __kernel void polynomial(__global unsigned char *m,
       m[(y*w + x)*3+0] = 0;
       m[(y*w + x)*3+1] = 0;
       m[(y*w + x)*3+2] = 0;
-  }
-}
-
-void color_matrix_radial(__global unsigned char *m, unsigned x, unsigned y, unsigned w, double zreal, double zimag, int colorscheme){
-  const double PI = 3.141592;
-  double r, theta;
-
-  double zr[2] = {zreal, zimag};
-
-  cartesian_to_polar(zr[0], zr[1], &r, &theta);
-  theta = fmod(theta, 2*PI);
-
-  //Theta en [0, 2PI]
-  double hp = theta / (PI/3);
-  double C = 1;
-
-  double X = C * (1 - fabs(fmod(hp, 2) - 1));
-  X = floor(X*255);
-  C = floor(C*255);
-
-  int Xi = (int) X;
-  int Ci = (int) C;
-
-  if (0 <= hp && hp < 1){
-    m[(y*w + x)*3+0] = Ci;
-    m[(y*w + x)*3+1] = Xi;
-    m[(y*w + x)*3+2] = 0;
-  } else if (1 <= hp && hp < 2){
-    m[(y*w + x)*3+0] = Xi;
-    m[(y*w + x)*3+1] = Ci;
-    m[(y*w + x)*3+2] = 0;
-  } else if (2 <= hp && hp < 3){
-    m[(y*w + x)*3+0] = 0;
-    m[(y*w + x)*3+1] = Ci;
-    m[(y*w + x)*3+2] = Xi;
-  } else if (3 <= hp && hp < 4){
-    m[(y*w + x)*3+0] = 0;
-    m[(y*w + x)*3+1] = Xi;
-    m[(y*w + x)*3+2] = Ci;
-  } else if (4 <= hp && hp < 5){
-    m[(y*w + x)*3+0] = Xi;
-    m[(y*w + x)*3+1] = 0;
-    m[(y*w + x)*3+2] = Ci;
-  } else if (5 <= hp && hp < 6){
-    m[(y*w + x)*3+0] = Ci;
-    m[(y*w + x)*3+1] = 0;
-    m[(y*w + x)*3+2] = Xi;
   }
 }
 
@@ -457,12 +475,13 @@ __kernel void numerical_method(__global unsigned char *m,
   newy = (double) newy / (double) h;
   newy = newy * (Sy[1] - Sy[0]) + Sy[0];
 
-  double tol = 0.0000000001;
+  // double tol = 0.0000000001;
+  double tol = 0.00000001;
   double far_tol = 100;
   int death_counter = 0;
   int death_tolerance = 5;
 
-  double a[2];
+  double a[2];  //If parameterspace -> pixel. If dynamicplane -> cursor
   double z[2];
   double zr[2];
   double oldz[2];
@@ -477,6 +496,7 @@ __kernel void numerical_method(__global unsigned char *m,
     compute_polynomial_p(&z[0], &z[1], critical_real, critical_imag, 1, 0, a[0], a[1], order);
   } else if (func_type == FUNC_DYNAMIC_PLANE){
     //TODO: Pass a by arguments to opencl function!!!!!!!!!!
+    //
     a[0] = 1; a[1] = 1;
     z[0] = newx; z[1] = newy;
   }
@@ -503,9 +523,9 @@ __kernel void numerical_method(__global unsigned char *m,
 
 
     if (ret == -1 || death_counter >= death_tolerance){                 //Divide by 0 or diverge
-      m[(y*w + x)*3+0] = 255;
-      m[(y*w + x)*3+1] = 255;
-      m[(y*w + x)*3+2] = 255;
+      m[(y*w + x)*3+0] = 128;
+      m[(y*w + x)*3+1] = 128;
+      m[(y*w + x)*3+2] = 128;
       // m[(y*w + x)*3+0] = abs((int) floor(cos((double) i/200.0) * 255));
       // m[(y*w + x)*3+1] = abs((int) floor(sin((double) i/50.0) * 255));
       // m[(y*w + x)*3+2] = abs((int) floor(sin((double) i/200.0) * 255));

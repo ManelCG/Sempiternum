@@ -10,7 +10,7 @@
 
 #include <opencl_funcs.h>
 
-// #define DEBUG_CP
+#define DEBUG_CP
 
 typedef struct ComplexPlane{
   int ID;
@@ -21,7 +21,7 @@ typedef struct ComplexPlane{
   int pixel_stride;
 
   int function_type;
-  char *plot_type;
+  int plot_type;
   complex double param;
   complex double center;
 
@@ -54,7 +54,6 @@ void complex_plane_free(ComplexPlane *cp){
   complex_plane_free_drawn_plot(cp);
 
 
-  free(cp->plot_type);
   complex_plane_free_polynomial(cp);
   complex_plane_free_polynomial_parameters(cp);
 
@@ -118,7 +117,7 @@ ComplexPlane *complex_plane_copy(ComplexPlane **dest, ComplexPlane *src){
   complex_plane_set_spanx(new, complex_plane_get_spanx(src));
   complex_plane_set_spany(new, complex_plane_get_spany(src));
 
-  complex_plane_set_plot_type(new, complex_plane_get_plot_type(src, NULL));
+  complex_plane_set_plot_type(new, complex_plane_get_plot_type(src));
   complex_plane_set_quadratic_parameter(new, complex_plane_get_quadratic_parameter(src));
 
   complex_plane_set_function_type(new, complex_plane_get_function_type(src));
@@ -223,17 +222,11 @@ int complex_plane_get_size(ComplexPlane *cp){
   return (complex_plane_get_area(cp) * complex_plane_get_stride(cp));
 }
 
-void complex_plane_set_plot_type(ComplexPlane *cp, char *plot_type){
+void complex_plane_set_plot_type(ComplexPlane *cp, int plot_type){
   cp->plot_type = plot_type;
 }
-char *complex_plane_get_plot_type(ComplexPlane *cp, char **r){
-  char *ret = malloc((strlen(cp->plot_type) + 1) * sizeof(*cp->plot_type));
-  if (r != NULL){
-    *r = malloc((strlen(cp->plot_type) + 1) * sizeof(*cp->plot_type));
-    strcpy(*r, cp->plot_type);
-  }
-  strcpy(ret, cp->plot_type);
-  return ret;
+int complex_plane_get_plot_type(ComplexPlane *cp){
+  return cp->plot_type;
 }
 void complex_plane_set_function_type(ComplexPlane *cp, int type){
   cp->function_type = type;
@@ -780,7 +773,7 @@ int complex_plane_zoom_point2_get_pixel_value_y(ComplexPlane *cp){
 void complex_plane_set_mandelbrot_parameters(ComplexPlane *cp){
   complex_plane_set_iterations(cp, 500);
   complex_plane_set_line_iterations(cp, 25);
-  complex_plane_set_plot_type(cp, "parameter_space");
+  complex_plane_set_plot_type(cp, COMPLEX_PLANE_PARAMETER_SPACE);
   complex_plane_set_quadratic_parameter(cp, 0);
   complex_plane_set_center(cp, 0);
   complex_plane_set_default_spans(cp);
@@ -951,14 +944,14 @@ void draw_sequence_lines(struct ComplexPlane *C, double point[2], int w, int h){
   double c[2], p[2];
   int x, y, oldx, oldy;
 
-  if (strcmp(C->plot_type, "parameter_space") == 0){
+  if (C->plot_type == COMPLEX_PLANE_PARAMETER_SPACE){
     p[0] = creal(C->param);
     p[1] = cimag(C->param);
     c[0] = point[0];
     c[1] = point[1];
     x = (int) floor((p[0]                              - C->Sx[0])/(C->Sx[1]-C->Sx[0]) * w);
     y = (int) floor((-(p[1]-complex_plane_get_center_imag(C) - ((C->Sy[0]+C->Sy[1])/2)) - C->Sy[0])/(C->Sy[1]-C->Sy[0]) * h);
-  } else if (strcmp(C->plot_type, "rec_f") == 0){
+  } else if (C->plot_type == COMPLEX_PLANE_DYNAMIC_PLANE){
     p[0] = point[0];
     p[1] = point[1];
     c[0] = creal(C->param);

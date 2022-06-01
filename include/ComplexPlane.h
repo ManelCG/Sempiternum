@@ -1,6 +1,9 @@
 #ifndef COMPLEXPLANE_H
 #define COMPLEXPLANE_H
 
+#define COMPLEX_PLANE_PARAMETER_SPACE 0
+#define COMPLEX_PLANE_DYNAMIC_PLANE 1
+
 #include <complex.h>
 #include <stdbool.h>
 
@@ -109,8 +112,8 @@ void complex_plane_set_drawing_lines_active(ComplexPlane *, _Bool);
 _Bool complex_plane_is_drawing_lines_active(ComplexPlane *);
 
 //Extra data
-void complex_plane_set_plot_type(ComplexPlane *, char *);
-char *complex_plane_get_plot_type(ComplexPlane *, char **);
+void complex_plane_set_plot_type(ComplexPlane *, int);
+int complex_plane_get_plot_type(ComplexPlane *);
 void complex_plane_set_function_type(ComplexPlane *, int);
 int complex_plane_get_function_type(ComplexPlane *);
 
