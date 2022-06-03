@@ -1,10 +1,15 @@
-BDIR = build
 SDIR = src
 
 IDIR = include
-#CC = x86_64-w64-mingw32-gcc
-CC = gcc
-CFLAGS = -I$(IDIR) `pkg-config --cflags --libs gtk+-3.0` -Wall -O2 -Wno-deprecated-declarations
+#CCCMD = x86_64-w64-mingw32-gcc
+CCCMD = gcc
+CFLAGS = -I$(IDIR) `pkg-config --cflags --libs gtk+-3.0` -Wall -Wno-deprecated-declarations
+
+debug: CC = $(CCCMD) -DDEBUG_GUI -DDEBUG_CP -DDEBUG_DRAW_JULIA_C -DDEBUG_IMAGE_MANIPULATION_C -DDEBUG_GUI_TEMPLATES -DDEBUG_OPENCL_FUNCS_C -DDEBUG_GUI_GEN_VIDEO_C
+debug: BDIR = debug
+
+release: CC = $(CCCMD) -O2
+release: BDIR = build
 
 ODIR=.obj
 LDIR=lib
@@ -25,20 +30,26 @@ OBJ_GUI = $(patsubst %,$(ODIR)/%,$(_OBJ_GUI))
 
 
 $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
-	mkdir -p $(ODIR)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 main: $(OBJ) $(OBJ_cli)
 	mkdir -p $(BDIR)
+	mkdir -p $(ODIR)
 	$(CC) -o $(BDIR)/$@ $^ $(CFLAGS) $(LIBS)
 
-JuliaViewerGUI: $(OBJ) $(OBJ_GUI)
+release: $(OBJ) $(OBJ_GUI)
 	mkdir -p $(BDIR)
-	$(CC) -o $(BDIR)/$@ $^ $(CFLAGS) $(LIBS)
+	mkdir -p $(ODIR)
+	$(CC) -o $(BDIR)/JuliaViewerGUI $^ $(CFLAGS) $(LIBS)
+
+debug: $(OBJ) $(OBJ_GUI)
+	mkdir -p $(BDIR)
+	mkdir -p $(ODIR)
+	$(CC) -o $(BDIR)/JuliaViewerGUI $^ $(CFLAGS) $(LIBS)
 
 .PHONY: clean
 clean:
 	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~
 
 .PHONY: all
-all: main JuliaViewerGUI clean
+all: main release clean
