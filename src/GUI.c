@@ -26,7 +26,7 @@
 #define GUI_ACTION_RENDER_VIDEO 1
 #define GUI_ACTION_GEN_FRAMES 2
 
-#define DEBUG_GUI
+// #define DEBUG_GUI
 
 struct genVideoData{
   ComplexPlane *cp;
@@ -1171,6 +1171,11 @@ void input_center1_handler(GtkWidget *w, GdkEventKey *event, gpointer data){
   ComplexPlane *cp = (ComplexPlane *) data;
   complex_plane_set_center_imag(cp, strtod(gtk_entry_get_text(GTK_ENTRY(w)), NULL));
 }
+void reset_view_handler(GtkWidget *w, gpointer data){
+  ComplexPlane *cp = (ComplexPlane *) data;
+  complex_plane_set_spany(cp, 3);
+  complex_plane_set_center(cp, 0);
+}
 void combo_plot_type_handler(GtkWidget *w, gpointer data){
   ComplexPlane *cp = (ComplexPlane *) data;
   if (complex_plane_get_id(cp) == COMPLEX_PLANE_THUMBNAIL_ID){  //This complex plane is our thumbnail which has oposite plot type
@@ -1347,10 +1352,6 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
   ComplexPlane **planes = (ComplexPlane **) data;
   ComplexPlane *cp = planes[0];
   ComplexPlane *cp_thumb = planes[1];
-
-  #ifdef DEBUG_GUI
-  printf("%d\n", event->button);
-  #endif
 
   double h_ev = gtk_widget_get_allocated_height(event_box);
   int h = complex_plane_get_height(cp);
@@ -1602,6 +1603,8 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   GtkWidget *combo_function_type;
 
   GtkWidget *check_draw_lines;
+
+  GtkWidget *button_reset_view;
 
   GtkWidget *hbox;
   GtkWidget *menu_vbox;
@@ -1857,9 +1860,15 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_draw_lines), complex_plane_is_drawing_lines_active(cp));
   g_signal_connect(check_draw_lines, "toggled", G_CALLBACK(toggle_draw_lines_handler), (gpointer) cp);
 
+  //Reset viewport
+  button_reset_view = gtk_button_new_with_label("Reset view");
+  g_signal_connect(button_reset_view, "clicked", G_CALLBACK(reset_view_handler), (gpointer) cp);
+  g_signal_connect(button_reset_view, "clicked", G_CALLBACK(draw_from_options), (gpointer) planes);
+
   //Zoom/Lines box
   gtk_box_pack_start(GTK_BOX(zoom_lines_box), zoom_box, false, false, 0);
-  gtk_box_pack_start(GTK_BOX(zoom_lines_box), check_draw_lines, false, false, 0);
+  gtk_box_pack_start(GTK_BOX(zoom_lines_box), check_draw_lines, true, false, 0);
+  gtk_box_pack_start(GTK_BOX(zoom_lines_box), button_reset_view, true, true, 0);
 
   //Populate options box
   plot_options_label = gtk_label_new("Plot options");
