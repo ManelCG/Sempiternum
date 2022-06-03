@@ -135,7 +135,7 @@ void gui_templates_show_preferences_window(GtkWidget *w, gpointer data){
   gtk_widget_show_all(GTK_WIDGET(window));
 
   #ifdef DEBUG_GUI_TEMPLATES
-  printf("Gui templates show help window called succesfully\n");
+  printf("Gui templates show preferences window called succesfully\n");
   #endif
 }
 
