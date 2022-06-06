@@ -139,6 +139,7 @@ void complex_plane_format_derivative(ComplexPlane *cp);
 void complex_plane_format_second_derivative(ComplexPlane *cp);
 void complex_plane_format_polynomial_critical_point(ComplexPlane *cp);
 void complex_plane_format_arbitrary_polynomial(complex double *p, complex double *par, int order, char cvar, char cpar);
+void complex_plane_print_all_polynomials(ComplexPlane *);
 void complex_plane_set_polynomial_critical_point_member(ComplexPlane *cp, complex v, int index);
 
 

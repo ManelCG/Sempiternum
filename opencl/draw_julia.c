@@ -368,9 +368,9 @@ void compute_polynomial_p(double *result_real,     double *result_imag,
 
   for (int j = order; j >= 0; j--){
     if (j == order){    //Add C
-      auxz0 = polynomial_real[j];
-      auxz1 = polynomial_imag[j];
-      // complex_mul(polynomial_real[j], polynomial_imag[j], param_real, param_imag, &auxz0, &auxz1);
+      // auxz0 = polynomial_real[j];
+      // auxz1 = polynomial_imag[j];
+      complex_mul(polynomial_real[j], polynomial_imag[j], param_real, param_imag, &auxz0, &auxz1);
     } else if (j == order -1){  //add a*Z
       if ((polynomial_real[j] != 0 || polynomial_imag[j] != 0) && (param_real != 0 || param_imag != 0)){
         complex_mul(polynomial_real[j], polynomial_imag[j], z[0], z[1], &auxr2, &auxi2);

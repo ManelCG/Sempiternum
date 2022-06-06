@@ -74,6 +74,9 @@ int calculate_number_of_frames(double maxx, double maxy, double minx, double min
   return fmin(framesx, framesy);
 }
 void calculate_video_duration(GtkWidget *w, gpointer data){
+  #ifdef DEBUG_GUI
+    printf("\n#####\nCalculating video duration...\n");
+  #endif //DEBUG_GUI
   GtkWidget **widgets = (GtkWidget **) data;
   double maxx, maxy, minx, miny, zoomratio, fps;
   int frames, seconds;
@@ -96,12 +99,23 @@ void calculate_video_duration(GtkWidget *w, gpointer data){
 
   text = g_strdup_printf("Video duration: %02d:%02d:%02d", eta_h, eta_m, eta_s);
   gtk_label_set_text(GTK_LABEL(widgets[6]), text);
+  #ifdef DEBUG_GUI
+    printf("Video duration is %d seconds. %s.\n", seconds, text);
+  #endif //DEBUG_GUI
   free(text);
   text = g_strdup_printf("Will render %d frames", frames);
   gtk_label_set_text(GTK_LABEL(widgets[7]), text);
+  #ifdef DEBUG_GUI
+    printf("%s.\n", text);
+    printf("Done\n#####\n");
+  #endif //DEBUG_GUI
+  free(text);
 }
 
 void insert_text_event_int(GtkEditable *editable, const gchar *text, gint length, gint *position, gpointer data){
+  #ifdef DEBUG_GUI
+    printf("\n#####\ninsert_text_event_int called\n#####\n");
+  #endif //DEBUG_GUI
   for (int i = 0; i < length; i++){
     if (!isdigit(text[i])){
       g_signal_stop_emission_by_name(G_OBJECT(editable), "insert-text");
@@ -111,6 +125,9 @@ void insert_text_event_int(GtkEditable *editable, const gchar *text, gint length
 }
 
 void insert_text_event_float(GtkEditable *editable, const gchar *text, gint length, gint *position, gpointer data){
+  #ifdef DEBUG_GUI
+    printf("\n#####\ninsert_text_event_float called\n#####\n");
+  #endif //DEBUG_GUI
   for (int i = 0; i < length; i++){
     if (!isdigit(text[i]) && !(text[i] == '.') && !(text[i] == '-')){
       g_signal_stop_emission_by_name(G_OBJECT(editable), "insert-text");
@@ -120,6 +137,10 @@ void insert_text_event_float(GtkEditable *editable, const gchar *text, gint leng
 }
 
 void save_polynomial_member(GtkWidget *widget, gpointer data){
+  #ifdef DEBUG_GUI
+
+    printf("\n#####\nsave_polynomial_member called\n");
+  #endif //DEBUG_GUI
   ComplexPlane *cp = (ComplexPlane *) data;
 
   const char *name = gtk_widget_get_name(widget);
@@ -144,13 +165,17 @@ void save_polynomial_member(GtkWidget *widget, gpointer data){
   }
 
   #ifdef DEBUG_GUI
-  complex_plane_print_polynomial(cp);
-  complex_plane_print_polynomial_derivative(cp);
+  printf("Result:\n");
+  complex_plane_print_all_polynomials(cp);
+  printf("#####\n");
   #endif //DEBUG_GUI
 }
 
 void change_polynomial_order(GtkWidget *widget, GdkEventKey *event, gpointer data){
   if (strcmp(gdk_keyval_name (event->keyval), "Return") == 0){
+    #ifdef DEBUG_GUI
+      printf("\n#####\nchange_polynomial_order_called...\n");
+    #endif //DEBUG_GUI
     ComplexPlane **planes = (ComplexPlane **) data;
     ComplexPlane *p = planes[0];
     ComplexPlane *t = planes[1];
@@ -159,11 +184,18 @@ void change_polynomial_order(GtkWidget *widget, GdkEventKey *event, gpointer dat
     complex_plane_set_polynomial_order(p, order);
     complex_plane_set_polynomial_order(t, order);
 
+    #ifdef DEBUG_GUI
+      printf("Changed CPs %d and %d to %d\nCalling draw_main_window...\n#####\n", complex_plane_get_id(p), complex_plane_get_id(t), order);
+    #endif //DEBUG_GUI
+
     draw_main_window(widget, data);
   }
 }
 
 void save_plot_as(GtkWidget *widget, gpointer data){
+  #ifdef DEBUG_GUI
+    printf("\n#####\nsave_plot_as called\n");
+  #endif //DEBUG_GUI
   ComplexPlane *cp = (ComplexPlane *) data;
   GtkWidget *dialog;
   dialog = gtk_file_chooser_dialog_new("Save File",
@@ -177,14 +209,34 @@ void save_plot_as(GtkWidget *widget, gpointer data){
   if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT){
     char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 
+    #ifdef DEBUG_GUI
+      printf("File chosen\nGenerating plot with CP %d\n", complex_plane_get_id(cp));
+    #endif //DEBUG_GUI
+
     complex_plane_gen_plot(cp);
+
+    #ifdef DEBUG_GUI
+      printf("Done. Saving image to %s\n", filename);
+    #endif //DEBUG_GUI
 
     lodepng_encode24_file(filename,
                           complex_plane_get_plot(cp),
                           complex_plane_get_width(cp),
                           complex_plane_get_height(cp));
+
+    #ifdef DEBUG_GUI
+      printf("Done saving image\n");
+    #endif //DEBUG_GUI
   }
+  #ifdef DEBUG_GUI
+  else {
+    printf("Saving file cancelled.\n");
+  }
+  #endif //DEBUG_GUI
   gtk_widget_destroy(dialog);
+  #ifdef DEBUG_GUI
+    printf("#####\n");
+  #endif //DEBUG_GUI
 }
 
 void generate_all_resolutions(GtkWidget *widget, gpointer data){

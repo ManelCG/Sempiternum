@@ -10,7 +10,7 @@
 
 #include <opencl_funcs.h>
 
-#define DEBUG_CP
+// #define DEBUG_CP
 
 typedef struct ComplexPlane{
   int ID;
@@ -147,6 +147,7 @@ int complex_plane_get_colorscheme(ComplexPlane *cp){
 }
 
 void complex_plane_print(ComplexPlane *cp){
+  printf("Printing Complex Plane:\n");
   printf("Complex plane   %d\n", cp->ID);
   printf("Dimensions:     %d x %d = %d\n", cp->w, cp->h, cp->a);
   printf("Size of plot:   %d x %d = %d\n", cp->a, cp->pixel_stride, cp->a * cp->pixel_stride);
@@ -159,27 +160,20 @@ void complex_plane_print(ComplexPlane *cp){
   printf("Center:         %g %+gi\n", creal(cp->center), cimag(cp->center));
   printf("Spans:          %g, %g\n", cp->SpanX, cp->SpanY);
 
-  // printf("Polynomial: ");
-  // complex_plane_print_polynomial(cp);
-  // printf("Parameters: ");
-  // complex_plane_print_parameters(cp);
-  // printf("Polynomial param deriv: ");
-  // complex_plane_print_polynomial_parameters_derivative(cp);
 
+  complex_plane_print_all_polynomials(cp);
+}
 
+void complex_plane_print_all_polynomials(ComplexPlane *cp){
   if (cp->polynomial != NULL){
-    printf("p(z)   = ");
+    printf("Polynomial     = ");
     complex_plane_format_polynomial(cp);
-    printf("p'(z)  = ");
+    printf("Derivative     = ");
     complex_plane_format_derivative(cp);
-    printf("p''(z) = ");
+    printf("2nd Derivative = ");
     complex_plane_format_second_derivative(cp);
-    printf("critic = ");
+    printf("Critical Point = ");
     complex_plane_format_polynomial_critical_point(cp);
-    printf("\n\n");
-    complex_plane_print_polynomial(cp);
-    complex_plane_print_polynomial_parameters_derivative(cp);
-    complex_plane_print_critical_point(cp);
   }
 }
 
@@ -455,26 +449,33 @@ void complex_plane_format_polynomial_critical_point(ComplexPlane *cp){
   complex_plane_format_arbitrary_polynomial(cp->polynomial_critical_point, NULL, cp->polynomial_order, 'a', '0');
 }
 void complex_plane_format_arbitrary_polynomial(complex double *polynomial, complex double *polynomial_parameters, int polynomial_order, char cvar, char cpar){
+  _Bool printed = false;
   if (polynomial != NULL){
     for (int i = 0; i < polynomial_order; i++){
       if (i == polynomial_order - 1){
         if (polynomial[i] != 0){
           if (polynomial[i] == creal(polynomial[i])){
             printf("%+g%c ", creal(polynomial[i]), cvar);
+            printed = true;
           } else if (polynomial[i] == cimag(polynomial[i])){
             printf("%+gi%c ", cimag(polynomial[i]), cvar);
+            printed = true;
           } else {
             printf("(%+g %+gi)%c ", creal(polynomial[i]), cimag(polynomial[i]), cvar);
+            printed = true;
           }
         }
         if (polynomial_parameters != NULL){
           if (polynomial_parameters[i] != 0){
             if (polynomial_parameters[i] == creal(polynomial_parameters[i])){
               printf("%+g%c%c ", creal(polynomial_parameters[i]), cpar, cvar);
+              printed = true;
             } else if (polynomial_parameters[i] == cimag(polynomial_parameters[i])){
               printf("%+gi%c%c ", cimag(polynomial_parameters[i]), cpar, cvar);
+              printed = true;
             } else {
               printf("+(%+g %+gi)%c%c ", creal(polynomial_parameters[i]), cimag(polynomial_parameters[i]), cpar, cvar);
+              printed = true;
             }
           }
         }
@@ -482,20 +483,26 @@ void complex_plane_format_arbitrary_polynomial(complex double *polynomial, compl
         if (polynomial[i] != 0){
           if (polynomial[i] == creal(polynomial[i])){
             printf("%+g%c^%d ", creal(polynomial[i]), cvar, polynomial_order - i);
+            printed = true;
           } else if (polynomial[i] == cimag(polynomial[i])){
             printf("%+gi%c^%d ", cimag(polynomial[i]), cvar, polynomial_order - i);
+            printed = true;
           } else {
             printf("(%+g %+gi)%c^%d ", creal(polynomial[i]), cimag(polynomial[i]), cvar, polynomial_order - i);
+            printed = true;
           }
         }
         if (polynomial_parameters != NULL){
           if (polynomial_parameters[i] != 0){
             if (polynomial_parameters[i] == creal(polynomial_parameters[i])){
               printf("%+g%c%c^%d ", creal(polynomial_parameters[i]), cpar, cvar, polynomial_order - i);
+              printed = true;
             } else if (polynomial_parameters[i] == cimag(polynomial_parameters[i])){
               printf("%+gi%c%c^%d ", cimag(polynomial_parameters[i]), cpar, cvar, polynomial_order - i);
+              printed = true;
             } else {
               printf("+(%+g %+gi)%c%c^%d ", creal(polynomial_parameters[i]), cimag(polynomial_parameters[i]), cpar, cvar, polynomial_order - i);
+              printed = true;
             }
           }
         }
@@ -504,22 +511,31 @@ void complex_plane_format_arbitrary_polynomial(complex double *polynomial, compl
     if (polynomial[polynomial_order] != 0){
       if (polynomial[polynomial_order] == creal(polynomial[polynomial_order])){
         printf("%+g ", creal(polynomial[polynomial_order]));
+        printed = true;
       } else if (polynomial[polynomial_order] == cimag(polynomial[polynomial_order])){
         printf("%+gi ", cimag(polynomial[polynomial_order]));
+        printed = true;
       } else {
         printf("+(%g %+gi) ", creal(polynomial[polynomial_order]), cimag(polynomial[polynomial_order]));
+        printed = true;
       }
     }
     if (polynomial_parameters != NULL){
       if (polynomial_parameters[polynomial_order] != 0){
         if (polynomial_parameters[polynomial_order] == creal(polynomial_parameters[polynomial_order])){
           printf("%+g%c ", creal(polynomial_parameters[polynomial_order]), cpar);
+          printed = true;
         } else if (polynomial_parameters[polynomial_order] == cimag(polynomial_parameters[polynomial_order])){
           printf("%+gi%c ", cimag(polynomial_parameters[polynomial_order]), cpar);
+          printed = true;
         } else {
           printf("+(%g %+gi)%c ", creal(polynomial_parameters[polynomial_order]), cimag(polynomial_parameters[polynomial_order]), cpar);
+          printed = true;
         }
       }
+    }
+    if (printed == false){
+      printf("0");
     }
     printf("\n");
   } else {
