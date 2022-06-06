@@ -1495,12 +1495,14 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
       complex_plane_set_center(cp, 0);
       switch (complex_plane_get_function_type(cp)){
         case 0:
-          complex_plane_set_quadratic_parameter(cp, x + y*I);
-
           if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_PARAMETER_SPACE){
+            complex_plane_set_quadratic_parameter(cp, x + y*I);
+
             complex_plane_set_plot_type(cp, COMPLEX_PLANE_DYNAMIC_PLANE);
             complex_plane_set_plot_type(cp_thumb, COMPLEX_PLANE_PARAMETER_SPACE);
           } else if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_DYNAMIC_PLANE){
+            complex_plane_set_quadratic_parameter(cp, 0);
+
             complex_plane_set_plot_type(cp, COMPLEX_PLANE_PARAMETER_SPACE);
             complex_plane_set_plot_type(cp_thumb, COMPLEX_PLANE_DYNAMIC_PLANE);
           }
@@ -1517,6 +1519,17 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
           complex_plane_set_polynomial_parameter(cp_thumb, cp_par);
           draw_from_options(event_box, data);
           break;
+        case 3:
+          if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_PARAMETER_SPACE){
+            complex_plane_set_plot_type(cp, COMPLEX_PLANE_DYNAMIC_PLANE);
+            complex_plane_set_plot_type(cp_thumb, COMPLEX_PLANE_PARAMETER_SPACE);
+          } else if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_DYNAMIC_PLANE){
+            complex_plane_set_plot_type(cp, COMPLEX_PLANE_PARAMETER_SPACE);
+            complex_plane_set_plot_type(cp_thumb, COMPLEX_PLANE_DYNAMIC_PLANE);
+          }
+
+          draw_from_options(event_box, data);
+
       }
       break;
   }
