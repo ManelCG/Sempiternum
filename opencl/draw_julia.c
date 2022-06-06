@@ -1,5 +1,5 @@
-#define FUNC_PARAMETER_SPACE 0
-#define FUNC_DYNAMIC_PLANE 1
+#define COMPLEX_PLANE_PARAMETER_SPACE 0
+#define COMPLEX_PLANE_DYNAMIC_PLANE 1
 
 #define COLORSCHEME_ITERATIONS_DEFAULT 0
 #define COLORSCHEME_ITERATIONS_BLUE 1
@@ -172,9 +172,9 @@ void color_matrix_radial(__global unsigned char *m, unsigned x, unsigned y, unsi
   const double PI = 3.141592;
   const double tol = 0.0000001;
   if (fabs(zreal) < tol && fabs(zimag) < tol){
-    m[(y*w + x)*3+0] = 255;
-    m[(y*w + x)*3+1] = 255;
-    m[(y*w + x)*3+2] = 255;
+    m[(y*w + x)*3+0] = 128;
+    m[(y*w + x)*3+1] = 128;
+    m[(y*w + x)*3+2] = 128;
     return;
   }
 
@@ -578,7 +578,7 @@ __kernel void numerical_method(__global unsigned char *m,
                                __global double *Sx,              __global double *Sy,
                                __global int *color){
 
-  int func_type = FUNC_PARAMETER_SPACE;
+  int func_type = COMPLEX_PLANE_PARAMETER_SPACE;
 
   const int w = *wp; const int h = *hp;
   const int order = *orderp;
@@ -612,10 +612,10 @@ __kernel void numerical_method(__global unsigned char *m,
 
   int ret;
 
-  if (func_type == FUNC_PARAMETER_SPACE){
+  if (func_type == COMPLEX_PLANE_PARAMETER_SPACE){
     a[0] = newx; a[1] = newy;
     compute_polynomial_p(&z[0], &z[1], critical_real, critical_imag, 1, 0, a[0], a[1], order);
-  } else if (func_type == FUNC_DYNAMIC_PLANE){
+  } else if (func_type == COMPLEX_PLANE_DYNAMIC_PLANE){
     //TODO: Pass a by arguments to opencl function!!!!!!!!!!
     //
     a[0] = 1; a[1] = 1;
@@ -644,17 +644,24 @@ __kernel void numerical_method(__global unsigned char *m,
 
 
     if (ret == -1 || death_counter >= death_tolerance){                 //Divide by 0 or diverge
-      m[(y*w + x)*3+0] = 128;
-      m[(y*w + x)*3+1] = 128;
-      m[(y*w + x)*3+2] = 128;
+      m[(y*w + x)*3+0] = 255;
+      m[(y*w + x)*3+1] = 255;
+      m[(y*w + x)*3+2] = 255;
       // m[(y*w + x)*3+0] = abs((int) floor(cos((double) i/200.0) * 255));
       // m[(y*w + x)*3+1] = abs((int) floor(sin((double) i/50.0) * 255));
       // m[(y*w + x)*3+2] = abs((int) floor(sin((double) i/200.0) * 255));
       return;
     }
 
+
     if (fabs(norm - old_norm) <= tol){ //Converges!
-      color_matrix_radial(m, x, y, w, zr[0], zr[1], colorscheme);
+      if (fabs(a[0] - zr[0]) < tol && fabs(a[1] - zr[1]) < tol){
+        m[(y*w + x)*3+0] = 32;
+        m[(y*w + x)*3+1] = 32;
+        m[(y*w + x)*3+2] = 32;
+      } else {
+        color_matrix_radial(m, x, y, w, zr[0], zr[1], colorscheme);
+      }
       return;
     }
 
