@@ -2038,6 +2038,8 @@ void draw_main_window(GtkWidget *widget, gpointer data){
           g_signal_connect(G_OBJECT(input_polynomial_settings_vector_real[i]), "key_release_event", G_CALLBACK(save_polynomial_handler), (gpointer) planes);
           g_signal_connect(G_OBJECT(input_polynomial_settings_vector_imag[i]), "key_release_event", G_CALLBACK(save_polynomial_handler), (gpointer) planes);
 
+          GtkWidget *polynomial_labels_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+
           strbuf = g_strdup_printf("r%d", i);
           gtk_widget_set_name(input_polynomial_settings_vector_real[i], strbuf); free(strbuf);
           strbuf = g_strdup_printf("i%d", i);
@@ -2067,14 +2069,37 @@ void draw_main_window(GtkWidget *widget, gpointer data){
             strbuf = g_strdup_printf("c%d", i);
             gtk_widget_set_name(input_polynomial_settings_vector_critical[i], strbuf); free(strbuf);
 
+            char buffer[64];
+            //Set polynomial z labels
+            if (i < polynomial_order + 1){
+              if (i < polynomial_order -1){
+                sprintf(buffer, "a^%d + ", polynomial_order -i);
+              } else if (i == polynomial_order -1){
+                strcpy(buffer, "a + ");
+              } else if (i == polynomial_order){
+                strcpy(buffer, "");
+              }
+
+              GtkWidget *c_power_label = gtk_label_new(buffer);
+              gtk_box_pack_end(GTK_BOX(polynomial_labels_vbox), c_power_label, false, false, 5);
+
+              if (i < polynomial_order -1){
+                sprintf(buffer, "az^%d + ", polynomial_order -i);
+              } else if (i == polynomial_order -1){
+                strcpy(buffer, "az + ");
+              } else if (i == polynomial_order){
+                strcpy(buffer, "");
+              }
+
+              GtkWidget *a_power_label = gtk_label_new(buffer);
+              gtk_box_pack_end(GTK_BOX(polynomial_labels_vbox), a_power_label, false, false, 5);
+            }
+
+
             if (critical != NULL){
               if (creal(critical[i]) != 0.0){
                 strbuf = g_strdup_printf("%.16g", creal(critical[i]));
                 gtk_entry_set_text(GTK_ENTRY(input_polynomial_settings_vector_critical[i]), strbuf); free(strbuf);
-              }
-              if (complex_plane_get_polynomial_parameter(cp) == i){
-                // gtk_entry_can_focus(GTK_ENTRY(input_polynomial_settings_vector_real[i]), false);
-                // gtk_entry_set_editable(GTK_ENTRY(input_polynomial_settings_vector_imag[i]), false);
               }
             }
           }
@@ -2088,13 +2113,10 @@ void draw_main_window(GtkWidget *widget, gpointer data){
               strbuf = g_strdup_printf("%.16g", cimag(polynomial[i]));
               gtk_entry_set_text(GTK_ENTRY(input_polynomial_settings_vector_imag[i]), strbuf); free(strbuf);
             }
-            if (complex_plane_get_polynomial_parameter(cp) == i){
-              // gtk_entry_can_focus(GTK_ENTRY(input_polynomial_settings_vector_real[i]), false);
-              // gtk_entry_set_editable(GTK_ENTRY(input_polynomial_settings_vector_imag[i]), false);
-            }
           }
 
           gtk_box_pack_start(GTK_BOX(polynomial_config_hbox), polynomial_settings_input_vbox, true, false, 0);
+          gtk_box_pack_start(GTK_BOX(polynomial_config_hbox), polynomial_labels_vbox, true, false, 0);
 
 
           char buffer[64];
@@ -2109,7 +2131,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
             }
 
             GtkWidget *z_power_label = gtk_label_new(buffer);
-            gtk_box_pack_start(GTK_BOX(polynomial_config_hbox), z_power_label, true, false, 0);
+            gtk_box_pack_start(GTK_BOX(polynomial_labels_vbox), z_power_label, true, false, 0);
           }
 
           if (i < polynomial_order + 1){
@@ -2155,6 +2177,21 @@ void draw_main_window(GtkWidget *widget, gpointer data){
           }
         } else {
           gtk_combo_box_set_active(GTK_COMBO_BOX(combo_polynomial_parameter), complex_plane_get_polynomial_parameter(cp));
+        }
+
+        if (complex_plane_get_function_type(cp) < 3){
+          int parm = complex_plane_get_polynomial_parameter(cp);
+          gtk_editable_set_editable(GTK_EDITABLE(input_polynomial_settings_vector_real[parm]), false);
+          gtk_widget_set_can_focus(input_polynomial_settings_vector_real[parm], false);
+          gtk_widget_set_sensitive(input_polynomial_settings_vector_real[parm], false);
+          gtk_editable_set_editable(GTK_EDITABLE(input_polynomial_settings_vector_imag[parm]), false);
+          gtk_widget_set_can_focus(input_polynomial_settings_vector_imag[parm], false);
+          gtk_widget_set_sensitive(input_polynomial_settings_vector_imag[parm], false);
+
+          gtk_entry_set_placeholder_text(GTK_ENTRY(input_polynomial_settings_vector_real[parm]), "");
+          gtk_entry_set_placeholder_text(GTK_ENTRY(input_polynomial_settings_vector_imag[parm]), "");
+          gtk_entry_set_text(GTK_ENTRY(input_polynomial_settings_vector_real[parm]), "");
+          gtk_entry_set_text(GTK_ENTRY(input_polynomial_settings_vector_imag[parm]), "");
         }
       }
 
