@@ -1441,7 +1441,7 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
         draw_box(event_box, event, (gpointer) cp);
       }
       break;
-    case 1:
+    case 1:   //Zoom box
       if (complex_plane_zoom_point1_is_null(cp)){
         if (event->type != GDK_BUTTON_PRESS){
           break;
@@ -1487,10 +1487,16 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
       }
       break;
     case 2:   //Move center to point clicked with middle button
+      if (event->type == GDK_BUTTON_RELEASE){
+        break;
+      }
       complex_plane_set_center(cp, x + y*I);
       draw_from_options(event_box, data);
       break;
     case 3:   //Plot from point clicked with right button
+      if (event->type == GDK_BUTTON_RELEASE){
+        break;
+      }
       complex_plane_set_default_spans(cp);
       complex_plane_set_center(cp, 0);
       switch (complex_plane_get_function_type(cp)){
