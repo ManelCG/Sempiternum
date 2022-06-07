@@ -65,7 +65,7 @@ void draw_sequence(GtkWidget *window, GdkEventButton *event, gpointer data);
 void draw_thumbnail_gui(GtkWidget *widget, double x, double y, gpointer data);
 void draw_from_options(GtkWidget *widget, gpointer data);
 void save_polynomial_member(GtkWidget *widget, gpointer data);
-void draw_box(GtkWidget *window, GdkEventButton *event, gpointer data);
+void gui_draw_zoom_box(GtkWidget *window, GdkEventButton *event, gpointer data);
 void plot_zoom(GtkWidget *widget, double zoomratio, complex double p, gpointer data);
 
 int calculate_number_of_frames(double maxx, double maxy, double minx, double miny, double zoomratio){
@@ -1432,16 +1432,16 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
   }
 
   switch (event->button){
-    case 0:
+    case 0:   //MOUSE MOVED -> Draw orbits / zoom box
       if (complex_plane_zoom_point1_is_null(cp)){
         if (complex_plane_is_drawing_lines_active(cp)){
           draw_sequence(event_box, event, data);
         }
       } else {
-        draw_box(event_box, event, (gpointer) cp);
+        gui_draw_zoom_box(event_box, event, (gpointer) cp);
       }
       break;
-    case 1:   //Zoom box
+    case 1:   //LEFT BUTTON CLICKED -> Zoom Box
       if (complex_plane_zoom_point1_is_null(cp)){
         if (event->type != GDK_BUTTON_PRESS){
           break;
@@ -1486,14 +1486,14 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
         complex_plane_free_zoom_point2(cp);
       }
       break;
-    case 2:   //Move center to point clicked with middle button
+    case 2:   //MIDDLE BUTTON CLICKED -> Change center
       if (event->type == GDK_BUTTON_RELEASE){
         break;
       }
       complex_plane_set_center(cp, x + y*I);
       draw_from_options(event_box, data);
       break;
-    case 3:   //Plot from point clicked with right button
+    case 3:   //RIGHT MOUSE CLICKED -> Change parameters, redraw
       if (event->type == GDK_BUTTON_RELEASE){
         break;
       }
@@ -1541,7 +1541,7 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
   }
 }
 
-void draw_box(GtkWidget *event_box, GdkEventButton *event, gpointer data){
+void gui_draw_zoom_box(GtkWidget *event_box, GdkEventButton *event, gpointer data){
   ComplexPlane *cp = (ComplexPlane *) data;
 
   int x0 = event->x;

@@ -71,6 +71,7 @@ __kernel void numerical_method(__global unsigned char *m,
                                __global int *hp,
                                __global int *wp,
                                __global int *orderp,
+                               __global int *func_type_P,
                                __global double *polynomial_real,
                                __global double *polynomial_imag,
                                __global double *polynomial_derivative_real,
@@ -562,6 +563,7 @@ __kernel void numerical_method(__global unsigned char *m,
                                __global int *hp,
                                __global int *wp,
                                __global int *orderp,
+                               __global int *func_type_P,
                                __global double *polynomial_real,
                                __global double *polynomial_imag,
                                __global double *polynomial_derivative_real,
@@ -578,7 +580,7 @@ __kernel void numerical_method(__global unsigned char *m,
                                __global double *Sx,              __global double *Sy,
                                __global int *color){
 
-  int func_type = COMPLEX_PLANE_PARAMETER_SPACE;
+  int func_type = *func_type_P;
 
   const int w = *wp; const int h = *hp;
   const int order = *orderp;
@@ -618,7 +620,7 @@ __kernel void numerical_method(__global unsigned char *m,
   } else if (func_type == COMPLEX_PLANE_DYNAMIC_PLANE){
     //TODO: Pass a by arguments to opencl function!!!!!!!!!!
     //
-    a[0] = 1; a[1] = 1;
+    a[0] = 1; a[1] = 0;
     z[0] = newx; z[1] = newy;
   }
 

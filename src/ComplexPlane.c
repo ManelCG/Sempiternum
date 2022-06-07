@@ -857,6 +857,7 @@ void complex_plane_gen_plot(ComplexPlane *cp){
         cp->plot = draw_julia_numerical_method(cp->N,
                                                cp->h, cp->w,
                                                cp->polynomial_order,
+                                               cp->plot_type,
                                                cp->polynomial,
                                                cp->polynomial_derivative,
                                                cp->second_polynomial_derivative,

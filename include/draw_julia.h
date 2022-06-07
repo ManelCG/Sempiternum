@@ -34,6 +34,7 @@ unsigned char *draw_julia_polynomial_fraction(int N, int h, int w,
 
 unsigned char *draw_julia_numerical_method(int N, int h, int w,
                                            int order,
+                                           int plot_type, //Dynamic / parameter
                                            complex double *polynomial,
                                            complex double *polynomial_derivative,
                                            complex double *polynomial_second_derivative,

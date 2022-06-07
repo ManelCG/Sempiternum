@@ -228,6 +228,7 @@ unsigned char *draw_julia_polynomial_fraction
 
 unsigned char *draw_julia_numerical_method(int N, int h, int w,
                                            int order,
+                                           int func_type, //Dynamic / Parameter space
                                            complex double *polynomial,
                                            complex double *polynomial_derivative,
                                            complex double *polynomial_second_derivative,
@@ -240,6 +241,7 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
 
   unsigned char *m = calloc(h*w*3*sizeof(unsigned char), 1);
 
+  //Vectors for polynomials
   double *polynomial_real = calloc(sizeof(double) * (order + 2), 1);
   double *polynomial_imag = calloc(sizeof(double) * (order + 2), 1);
   double *polynomial_derivative_real = calloc(sizeof(double) * (order + 2), 1);
@@ -255,6 +257,7 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
   double *polynomial_critical_point_real = calloc(sizeof(double) * (order + 2), 1);
   double *polynomial_critical_point_imag = calloc(sizeof(double) * (order + 2), 1);
 
+  //Fill the vectors
   for (int i = 0; i < order+2; i++){
     polynomial_real[i] = creal(polynomial[i]);
     polynomial_imag[i] = cimag(polynomial[i]);
@@ -317,6 +320,7 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
   cl_mem mem_h      = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int), NULL, &(prog->ret));
   cl_mem mem_w      = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int), NULL, &(prog->ret));
   cl_mem mem_order  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int), NULL, &(prog->ret));
+  cl_mem mem_fntype = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int), NULL, &(prog->ret));
   cl_mem mem_polr   = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
   cl_mem mem_poli   = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
   cl_mem mem_polrd  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
@@ -340,6 +344,7 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
   clEnqueueWriteBuffer(prog->command_queue, mem_h,      CL_TRUE, 0, sizeof(int),              &h,                                           0, NULL, NULL);
   clEnqueueWriteBuffer(prog->command_queue, mem_w,      CL_TRUE, 0, sizeof(int),              &w,                                           0, NULL, NULL);
   clEnqueueWriteBuffer(prog->command_queue, mem_order,  CL_TRUE, 0, sizeof(int),              &order,                                       0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_fntype, CL_TRUE, 0, sizeof(int),              &func_type,                                   0, NULL, NULL);
   clEnqueueWriteBuffer(prog->command_queue, mem_polr,   CL_TRUE, 0, sizeof(double)*(order+2), polynomial_real,                              0, NULL, NULL);
   clEnqueueWriteBuffer(prog->command_queue, mem_poli,   CL_TRUE, 0, sizeof(double)*(order+2), polynomial_imag,                              0, NULL, NULL);
   clEnqueueWriteBuffer(prog->command_queue, mem_polrd,  CL_TRUE, 0, sizeof(double)*(order+2), polynomial_derivative_real,                   0, NULL, NULL);
@@ -389,28 +394,29 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
   #endif
 
 
-  clSetKernelArg(prog->kernel, 0, sizeof(mem_m),        (void *)&mem_m);
-  clSetKernelArg(prog->kernel, 1, sizeof(mem_N),        (void *) &mem_N);
-  clSetKernelArg(prog->kernel, 2, sizeof(mem_h),        (void *) &mem_h);
-  clSetKernelArg(prog->kernel, 3, sizeof(mem_w),        (void *) &mem_w);
-  clSetKernelArg(prog->kernel, 4, sizeof(mem_order),    (void *) &mem_order);
-  clSetKernelArg(prog->kernel, 5, sizeof(mem_polr),     (void *) &mem_polr);
-  clSetKernelArg(prog->kernel, 6, sizeof(mem_poli),     (void *) &mem_poli);
-  clSetKernelArg(prog->kernel, 7, sizeof(mem_polrd),    (void *) &mem_polrd);
-  clSetKernelArg(prog->kernel, 8, sizeof(mem_polid),    (void *) &mem_polid);
-  clSetKernelArg(prog->kernel, 9, sizeof(mem_polrd2),   (void *) &mem_polrd2);
-  clSetKernelArg(prog->kernel, 10, sizeof(mem_polid2),  (void *) &mem_polid2);
-  clSetKernelArg(prog->kernel, 11, sizeof(mem_parr),    (void *) &mem_parr);
-  clSetKernelArg(prog->kernel, 12, sizeof(mem_pari),    (void *) &mem_pari);
-  clSetKernelArg(prog->kernel, 13, sizeof(mem_parrd),   (void *) &mem_parrd);
-  clSetKernelArg(prog->kernel, 14, sizeof(mem_parid),   (void *) &mem_parid);
-  clSetKernelArg(prog->kernel, 15, sizeof(mem_parrd2),  (void *) &mem_parrd2);
-  clSetKernelArg(prog->kernel, 16, sizeof(mem_parid2),  (void *) &mem_parid2);
-  clSetKernelArg(prog->kernel, 17, sizeof(mem_critr),   (void *) &mem_critr);
-  clSetKernelArg(prog->kernel, 18, sizeof(mem_criti),   (void *) &mem_criti);
-  clSetKernelArg(prog->kernel, 19, sizeof(mem_Sx),      (void *) &mem_Sx);
-  clSetKernelArg(prog->kernel, 20, sizeof(mem_Sy),      (void *) &mem_Sy);
-  clSetKernelArg(prog->kernel, 21, sizeof(mem_cs),      (void *)&mem_cs);
+  clSetKernelArg(prog->kernel, 0,  sizeof(mem_m),       (void *)&mem_m);
+  clSetKernelArg(prog->kernel, 1,  sizeof(mem_N),       (void *) &mem_N);
+  clSetKernelArg(prog->kernel, 2,  sizeof(mem_h),       (void *) &mem_h);
+  clSetKernelArg(prog->kernel, 3,  sizeof(mem_w),       (void *) &mem_w);
+  clSetKernelArg(prog->kernel, 4,  sizeof(mem_order),   (void *) &mem_order);
+  clSetKernelArg(prog->kernel, 5,  sizeof(mem_fntype),  (void *) &mem_fntype);
+  clSetKernelArg(prog->kernel, 6,  sizeof(mem_polr),    (void *) &mem_polr);
+  clSetKernelArg(prog->kernel, 7,  sizeof(mem_poli),    (void *) &mem_poli);
+  clSetKernelArg(prog->kernel, 8,  sizeof(mem_polrd),   (void *) &mem_polrd);
+  clSetKernelArg(prog->kernel, 9,  sizeof(mem_polid),   (void *) &mem_polid);
+  clSetKernelArg(prog->kernel, 10, sizeof(mem_polrd2),  (void *) &mem_polrd2);
+  clSetKernelArg(prog->kernel, 11, sizeof(mem_polid2),  (void *) &mem_polid2);
+  clSetKernelArg(prog->kernel, 12, sizeof(mem_parr),    (void *) &mem_parr);
+  clSetKernelArg(prog->kernel, 13, sizeof(mem_pari),    (void *) &mem_pari);
+  clSetKernelArg(prog->kernel, 14, sizeof(mem_parrd),   (void *) &mem_parrd);
+  clSetKernelArg(prog->kernel, 15, sizeof(mem_parid),   (void *) &mem_parid);
+  clSetKernelArg(prog->kernel, 16, sizeof(mem_parrd2),  (void *) &mem_parrd2);
+  clSetKernelArg(prog->kernel, 17, sizeof(mem_parid2),  (void *) &mem_parid2);
+  clSetKernelArg(prog->kernel, 18, sizeof(mem_critr),   (void *) &mem_critr);
+  clSetKernelArg(prog->kernel, 19, sizeof(mem_criti),   (void *) &mem_criti);
+  clSetKernelArg(prog->kernel, 20, sizeof(mem_Sx),      (void *) &mem_Sx);
+  clSetKernelArg(prog->kernel, 21, sizeof(mem_Sy),      (void *) &mem_Sy);
+  clSetKernelArg(prog->kernel, 22, sizeof(mem_cs),      (void *)&mem_cs);
 
   fflush(stdout);
 
@@ -443,6 +449,7 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
   clReleaseMemObject(mem_h);
   clReleaseMemObject(mem_w);
   clReleaseMemObject(mem_order);
+  clReleaseMemObject(mem_fntype);
   clReleaseMemObject(mem_polr);
   clReleaseMemObject(mem_poli);
   clReleaseMemObject(mem_polrd);
