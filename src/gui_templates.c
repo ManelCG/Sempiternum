@@ -87,7 +87,7 @@ void gui_templates_show_preferences_window(GtkWidget *w, gpointer data){
       for (int i = 0; i < complex_plane_colorschemes_get_num(); i++){
         gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_colorscheme), NULL, complex_plane_colorschemes_get_name(i));
       }
-      gtk_combo_box_set_active(GTK_COMBO_BOX(combo_colorscheme), 0);
+      gtk_combo_box_set_active(GTK_COMBO_BOX(combo_colorscheme), complex_plane_get_colorscheme(planes[0]));
 
       g_signal_connect(combo_colorscheme, "changed", G_CALLBACK(combo_colorscheme_handler), (gpointer) planes);
 

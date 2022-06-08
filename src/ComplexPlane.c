@@ -1076,6 +1076,10 @@ complex complex_compute_polynomial(const complex double *polynomial,
   return auxz;
 }
 
+void complex_plane_reset_opencl(ComplexPlane *cp){
+  cp->cl->init = false;
+}
+
 
 void draw_sequence_lines_polynomial(struct ComplexPlane *C,  double point[2], int w, int h){
   complex param, z;

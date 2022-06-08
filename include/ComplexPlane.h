@@ -160,6 +160,8 @@ complex complex_compute_polynomial(const complex double *polynomial, int order, 
 double complex_plane_thumbnail_get_span(ComplexPlane *);
 
 
+//OpenCL
+void complex_plane_reset_opencl(ComplexPlane *cp);
 
 //---Complex plane blueprints
 void complex_plane_set_mandelbrot_parameters(ComplexPlane *);

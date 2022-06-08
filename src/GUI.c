@@ -542,6 +542,10 @@ void destroy_cp_from_gpointer(GtkWidget *widget, gpointer gp){
   ComplexPlane *cp = (ComplexPlane *) gp;
   complex_plane_free(cp);
 }
+void button_resetcl_handler(GtkWidget *widget, gpointer data){
+  ComplexPlane *cp = (ComplexPlane *) data;
+  complex_plane_reset_opencl(cp);
+}
 void render_video_handler(GtkWidget *widget, gpointer data){
   struct genVideoData *d = (struct genVideoData *) data;
   if (d->rendering){
@@ -1745,6 +1749,8 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   GtkWidget *menu_fileMi;
   GtkWidget *menu_button_save_plot;
   GtkWidget *menu_button_render_video;
+  GtkWidget *menu_separator_resetcl;
+  GtkWidget *menu_button_resetcl;
   GtkWidget *menu_separator_quit;
   GtkWidget *menu_button_quit;
 
@@ -1817,6 +1823,17 @@ void draw_main_window(GtkWidget *widget, gpointer data){
     gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_button_render_video), icon);
   }
 
+  menu_separator_resetcl = gtk_separator_menu_item_new();
+
+  {
+    menu_button_resetcl = gtk_image_menu_item_new_with_label("Recompile OpenCL");
+    GtkWidget *icon = gtk_image_new_from_icon_name("application-x-executable", 16);
+    gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_button_resetcl), icon);
+    g_signal_connect(menu_button_resetcl, "activate", G_CALLBACK(button_resetcl_handler), (gpointer) cp);
+    g_signal_connect(menu_button_resetcl, "activate", G_CALLBACK(button_resetcl_handler), (gpointer) cp_thumb);
+  }
+
+
   menu_separator_quit = gtk_separator_menu_item_new();
 
   {
@@ -1828,6 +1845,8 @@ void draw_main_window(GtkWidget *widget, gpointer data){
 
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_button_save_plot);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_button_render_video);
+  gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_separator_resetcl);
+  gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_button_resetcl);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_separator_quit);
   gtk_menu_shell_append(GTK_MENU_SHELL(menu_filemenu), menu_button_quit);
 
@@ -2391,6 +2410,8 @@ int main (int argc, char *argv[]) {
   complex_plane_set_spanx(planes[1], 6);
   complex_plane_set_spany(planes[1], 4);
   complex_plane_adjust_span_ratio(planes[1]);
+
+  complex_plane_gen_plot(planes[1]);
 
   int w = 1600; int h = 850;
 
