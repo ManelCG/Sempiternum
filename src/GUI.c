@@ -145,7 +145,7 @@ void save_polynomial_member(GtkWidget *widget, gpointer data){
 
   const char *name = gtk_widget_get_name(widget);
   char type = *name;
-  int box = atoi(name + 1);
+  int box = atoi(name + 1); //Name is 'r4' for example.
 
   switch(type){
     case 'r':
@@ -1373,6 +1373,7 @@ void draw_thumbnail_gui(GtkWidget *widget, double x, double y, gpointer data){
 
   gtk_widget_destroy(thumb_img);
   complex_plane_set_quadratic_parameter(cp_thumb, x + y*I);
+  complex_plane_set_numerical_method_a(cp_thumb, x + y*I);
 
   // double span = complex_plane_thumbnail_get_span(cp_thumb);
   // complex_plane_set_spanx(cp_thumb, span);
@@ -1527,9 +1528,13 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
           break;
         case 3:
           if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_PARAMETER_SPACE){
+            complex_plane_set_numerical_method_a(cp, x + y*I);
+
             complex_plane_set_plot_type(cp, COMPLEX_PLANE_DYNAMIC_PLANE);
             complex_plane_set_plot_type(cp_thumb, COMPLEX_PLANE_PARAMETER_SPACE);
           } else if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_DYNAMIC_PLANE){
+            complex_plane_set_numerical_method_a(cp, 0);
+
             complex_plane_set_plot_type(cp, COMPLEX_PLANE_PARAMETER_SPACE);
             complex_plane_set_plot_type(cp_thumb, COMPLEX_PLANE_DYNAMIC_PLANE);
           }
@@ -2055,6 +2060,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
             strbuf = g_strdup_printf("%d", i);
             gtk_widget_set_name(input_parameters_vector[i], strbuf); free(strbuf);
             g_signal_connect(input_parameters_vector[i], "changed", G_CALLBACK(input_parameters_vector_handler), (gpointer) cp);
+            g_signal_connect(input_parameters_vector[i], "changed", G_CALLBACK(input_parameters_vector_handler), (gpointer) cp_thumb);
 
             gtk_combo_box_set_active(GTK_COMBO_BOX(input_parameters_vector[i]), creal(complex_plane_get_parameters_vector_member(cp, i)) + 1);
             gtk_box_pack_start(GTK_BOX(polynomial_settings_input_vbox), input_parameters_vector[i], false, false, 0);

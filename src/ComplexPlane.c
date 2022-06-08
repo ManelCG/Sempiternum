@@ -43,6 +43,9 @@ typedef struct ComplexPlane{
   complex double *polynomial_parameters_derivative;
   complex double *second_polynomial_parameters_derivative;
   complex double *polynomial_critical_point;
+
+  complex double numerical_method_a;
+
   int w, h, a;
   int N, N_line;
 
@@ -82,6 +85,7 @@ ComplexPlane *complex_plane_new(ComplexPlane **cp){
   new->polynomial_critical_point = NULL;
 
   complex_plane_set_function_type(new, 0);
+  complex_plane_set_numerical_method_a(new, 0);
 
   new->is_drawing_active = true;
   new->is_lines_active = true;
@@ -129,6 +133,8 @@ ComplexPlane *complex_plane_copy(ComplexPlane **dest, ComplexPlane *src){
   complex_plane_set_polynomial_parameter(new, complex_plane_get_polynomial_parameter(src));
   complex_plane_copy_polynomial(new, src);
 
+  complex_plane_set_numerical_method_a(new, complex_plane_get_numerical_method_a(src));
+
   complex_plane_set_colorscheme(new, complex_plane_get_colorscheme(src));
 
   //TODO: Copy zoom_point1 & zoom_point2
@@ -159,6 +165,8 @@ void complex_plane_print(ComplexPlane *cp){
   }
   printf("Center:         %g %+gi\n", creal(cp->center), cimag(cp->center));
   printf("Spans:          %g, %g\n", cp->SpanX, cp->SpanY);
+
+  printf("Numerical method a: %g %+gi\n", creal(cp->numerical_method_a), cimag(cp->numerical_method_a));
 
 
   complex_plane_print_all_polynomials(cp);
@@ -555,7 +563,6 @@ void complex_plane_print_polynomial_parameters_derivative(ComplexPlane *cp){
   printf("\n");
 }
 void complex_plane_set_parameters_vector_member(ComplexPlane *cp, complex double v, int i){
-  printf("Setting: %g %g\n", creal(v), cimag(v));
   int order = cp->polynomial_order;
   cp->polynomial_parameters[i] = v;
   if (i < order){
@@ -602,6 +609,12 @@ double complex_plane_get_quadratic_parameter_real(ComplexPlane *cp){
 }
 double complex_plane_get_quadratic_parameter_imag(ComplexPlane *cp){
   return(cimag(complex_plane_get_quadratic_parameter(cp)));
+}
+void complex_plane_set_numerical_method_a(ComplexPlane *cp, complex double a){
+  cp->numerical_method_a = a;
+}
+complex double complex_plane_get_numerical_method_a(ComplexPlane *cp){
+  return cp->numerical_method_a;
 }
 
 //---center
@@ -865,6 +878,7 @@ void complex_plane_gen_plot(ComplexPlane *cp){
                                                cp->polynomial_parameters_derivative,
                                                cp->second_polynomial_parameters_derivative,
                                                cp->polynomial_critical_point,
+                                               cp->numerical_method_a,
                                                cp->Sx, cp->Sy,
                                                cp->colorscheme,
                                                &(cp->cl), !cp->cl->init);

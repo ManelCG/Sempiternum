@@ -53,6 +53,8 @@ void complex_plane_set_quadratic_parameter_imag(ComplexPlane *, double);
 double complex_plane_get_quadratic_parameter_real(ComplexPlane *);
 double complex_plane_get_quadratic_parameter_imag(ComplexPlane *);
 complex double complex_plane_get_quadratic_parameter(ComplexPlane *);
+void complex_plane_set_numerical_method_a(ComplexPlane *, complex double);
+complex double complex_plane_get_numerical_method_a(ComplexPlane *);
 
 //Center
 void complex_plane_set_center(ComplexPlane *, complex double);

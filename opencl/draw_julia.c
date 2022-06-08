@@ -72,6 +72,7 @@ __kernel void numerical_method(__global unsigned char *m,
                                __global int *wp,
                                __global int *orderp,
                                __global int *func_type_P,
+                               __global double *param_a,
                                __global double *polynomial_real,
                                __global double *polynomial_imag,
                                __global double *polynomial_derivative_real,
@@ -564,6 +565,7 @@ __kernel void numerical_method(__global unsigned char *m,
                                __global int *wp,
                                __global int *orderp,
                                __global int *func_type_P,
+                               __global double *param_a,
                                __global double *polynomial_real,
                                __global double *polynomial_imag,
                                __global double *polynomial_derivative_real,
@@ -620,7 +622,7 @@ __kernel void numerical_method(__global unsigned char *m,
   } else if (func_type == COMPLEX_PLANE_DYNAMIC_PLANE){
     //TODO: Pass a by arguments to opencl function!!!!!!!!!!
     //
-    a[0] = 1; a[1] = 0;
+    a[0] = param_a[0]; a[1] = param_a[1];
     z[0] = newx; z[1] = newy;
   }
 
@@ -658,8 +660,8 @@ __kernel void numerical_method(__global unsigned char *m,
 
     if (fabs(norm - old_norm) <= tol){ //Converges!
       if (fabs(a[0] - zr[0]) < tol && fabs(a[1] - zr[1]) < tol){
-        m[(y*w + x)*3+0] = 32;
-        m[(y*w + x)*3+1] = 32;
+        m[(y*w + x)*3+0] = 128;
+        m[(y*w + x)*3+1] = 64;
         m[(y*w + x)*3+2] = 32;
       } else {
         color_matrix_radial(m, x, y, w, zr[0], zr[1], colorscheme);
