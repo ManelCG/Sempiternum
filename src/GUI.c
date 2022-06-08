@@ -26,6 +26,8 @@
 #define GUI_ACTION_RENDER_VIDEO 1
 #define GUI_ACTION_GEN_FRAMES 2
 
+#define GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE true
+
 // #define DEBUG_GUI
 
 struct genVideoData{
@@ -1229,18 +1231,19 @@ void reset_view_handler(GtkWidget *w, gpointer data){
   complex_plane_set_center(cp, 0);
 }
 void combo_plot_type_handler(GtkWidget *w, gpointer data){
-  ComplexPlane *cp = (ComplexPlane *) data;
-  if (complex_plane_get_id(cp) == COMPLEX_PLANE_THUMBNAIL_ID){  //This complex plane is our thumbnail which has oposite plot type
-    if (strcmp(gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(w)), "Parameter space") == 0){
-      complex_plane_set_plot_type(cp, COMPLEX_PLANE_DYNAMIC_PLANE);
-    } else {
-      complex_plane_set_plot_type(cp, COMPLEX_PLANE_PARAMETER_SPACE);
+  ComplexPlane **planes = (ComplexPlane **) data;
+  ComplexPlane *cp = planes[0], *cp_thumb = planes[1];
+  if (strcmp(gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(w)), "Parameter space") == 0){
+    complex_plane_set_plot_type(cp, COMPLEX_PLANE_PARAMETER_SPACE);
+    complex_plane_set_plot_type(cp_thumb, COMPLEX_PLANE_DYNAMIC_PLANE);
+    if (GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE){
+      complex_plane_set_drawing_lines_active(cp, false);
     }
-  } else {  //Main complex plane
-    if (strcmp(gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(w)), "Parameter space") == 0){
-      complex_plane_set_plot_type(cp, COMPLEX_PLANE_PARAMETER_SPACE);
-    } else {
-      complex_plane_set_plot_type(cp, COMPLEX_PLANE_DYNAMIC_PLANE);
+  } else {
+    complex_plane_set_plot_type(cp_thumb, COMPLEX_PLANE_PARAMETER_SPACE);
+    complex_plane_set_plot_type(cp, COMPLEX_PLANE_DYNAMIC_PLANE);
+    if (GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE){
+      complex_plane_set_drawing_lines_active(cp, true);
     }
   }
 }
@@ -1254,7 +1257,8 @@ void combo_function_type_handler(GtkWidget *w, gpointer data){
   complex_plane_set_function_type(th, function_type);
 
   ////TODO: Fix being able to draw main widnow from here
-  // draw_main_window(w, data);
+  // g_main_context_invoke(NULL, G_SOURCE_FUNC(draw_main_window), (gpointer) w);
+  // G_SOURCE_FUNC(draw_main_window(w, data));
 }
 void combo_polynomial_parameter_handler(GtkWidget *widget, gpointer data){
   ComplexPlane *p = (ComplexPlane *) data;
@@ -1507,11 +1511,19 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
 
             complex_plane_set_plot_type(cp, COMPLEX_PLANE_DYNAMIC_PLANE);
             complex_plane_set_plot_type(cp_thumb, COMPLEX_PLANE_PARAMETER_SPACE);
+
+            if (GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE){
+              complex_plane_set_drawing_lines_active(cp, false);
+            }
           } else if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_DYNAMIC_PLANE){
             complex_plane_set_quadratic_parameter(cp, 0);
 
             complex_plane_set_plot_type(cp, COMPLEX_PLANE_PARAMETER_SPACE);
             complex_plane_set_plot_type(cp_thumb, COMPLEX_PLANE_DYNAMIC_PLANE);
+
+            if (GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE){
+              complex_plane_set_drawing_lines_active(cp, true);
+            }
           }
 
           draw_from_options(event_box, data);
@@ -1532,11 +1544,19 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
 
             complex_plane_set_plot_type(cp, COMPLEX_PLANE_DYNAMIC_PLANE);
             complex_plane_set_plot_type(cp_thumb, COMPLEX_PLANE_PARAMETER_SPACE);
+
+            if (GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE){
+              complex_plane_set_drawing_lines_active(cp, false);
+            }
           } else if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_DYNAMIC_PLANE){
             complex_plane_set_numerical_method_a(cp, 0);
 
             complex_plane_set_plot_type(cp, COMPLEX_PLANE_PARAMETER_SPACE);
             complex_plane_set_plot_type(cp_thumb, COMPLEX_PLANE_DYNAMIC_PLANE);
+
+            if (GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE){
+              complex_plane_set_drawing_lines_active(cp, true);
+            }
           }
 
           draw_from_options(event_box, data);
@@ -1906,8 +1926,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_widget_set_size_request(combo_function_type, 168, 20);
   g_signal_connect(combo_function_type, "changed", G_CALLBACK(combo_function_type_handler), (gpointer) planes);
   // g_signal_connect(combo_function_type, "changed", G_CALLBACK(draw_main_window), (gpointer) planes);
-  g_signal_connect(input_plot_type, "changed", G_CALLBACK(combo_plot_type_handler), (gpointer) cp);
-  g_signal_connect(input_plot_type, "changed", G_CALLBACK(combo_plot_type_handler), (gpointer) cp_thumb);
+  g_signal_connect(input_plot_type, "changed", G_CALLBACK(combo_plot_type_handler), (gpointer) planes);
 
   //Draw/Clear box
   button_draw = gtk_button_new_with_label("Draw");
@@ -2302,9 +2321,18 @@ void draw_main_window(GtkWidget *widget, gpointer data){
    free(buffer);
 
    if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_PARAMETER_SPACE){
+    if (GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE){
+      complex_plane_set_drawing_lines_active(cp, false);
+    }
+
      gtk_combo_box_set_active(GTK_COMBO_BOX(input_plot_type), COMPLEX_PLANE_PARAMETER_SPACE);
    } else if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_DYNAMIC_PLANE){
+    if (GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE){
+      complex_plane_set_drawing_lines_active(cp, true);
+    }
+
      gtk_combo_box_set_active(GTK_COMBO_BOX(input_plot_type), COMPLEX_PLANE_DYNAMIC_PLANE);
+
    }
 
 
