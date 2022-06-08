@@ -658,7 +658,8 @@ __kernel void numerical_method(__global unsigned char *m,
     }
 
 
-    if (fabs(norm - old_norm) <= tol){ //Converges!
+    // if (fabs(norm - old_norm) <= tol){ //Converges!
+    if (fabs(oldz[0] - zr[0]) < tol && fabs(oldz[1] - zr[1]) < tol){
       if (fabs(a[0] - zr[0]) < tol && fabs(a[1] - zr[1]) < tol){
         m[(y*w + x)*3+0] = 128;
         m[(y*w + x)*3+1] = 64;
