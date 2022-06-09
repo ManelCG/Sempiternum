@@ -1517,7 +1517,7 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
             complex_plane_set_plot_type(cp_thumb, COMPLEX_PLANE_PARAMETER_SPACE);
 
             if (GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE){
-              complex_plane_set_drawing_lines_active(cp, false);
+              complex_plane_set_drawing_lines_active(cp, true);
             }
           } else if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_DYNAMIC_PLANE){
             complex_plane_set_quadratic_parameter(cp, 0);
@@ -1526,7 +1526,7 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
             complex_plane_set_plot_type(cp_thumb, COMPLEX_PLANE_DYNAMIC_PLANE);
 
             if (GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE){
-              complex_plane_set_drawing_lines_active(cp, true);
+              complex_plane_set_drawing_lines_active(cp, false);
             }
           }
 
@@ -1550,7 +1550,7 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
             complex_plane_set_plot_type(cp_thumb, COMPLEX_PLANE_PARAMETER_SPACE);
 
             if (GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE){
-              complex_plane_set_drawing_lines_active(cp, false);
+              complex_plane_set_drawing_lines_active(cp, true);
             }
           } else if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_DYNAMIC_PLANE){
             complex_plane_set_numerical_method_a(cp, 0);
@@ -1559,7 +1559,7 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
             complex_plane_set_plot_type(cp_thumb, COMPLEX_PLANE_DYNAMIC_PLANE);
 
             if (GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE){
-              complex_plane_set_drawing_lines_active(cp, true);
+              complex_plane_set_drawing_lines_active(cp, false);
             }
           }
 
@@ -1684,6 +1684,10 @@ void draw_main_window(GtkWidget *widget, gpointer data){
     complex_plane_set_mandelbrot_parameters(cp);
 
     complex_plane_gen_plot(cp);
+
+    if (GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE){
+      complex_plane_set_drawing_lines_active(cp, false);
+    }
   }
 
   //Define all local widgets
@@ -1945,7 +1949,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_widget_set_size_request(combo_function_type, 168, 20);
   g_signal_connect(combo_function_type, "changed", G_CALLBACK(combo_function_type_handler), (gpointer) planes);
   // g_signal_connect(combo_function_type, "changed", G_CALLBACK(draw_main_window), (gpointer) planes);
-  g_signal_connect(input_plot_type, "changed", G_CALLBACK(combo_plot_type_handler), (gpointer) planes);
+  // g_signal_connect(input_plot_type, "changed", G_CALLBACK(combo_plot_type_handler), (gpointer) planes);
 
   //Draw/Clear box
   button_draw = gtk_button_new_with_label("Draw");
@@ -2340,19 +2344,19 @@ void draw_main_window(GtkWidget *widget, gpointer data){
    free(buffer);
 
    if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_PARAMETER_SPACE){
-    if (GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE){
-      complex_plane_set_drawing_lines_active(cp, false);
-    }
-
+    // if (GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE){
+    //   complex_plane_set_drawing_lines_active(cp, false);
+    // }
      gtk_combo_box_set_active(GTK_COMBO_BOX(input_plot_type), COMPLEX_PLANE_PARAMETER_SPACE);
    } else if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_DYNAMIC_PLANE){
-    if (GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE){
-      complex_plane_set_drawing_lines_active(cp, true);
-    }
-
+    // if (GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE){
+    //   complex_plane_set_drawing_lines_active(cp, true);
+    // }
      gtk_combo_box_set_active(GTK_COMBO_BOX(input_plot_type), COMPLEX_PLANE_DYNAMIC_PLANE);
-
    }
+
+   //Has to be here to avoid bugs
+   g_signal_connect(input_plot_type, "changed", G_CALLBACK(combo_plot_type_handler), (gpointer) planes);
 
 
    int w = complex_plane_get_width(cp), h = complex_plane_get_height(cp), stride = complex_plane_get_stride(cp);
