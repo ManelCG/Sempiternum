@@ -1264,6 +1264,10 @@ void combo_function_type_handler(GtkWidget *w, gpointer data){
   // g_main_context_invoke(NULL, G_SOURCE_FUNC(draw_main_window), (gpointer) w);
   // G_SOURCE_FUNC(draw_main_window(w, data));
 }
+void button_send_click(GtkWidget *w, gpointer w2){
+  GtkWidget *button = (GtkWidget *) w2;
+  gtk_button_clicked(GTK_BUTTON(button));
+}
 void combo_polynomial_parameter_handler(GtkWidget *widget, gpointer data){
   ComplexPlane *p = (ComplexPlane *) data;
   if (complex_plane_set_polynomial_parameter(p, gtk_combo_box_get_active(GTK_COMBO_BOX(widget))) == -1){
@@ -1643,6 +1647,12 @@ void draw_sequence(GtkWidget *window, GdkEventButton *event, gpointer data){
       if (complex_plane_get_polynomial_order(cp) != -1){
         draw_sequence_lines_newton(cp, p, w, h);
       }
+      break;
+    case 3:
+      if (complex_plane_get_polynomial_order(cp) != -1){
+        draw_sequence_lines_numerical_method(cp, p, w, h);
+      }
+      break;
   }
 
   clear_container(window);
@@ -1960,6 +1970,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   g_signal_connect(button_clear, "clicked", G_CALLBACK(draw_main_window), (gpointer) planes);
   gtk_box_pack_start(GTK_BOX(draw_apply_box), button_draw, true, true, 0);
   gtk_box_pack_start(GTK_BOX(draw_apply_box), button_clear, true, true, 0);
+  // g_signal_connect(combo_function_type, "changed", G_CALLBACK(button_send_click), (gpointer) button_clear);
 
   //Zoom box
   button_zoomin = gtk_button_new_with_label(" + ");

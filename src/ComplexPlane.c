@@ -1075,8 +1075,8 @@ complex complex_compute_polynomial(const complex double *polynomial,
   }
   return auxz;
 }
-complex complex_compute_polynomial_p(const complex double *polynomial, complex param, complex z, int order){
-  complex auxz = 0, aux = 0;
+complex complex_compute_polynomial_p(const complex double *polynomial, complex double param, complex double z, int order){
+  complex double auxz = 0, aux = 0;
   for (int j = order; j >= 0; j--){
     if (j == order){
       auxz = complex_mul(polynomial[j], param);
@@ -1212,5 +1212,26 @@ void draw_sequence_lines_newton(ComplexPlane *C, double p[2], int w, int h){
   }
 }
 
+complex newton_method(const complex double *polynomial,
+                      const complex double *polynomial_derivative,
+                      const complex double *polynomial_param,
+                      const complex double *polynomial_param_derivative,
+                      complex double z, complex double a, int order){
+  complex double den, num;
+
+  den = complex_compute_polynomial_p(polynomial_derivative, 1, z, order);
+  den += complex_compute_polynomial_p(polynomial_param_derivative, a, z, order);
+
+  if (den == 0){
+    return INFINITY;
+  }
+
+  num = complex_compute_polynomial_p(polynomial, 1, z, order);
+  num += complex_compute_polynomial_p(polynomial_param, a, z, order);
+
+  return complex_div(num, den);
+}
+
 void draw_sequence_lines_numerical_method(ComplexPlane *cp, double p[2], int w, int h){
+  // int plot_type = complex_plane_get_plot_type(cp);
 }
