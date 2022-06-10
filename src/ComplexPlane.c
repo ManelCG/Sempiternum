@@ -1167,10 +1167,10 @@ void draw_sequence_lines_newton(ComplexPlane *C, double p[2], int w, int h){
 
   z = numerator[order + 1];
 
-  if (parameter == order + 1){
+  if (parameter == order + 1){  //Dynamic plane
     x = (int) floor((creal(param)                              - C->Sx[0])/(C->Sx[1]-C->Sx[0]) * w);
     y = (int) floor((-(cimag(param)-complex_plane_get_center_imag(C) - ((C->Sy[0]+C->Sy[1])/2)) - C->Sy[0])/(C->Sy[1]-C->Sy[0]) * h);
-  } else {
+  } else {    //Parameter space
     x = (int) floor((creal(z)                              - C->Sx[0])/(C->Sx[1]-C->Sx[0]) * w);
     y = (int) floor((-(cimag(z)-complex_plane_get_center_imag(C) - ((C->Sy[0]+C->Sy[1])/2)) - C->Sy[0])/(C->Sy[1]-C->Sy[0]) * h);
   }
@@ -1212,6 +1212,45 @@ void draw_sequence_lines_newton(ComplexPlane *C, double p[2], int w, int h){
   }
 }
 
+
+void draw_sequence_lines_numerical_method(ComplexPlane *cp, double p[2], int w, int h){
+  complex double a, z;
+
+  int plot_type = complex_plane_get_plot_type(cp);
+  int order = cp->polynomial_order;
+  int x, y, oldx, oldy;
+
+  if (plot_type == COMPLEX_PLANE_PARAMETER_SPACE){
+    a = p[0] + p[1] * I;
+    z = complex_compute_polynomial_p(cp->polynomial_critical_point, 1, a, order); //Salgo del critico
+  } else {
+    a = complex_plane_get_numerical_method_a(cp);
+    z = p[0] + p[1] * I;
+  }
+
+  x = (int) floor((creal(z) - cp->Sx[0])/(cp->Sx[1]-cp->Sx[0])*w);
+  y = (int) floor((-(cimag(z)-complex_plane_get_center_imag(cp) - ((cp->Sy[0]+cp->Sy[1])/2)) - cp->Sy[0])/(cp->Sy[1]-cp->Sy[0]) * h);
+
+  for (int i = 0; i < cp->N_line; i++){
+    oldx = x; oldy = y;
+
+    z = newton_method(cp->polynomial, cp->polynomial_derivative, cp->polynomial_parameters, cp->polynomial_parameters_derivative, z, a, order);
+
+    if (z == INFINITY){
+      #ifdef DEBUG_CP
+        printf("Error: Newton's method returned infinity.\n");
+      #endif
+
+        return;
+    }
+
+    x = (int) floor((creal(z) - cp->Sx[0])/(cp->Sx[1]-cp->Sx[0])*w);
+    y = (int) floor((-(cimag(z)-complex_plane_get_center_imag(cp) - ((cp->Sy[0]+cp->Sy[1])/2)) - cp->Sy[0])/(cp->Sy[1]-cp->Sy[0]) * h);
+
+    draw_line(cp->drawn_plot, x, y, oldx, oldy, w, h);
+  }
+}
+
 complex newton_method(const complex double *polynomial,
                       const complex double *polynomial_derivative,
                       const complex double *polynomial_param,
@@ -1229,9 +1268,5 @@ complex newton_method(const complex double *polynomial,
   num = complex_compute_polynomial_p(polynomial, 1, z, order);
   num += complex_compute_polynomial_p(polynomial_param, a, z, order);
 
-  return complex_div(num, den);
-}
-
-void draw_sequence_lines_numerical_method(ComplexPlane *cp, double p[2], int w, int h){
-  // int plot_type = complex_plane_get_plot_type(cp);
+  return z - complex_div(num, den);
 }

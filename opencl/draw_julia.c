@@ -391,9 +391,7 @@ void compute_polynomial_p(double *result_real,     double *result_imag,
       }
     }
   }
-
   *result_real = auxz0; *result_imag = auxz1;
-
 }
 
 void compute_polynomial(__global double *polynomial_real, __global double *polynomial_imag,
@@ -620,8 +618,6 @@ __kernel void numerical_method(__global unsigned char *m,
     a[0] = newx; a[1] = newy;
     compute_polynomial_p(&z[0], &z[1], critical_real, critical_imag, 1, 0, a[0], a[1], order);
   } else if (func_type == COMPLEX_PLANE_DYNAMIC_PLANE){
-    //TODO: Pass a by arguments to opencl function!!!!!!!!!!
-    //
     a[0] = param_a[0]; a[1] = param_a[1];
     z[0] = newx; z[1] = newy;
   }
