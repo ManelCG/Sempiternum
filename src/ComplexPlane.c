@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <complex_function.h>
+
 #include <stdio.h>
 
 #include <draw_julia.h>
@@ -46,6 +48,8 @@ typedef struct ComplexPlane{
 
   complex double numerical_method_a;
 
+  RootArrayMember *roots;
+
   int w, h, a;
   int N, N_line;
 
@@ -63,6 +67,63 @@ void complex_plane_free(ComplexPlane *cp){
   // opencl_free(cp->cl);
 
   free(cp);
+}
+
+//---RootArrayMembers
+int complex_plane_root_array_member_add(ComplexPlane *cp, RootArrayMember *ram){
+  if (cp->roots == NULL){
+    cp->roots = ram;
+    return 0;
+  }
+
+  int i = 0;
+  RootArrayMember *r = cp->roots;
+  RootArrayMember *p = NULL;
+  while (r != NULL){
+    p = r;
+    r = root_array_member_next(r);
+    i++;
+  }
+
+  root_array_member_set_next(p, ram);
+  return i;
+}
+_Bool complex_plane_root_array_member_remove_by_index(ComplexPlane *cp, int ram){
+  if (cp->roots == NULL){
+    return false;
+  }
+
+  int i;
+  RootArrayMember *r = cp->roots;
+  RootArrayMember *p = NULL;
+  for (i = 0; i < ram; i++){
+    p = r;
+    r = root_array_member_next(r);
+
+    if (r == NULL){
+      return false;
+    }
+  }
+
+  root_array_member_set_next(p, root_array_member_next(r));
+  root_array_member_destroy(r);
+  return true;
+}
+RootArrayMember *complex_plane_root_array_member_get_by_index(ComplexPlane *cp, int ram){
+  if (cp->roots == NULL){
+    return NULL;
+  }
+
+  int i;
+  RootArrayMember *r = cp->roots;
+  for (i = 0; i < ram; i++){
+    r = root_array_member_next(r);
+
+    if (r == NULL){
+      return NULL;
+    }
+  }
+  return r;
 }
 
 
@@ -98,6 +159,8 @@ ComplexPlane *complex_plane_new(ComplexPlane **cp){
   new->cl = get_opencl_info();
   new->cl->init = false;
 
+  new->roots = NULL;
+
   complex_plane_set_colorscheme(new, 0);
 
   if (cp != NULL){
@@ -132,6 +195,13 @@ ComplexPlane *complex_plane_copy(ComplexPlane **dest, ComplexPlane *src){
   complex_plane_set_polynomial_order(new, complex_plane_get_polynomial_order(src));
   complex_plane_set_polynomial_parameter(new, complex_plane_get_polynomial_parameter(src));
   complex_plane_copy_polynomial(new, src);
+  copy_polynomial(src->polynomial, new->polynomial, complex_plane_get_polynomial_order(src));
+  copy_polynomial(src->polynomial_derivative, new->polynomial_derivative, complex_plane_get_polynomial_order(src));
+  copy_polynomial(src->second_polynomial_derivative, new->second_polynomial_derivative, complex_plane_get_polynomial_order(src));
+  copy_polynomial(src->polynomial_parameters, new->polynomial_parameters, complex_plane_get_polynomial_order(src));
+  copy_polynomial(src->polynomial_parameters_derivative, new->polynomial_parameters_derivative, complex_plane_get_polynomial_order(src));
+  copy_polynomial(src->second_polynomial_parameters_derivative, new->second_polynomial_parameters_derivative, complex_plane_get_polynomial_order(src));
+  copy_polynomial(src->polynomial_critical_point, new->polynomial_critical_point, complex_plane_get_polynomial_order(src));
 
   complex_plane_set_numerical_method_a(new, complex_plane_get_numerical_method_a(src));
 
@@ -367,6 +437,12 @@ int complex_plane_set_polynomial_parameter(ComplexPlane *cp, int p){
 }
 int complex_plane_get_polynomial_parameter(ComplexPlane *cp){
   return cp->polynomial_parameter;
+}
+int copy_polynomial(complex double *src, complex double *dest, int order){
+  for (int i = 0; i <= order +1; i++){
+    dest[i] = src[i];
+  }
+  return 0;
 }
 int complex_plane_copy_polynomial(ComplexPlane *d, ComplexPlane *s){
   int order = complex_plane_get_polynomial_order(s);

@@ -130,6 +130,7 @@ int complex_plane_set_polynomial_parameter(ComplexPlane *, int);  //-1 if fail
 int complex_plane_get_polynomial_parameter(ComplexPlane *);
 _Bool complex_plane_polynomial_is_null(ComplexPlane *);
 int complex_plane_copy_polynomial(ComplexPlane *dest, ComplexPlane *src); //-1 if fail
+int copy_polynomial(complex double *src, complex double *dest, int order);
 const complex double *complex_plane_get_polynomial(ComplexPlane *);
 const complex double *complex_plane_get_critical(ComplexPlane *cp);
 void complex_plane_print_polynomial(ComplexPlane *);
@@ -159,6 +160,11 @@ complex complex_compute_polynomial(const complex double *polynomial, int order, 
 complex complex_compute_polynomial_p(const complex double *polynomial, complex double param, complex double z, int order);
 
 double complex_plane_thumbnail_get_span(ComplexPlane *);
+
+//---RootArrayMembers
+int complex_plane_root_array_member_add(ComplexPlane *, RootArrayMember *);
+_Bool complex_plane_root_array_member_remove_by_index(ComplexPlane *, int);
+RootArrayMember *complex_plane_root_array_member_get_by_index(ComplexPlane *, int);
 
 
 //OpenCL
