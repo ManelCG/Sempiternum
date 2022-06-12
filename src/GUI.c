@@ -546,6 +546,9 @@ void button_resetcl_handler(GtkWidget *widget, gpointer data){
   ComplexPlane *cp = (ComplexPlane *) data;
   complex_plane_reset_opencl(cp);
 }
+void button_add_root_handler(GtkWidget *widget, gpointer data){
+  printf("Hola!\n");
+}
 void render_video_handler(GtkWidget *widget, gpointer data){
   struct genVideoData *d = (struct genVideoData *) data;
   if (d->rendering){
@@ -2219,13 +2222,11 @@ void draw_main_window(GtkWidget *widget, gpointer data){
         gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_polynomial_parameter), NULL, "z");
         gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_polynomial_parameter_thumb), NULL, "z");
         gtk_entry_set_width_chars(GTK_ENTRY(input_polynomial_order), 5);
-        gtk_box_pack_end(GTK_BOX(polynomial_order_box), combo_polynomial_parameter, true, true, 0);
         gtk_widget_set_tooltip_text(combo_polynomial_parameter, "Which parameter to plot");
         gtk_widget_set_tooltip_text(combo_polynomial_parameter_thumb, "Which parameter to plot in thumbnails");
         g_signal_connect(combo_polynomial_parameter, "changed", G_CALLBACK(combo_polynomial_parameter_handler), (gpointer) cp);
         g_signal_connect(combo_polynomial_parameter_thumb, "changed", G_CALLBACK(combo_polynomial_parameter_handler), (gpointer) cp_thumb);
 
-        gtk_box_pack_end(GTK_BOX(thumb_options_box), combo_polynomial_parameter_thumb, true, false, 0);
 
         if (complex_plane_get_polynomial_parameter(cp) == -1){
           complex_plane_set_polynomial_parameter(cp, polynomial_order);
@@ -2236,6 +2237,18 @@ void draw_main_window(GtkWidget *widget, gpointer data){
           }
         } else {
           gtk_combo_box_set_active(GTK_COMBO_BOX(combo_polynomial_parameter), complex_plane_get_polynomial_parameter(cp));
+        }
+
+        if (ftype != 3){
+          gtk_box_pack_end(GTK_BOX(polynomial_order_box), combo_polynomial_parameter, true, true, 0);
+          gtk_box_pack_end(GTK_BOX(thumb_options_box), combo_polynomial_parameter_thumb, true, false, 0);
+        } else {  //Numerical method
+          GtkWidget *button_add_root;
+          button_add_root = gtk_button_new_with_label("Configure roots");
+          gtk_widget_set_tooltip_text(button_add_root, "Set roots to where polynomial converges");
+          g_signal_connect(button_add_root, "clicked", G_CALLBACK(button_add_root_handler), (gpointer) planes);
+
+          gtk_box_pack_end(GTK_BOX(polynomial_order_box), button_add_root, true, true, 0);
         }
 
         if (complex_plane_get_function_type(cp) < 3){
