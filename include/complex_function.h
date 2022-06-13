@@ -26,7 +26,7 @@ _Bool root_array_member_destroy(RootArrayMember *);
 void complex_polynomial_set_order(ComplexPolynomial *cp, int);
 int complex_polynomial_get_order(ComplexPolynomial *cp);
 void complex_polynomial_set_member(ComplexPolynomial *cp, complex double, int);
-complex double complex_polynomial_get_member(ComplexPolynomial *cp, int);
+complex double complex_polynomial_get_member(const ComplexPolynomial *cp, int);
 
 const complex double *complex_polynomial_get_polynomial(const ComplexPolynomial *cp);
 

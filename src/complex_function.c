@@ -115,7 +115,7 @@ void complex_polynomial_set_member(ComplexPolynomial *cp, complex double x, int 
   }
   cp->polynomial[i] = x;
 }
-complex double complex_polynomial_get_member(ComplexPolynomial *cp, int i){
+complex double complex_polynomial_get_member(const ComplexPolynomial *cp, int i){
   return cp->polynomial[i];
 }
 
