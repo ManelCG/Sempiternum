@@ -114,30 +114,6 @@ void calculate_video_duration(GtkWidget *w, gpointer data){
   free(text);
 }
 
-void insert_text_event_int(GtkEditable *editable, const gchar *text, gint length, gint *position, gpointer data){
-  #ifdef DEBUG_GUI
-    printf("\n#####\ninsert_text_event_int called\n#####\n");
-  #endif //DEBUG_GUI
-  for (int i = 0; i < length; i++){
-    if (!isdigit(text[i])){
-      g_signal_stop_emission_by_name(G_OBJECT(editable), "insert-text");
-      return;
-    }
-  }
-}
-
-void insert_text_event_float(GtkEditable *editable, const gchar *text, gint length, gint *position, gpointer data){
-  #ifdef DEBUG_GUI
-    printf("\n#####\ninsert_text_event_float called\n#####\n");
-  #endif //DEBUG_GUI
-  for (int i = 0; i < length; i++){
-    if (!isdigit(text[i]) && !(text[i] == '.') && !(text[i] == '-')){
-      g_signal_stop_emission_by_name(G_OBJECT(editable), "insert-text");
-      return;
-    }
-  }
-}
-
 void save_polynomial_member(GtkWidget *widget, gpointer data){
   #ifdef DEBUG_GUI
 
@@ -343,20 +319,6 @@ void *update_video_preview(gpointer data){
 }
 
 void *render_video(void *data){
-  // w[0]  = entry_choose_resolution[0];
-  // w[1]  = entry_choose_resolution[1];
-  // w[2]  = entry_choose_spans[0];
-  // w[3]  = entry_choose_spans[1];
-  // w[4]  = entry_choose_spans[2];
-  // w[5]  = entry_choose_spans[3];
-  // w[6]  = entry_choose_center_point[0];
-  // w[7]  = entry_choose_center_point[1];
-  // w[8]  = folder_input;
-  // w[9]  = file_input;
-  // w[10] = progress_bar;
-  // w[11] = video_preview;
-  // w[12] = entry_fps;
-  // w[13] = entry_zoomratio;
   struct genVideoData *videodata = (struct genVideoData *) data;
   int action = videodata->action;
   videodata->pause = false;
@@ -547,7 +509,7 @@ void button_resetcl_handler(GtkWidget *widget, gpointer data){
   complex_plane_reset_opencl(cp);
 }
 void button_add_root_handler(GtkWidget *widget, gpointer data){
-  printf("Hola!\n");
+  gui_templates_configure_roots(widget, data);
 }
 void render_video_handler(GtkWidget *widget, gpointer data){
   struct genVideoData *d = (struct genVideoData *) data;
@@ -2135,7 +2097,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
             //Set polynomial z labels
             if (i < polynomial_order + 1){
               if (i < polynomial_order -1){
-                sprintf(buffer, "a^%d + ", polynomial_order -i);
+                sprintf(buffer, "a%s + ", complex_function_get_exponent_str(polynomial_order -i));
               } else if (i == polynomial_order -1){
                 strcpy(buffer, "a + ");
               } else if (i == polynomial_order){
@@ -2146,7 +2108,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
               gtk_box_pack_end(GTK_BOX(polynomial_labels_vbox), c_power_label, false, false, 5);
 
               if (i < polynomial_order -1){
-                sprintf(buffer, "az^%d + ", polynomial_order -i);
+                sprintf(buffer, "az%s + ", complex_function_get_exponent_str(polynomial_order -i));
               } else if (i == polynomial_order -1){
                 strcpy(buffer, "az + ");
               } else if (i == polynomial_order){
@@ -2185,7 +2147,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
           //Set polynomial z labels
           if (i < polynomial_order + 1){
             if (i < polynomial_order -1){
-              sprintf(buffer, "z^%d + ", polynomial_order -i);
+              sprintf(buffer, "z%s + ", complex_function_get_exponent_str(polynomial_order -i));
             } else if (i == polynomial_order -1){
               strcpy(buffer, "z + ");
             } else if (i == polynomial_order){
@@ -2198,7 +2160,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
 
           if (i < polynomial_order + 1){
             if (i < polynomial_order -1){
-              sprintf(buffer, "a * z^%d", polynomial_order-i);
+              sprintf(buffer, "a * z%s", complex_function_get_exponent_str(polynomial_order-i));
             } else if (i == polynomial_order -1){
               sprintf(buffer, "a * z");
             } else if (i == polynomial_order){

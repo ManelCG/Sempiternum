@@ -24,6 +24,89 @@ void destroy(GtkWidget *w, gpointer data){
   gtk_widget_destroy(window);
 }
 
+void insert_text_event_int(GtkEditable *editable, const gchar *text, gint length, gint *position, gpointer data){
+  #ifdef DEBUG_GUI
+    printf("\n#####\ninsert_text_event_int called\n#####\n");
+  #endif //DEBUG_GUI
+  for (int i = 0; i < length; i++){
+    if (!isdigit(text[i])){
+      g_signal_stop_emission_by_name(G_OBJECT(editable), "insert-text");
+      return;
+    }
+  }
+}
+
+
+
+void insert_text_event_float(GtkEditable *editable, const gchar *text, gint length, gint *position, gpointer data){
+  #ifdef DEBUG_GUI
+    printf("\n#####\ninsert_text_event_float called\n#####\n");
+  #endif //DEBUG_GUI
+  for (int i = 0; i < length; i++){
+    if (!isdigit(text[i]) && !(text[i] == '.') && !(text[i] == '-')){
+      g_signal_stop_emission_by_name(G_OBJECT(editable), "insert-text");
+      return;
+    }
+  }
+}
+
+
+
+void gui_templates_configure_roots(GtkWidget *w, gpointer data){
+  ComplexPlane **planes = (ComplexPlane **) data;
+  ComplexPlane *cp_main = planes[0];
+  ComplexPlane *cp_thumb = planes[1];
+
+  int order = complex_plane_get_polynomial_order(cp_main);
+
+  ComplexPolynomial *new_root = complex_polynomial_new(NULL, order);
+
+
+  GtkWindow *window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
+  gtk_window_set_resizable(window, false);
+  gtk_window_set_title(window, "Configure function roots");
+  // gtk_window_set_default_size(GTK_WINDOW(window), 420, 600);
+  gtk_container_set_border_width(GTK_CONTAINER(window), 15);
+  g_signal_connect(window, "destroy", G_CALLBACK(destroy), (gpointer) window);
+
+  GtkWidget *main_vbox;
+  GtkWidget *new_root_hbox;
+  main_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+
+
+  new_root_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 15);
+  for (int i = 0; i < order + 1; i++){
+    GtkWidget *input_root = gtk_entry_new();
+    gtk_entry_set_width_chars(GTK_ENTRY(input_root), 5);
+
+
+    gtk_box_pack_start(GTK_BOX(new_root_hbox), input_root, false, false, 5);
+
+    if (order-i > 1){
+      char buffer[64];
+      sprintf(buffer, "a%s + ", complex_function_get_exponent_str(order -i));
+      GtkWidget *label_root = gtk_label_new(buffer);
+      gtk_box_pack_start(GTK_BOX(new_root_hbox), label_root, false, false, 5);
+    } else if (order -i == 1){
+      GtkWidget *label_root = gtk_label_new("a + ");
+      gtk_box_pack_start(GTK_BOX(new_root_hbox), label_root, false, false, 5);
+    }
+  }
+
+  // int n_roots = complex_plane_root_array_member_get_n(cp_main);
+  // for (int i = 0; i < n_roots; i++){
+  //   GtkWidget *roots_label = gtk_label_new("Test");
+  // }
+
+  gtk_box_pack_start(GTK_BOX(main_vbox), new_root_hbox, true, false, 0);
+
+  gtk_container_add(GTK_CONTAINER(window), main_vbox);
+
+  gtk_widget_show_all(GTK_WIDGET(window));
+  #ifdef DEBUG_GUI_TEMPLATES
+  printf("Gui templates configure_roots window called succesfully\n");
+  #endif
+}
 
 void gui_templates_show_help_window(GtkWidget *w, gpointer data){
   GtkWindow *window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
