@@ -141,7 +141,8 @@ void complex_plane_format_polynomial(ComplexPlane *cp);
 void complex_plane_format_derivative(ComplexPlane *cp);
 void complex_plane_format_second_derivative(ComplexPlane *cp);
 void complex_plane_format_polynomial_critical_point(ComplexPlane *cp);
-void complex_plane_format_arbitrary_polynomial(complex double *p, complex double *par, int order, char cvar, char cpar);
+void complex_plane_format_arbitrary_polynomial(const complex double *p, const complex double *par, int order, char cvar, char cpar);
+char *complex_plane_polynomial_to_str(const complex double *polynomial, const complex double *polynomial_parameters, int polynomial_order, char cvar, char cpar);
 void complex_plane_print_all_polynomials(ComplexPlane *);
 void complex_plane_set_polynomial_critical_point_member(ComplexPlane *cp, complex v, int index);
 
@@ -163,6 +164,7 @@ double complex_plane_thumbnail_get_span(ComplexPlane *);
 
 //---RootArrayMembers
 int complex_plane_root_array_member_add(ComplexPlane *, RootArrayMember *);
+int complex_plane_root_array_member_get_n(ComplexPlane *);
 _Bool complex_plane_root_array_member_remove_by_index(ComplexPlane *, int);
 RootArrayMember *complex_plane_root_array_member_get_by_index(ComplexPlane *, int);
 

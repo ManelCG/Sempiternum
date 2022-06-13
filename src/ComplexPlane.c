@@ -48,6 +48,7 @@ typedef struct ComplexPlane{
 
   complex double numerical_method_a;
 
+  int nroots;
   RootArrayMember *roots;
 
   int w, h, a;
@@ -73,19 +74,21 @@ void complex_plane_free(ComplexPlane *cp){
 int complex_plane_root_array_member_add(ComplexPlane *cp, RootArrayMember *ram){
   if (cp->roots == NULL){
     cp->roots = ram;
+    cp->nroots ++;
     return 0;
   }
 
   int i = 0;
   RootArrayMember *r = cp->roots;
   RootArrayMember *p = NULL;
-  while (r != NULL){
+  for (i = 0; i < cp->nroots; i++){
     p = r;
     r = root_array_member_next(r);
-    i++;
   }
 
   root_array_member_set_next(p, ram);
+  cp->nroots ++;
+
   return i;
 }
 _Bool complex_plane_root_array_member_remove_by_index(ComplexPlane *cp, int ram){
@@ -93,9 +96,17 @@ _Bool complex_plane_root_array_member_remove_by_index(ComplexPlane *cp, int ram)
     return false;
   }
 
-  int i;
+  int i = 0;
   RootArrayMember *r = cp->roots;
   RootArrayMember *p = NULL;
+
+  if (ram == 0){
+    cp->roots = root_array_member_next(r);
+    cp->nroots --;
+    root_array_member_destroy(r);
+    return true;
+  }
+
   for (i = 0; i < ram; i++){
     p = r;
     r = root_array_member_next(r);
@@ -107,6 +118,7 @@ _Bool complex_plane_root_array_member_remove_by_index(ComplexPlane *cp, int ram)
 
   root_array_member_set_next(p, root_array_member_next(r));
   root_array_member_destroy(r);
+  cp->nroots --;
   return true;
 }
 RootArrayMember *complex_plane_root_array_member_get_by_index(ComplexPlane *cp, int ram){
@@ -124,6 +136,9 @@ RootArrayMember *complex_plane_root_array_member_get_by_index(ComplexPlane *cp, 
     }
   }
   return r;
+}
+int complex_plane_root_array_member_get_n(ComplexPlane *cp){
+  return cp->nroots;
 }
 
 
@@ -159,6 +174,7 @@ ComplexPlane *complex_plane_new(ComplexPlane **cp){
   new->cl = get_opencl_info();
   new->cl->init = false;
 
+  new->nroots = 0;
   new->roots = NULL;
 
   complex_plane_set_colorscheme(new, 0);
@@ -208,6 +224,9 @@ ComplexPlane *complex_plane_copy(ComplexPlane **dest, ComplexPlane *src){
   complex_plane_set_colorscheme(new, complex_plane_get_colorscheme(src));
 
   //TODO: Copy zoom_point1 & zoom_point2
+
+  //TODO: Copy RAMs
+
 
   if (dest != NULL){
     *dest = new;
@@ -532,7 +551,7 @@ void complex_plane_format_derivative(ComplexPlane *cp){
 void complex_plane_format_polynomial_critical_point(ComplexPlane *cp){
   complex_plane_format_arbitrary_polynomial(cp->polynomial_critical_point, NULL, cp->polynomial_order, 'a', '0');
 }
-void complex_plane_format_arbitrary_polynomial(complex double *polynomial, complex double *polynomial_parameters, int polynomial_order, char cvar, char cpar){
+void complex_plane_format_arbitrary_polynomial(const complex double *polynomial, const complex double *polynomial_parameters, int polynomial_order, char cvar, char cpar){
   _Bool printed = false;
   if (polynomial != NULL){
     for (int i = 0; i < polynomial_order; i++){
@@ -625,6 +644,121 @@ void complex_plane_format_arbitrary_polynomial(complex double *polynomial, compl
   } else {
     printf("(null)\n");
   }
+}
+char *complex_plane_polynomial_to_str(const complex double *polynomial, const complex double *polynomial_parameters, int polynomial_order, char cvar, char cpar){
+  char *strret = calloc(sizeof(char) * 1024, 1);
+  char buffer[64];
+  _Bool printed = false;
+  if (polynomial != NULL){
+    for (int i = 0; i < polynomial_order; i++){
+      if (i == polynomial_order - 1){
+        if (polynomial[i] != 0){
+          if (polynomial[i] == creal(polynomial[i])){
+            sprintf(buffer, "%+g%c ", creal(polynomial[i]), cvar);
+            strcat(strret, buffer);
+            printed = true;
+          } else if (polynomial[i] == cimag(polynomial[i])){
+            sprintf(buffer, "%+gi%c ", cimag(polynomial[i]), cvar);
+            strcat(strret, buffer);
+            printed = true;
+          } else {
+            sprintf(buffer, "(%+g %+gi)%c ", creal(polynomial[i]), cimag(polynomial[i]), cvar);
+            strcat(strret, buffer);
+            printed = true;
+          }
+        }
+        if (polynomial_parameters != NULL){
+          if (polynomial_parameters[i] != 0){
+            if (polynomial_parameters[i] == creal(polynomial_parameters[i])){
+              sprintf(buffer, "%+g%c%c ", creal(polynomial_parameters[i]), cpar, cvar);
+              strcat(strret, buffer);
+              printed = true;
+            } else if (polynomial_parameters[i] == cimag(polynomial_parameters[i])){
+              sprintf(buffer, "%+gi%c%c ", cimag(polynomial_parameters[i]), cpar, cvar);
+              strcat(strret, buffer);
+              printed = true;
+            } else {
+              sprintf(buffer, "+(%+g %+gi)%c%c ", creal(polynomial_parameters[i]), cimag(polynomial_parameters[i]), cpar, cvar);
+              strcat(strret, buffer);
+              printed = true;
+            }
+          }
+        }
+      } else {
+        if (polynomial[i] != 0){
+          if (polynomial[i] == creal(polynomial[i])){
+            sprintf(buffer, "%+g%c^%d ", creal(polynomial[i]), cvar, polynomial_order - i);
+            strcat(strret, buffer);
+            printed = true;
+          } else if (polynomial[i] == cimag(polynomial[i])){
+            sprintf(buffer, "%+gi%c^%d ", cimag(polynomial[i]), cvar, polynomial_order - i);
+            strcat(strret, buffer);
+            printed = true;
+          } else {
+            sprintf(buffer, "(%+g %+gi)%c^%d ", creal(polynomial[i]), cimag(polynomial[i]), cvar, polynomial_order - i);
+            strcat(strret, buffer);
+            printed = true;
+          }
+        }
+        if (polynomial_parameters != NULL){
+          if (polynomial_parameters[i] != 0){
+            if (polynomial_parameters[i] == creal(polynomial_parameters[i])){
+              sprintf(buffer, "%+g%c%c^%d ", creal(polynomial_parameters[i]), cpar, cvar, polynomial_order - i);
+              strcat(strret, buffer);
+              printed = true;
+            } else if (polynomial_parameters[i] == cimag(polynomial_parameters[i])){
+              sprintf(buffer, "%+gi%c%c^%d ", cimag(polynomial_parameters[i]), cpar, cvar, polynomial_order - i);
+              strcat(strret, buffer);
+              printed = true;
+            } else {
+              sprintf(buffer, "+(%+g %+gi)%c%c^%d ", creal(polynomial_parameters[i]), cimag(polynomial_parameters[i]), cpar, cvar, polynomial_order - i);
+              strcat(strret, buffer);
+              printed = true;
+            }
+          }
+        }
+      }
+    }
+    if (polynomial[polynomial_order] != 0){
+      if (polynomial[polynomial_order] == creal(polynomial[polynomial_order])){
+        sprintf(buffer, "%+g ", creal(polynomial[polynomial_order]));
+        strcat(strret, buffer);
+        printed = true;
+      } else if (polynomial[polynomial_order] == cimag(polynomial[polynomial_order])){
+        sprintf(buffer, "%+gi ", cimag(polynomial[polynomial_order]));
+        strcat(strret, buffer);
+        printed = true;
+      } else {
+        sprintf(buffer, "+(%g %+gi) ", creal(polynomial[polynomial_order]), cimag(polynomial[polynomial_order]));
+        strcat(strret, buffer);
+        printed = true;
+      }
+    }
+    if (polynomial_parameters != NULL){
+      if (polynomial_parameters[polynomial_order] != 0){
+        if (polynomial_parameters[polynomial_order] == creal(polynomial_parameters[polynomial_order])){
+          sprintf(buffer, "%+g%c ", creal(polynomial_parameters[polynomial_order]), cpar);
+          strcat(strret, buffer);
+          printed = true;
+        } else if (polynomial_parameters[polynomial_order] == cimag(polynomial_parameters[polynomial_order])){
+          sprintf(buffer, "%+gi%c ", cimag(polynomial_parameters[polynomial_order]), cpar);
+          strcat(strret, buffer);
+          printed = true;
+        } else {
+          sprintf(buffer, "+(%g %+gi)%c ", creal(polynomial_parameters[polynomial_order]), cimag(polynomial_parameters[polynomial_order]), cpar);
+          strcat(strret, buffer);
+          printed = true;
+        }
+      }
+    }
+    if (printed == false){
+      strcpy(strret, "0");
+    }
+  } else {
+    strcpy(strret, "(null)");
+  }
+
+  return strret;
 }
 void complex_plane_print_polynomial_parameters_derivative(ComplexPlane *cp){
   for (int i = 0; i < cp->polynomial_order; i++){

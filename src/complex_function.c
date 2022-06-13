@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <string.h>
+
+#include <math.h>
+
 #include <complex_function.h>
 
 typedef struct ComplexPolynomial{
@@ -23,6 +27,8 @@ RootArrayMember *root_array_member_new(RootArrayMember **dest, ComplexPolynomial
   } else {
     new->root = root;
   }
+
+  new->next = NULL;
 
   if (dest != NULL){
     *dest = new;
@@ -104,7 +110,7 @@ int complex_polynomial_get_order(ComplexPolynomial *cp){
 
 void complex_polynomial_set_member(ComplexPolynomial *cp, complex double x, int i){
   int order = cp->order;
-  if (i >= order +1){
+  if (i > order){
     return;
   }
   cp->polynomial[i] = x;
@@ -113,13 +119,58 @@ complex double complex_polynomial_get_member(ComplexPolynomial *cp, int i){
   return cp->polynomial[i];
 }
 
-const complex double *complex_polynomial_get_polynomial(ComplexPolynomial *cp){
+const complex double *complex_polynomial_get_polynomial(const ComplexPolynomial *cp){
   return cp->polynomial;
+}
+
+const char *complex_function_get_exponent_str(int exp){
+  int digits = floor(log10(exp) + 1);
+  char str[digits+1];
+  char *ret = calloc(sizeof(char) * (2*digits +2), 1);
+
+  sprintf(str, "%d", exp);
+
+  for (int i = 0; i < digits; i++){
+    switch(str[i]){
+      case '0':
+        strcat(ret,  "⁰");
+        break;
+      case '1':
+        strcat(ret,  "¹");
+        break;
+      case '2':
+        strcat(ret,  "²");
+        break;
+      case '3':
+        strcat(ret,  "³");
+        break;
+      case '4':
+        strcat(ret,  "⁴");
+        break;
+      case '5':
+        strcat(ret,  "⁵");
+        break;
+      case '6':
+        strcat(ret,  "⁶");
+        break;
+      case '7':
+        strcat(ret,  "⁷");
+        break;
+      case '8':
+        strcat(ret,  "⁸");
+        break;
+      case '9':
+        strcat(ret,  "⁹");
+        break;
+    }
+  }
+
+  return ret;
 }
 
 
 //IO
-void complex_polynomial_print(ComplexPolynomial *cp){
+void complex_polynomial_print(ComplexPolynomial *cp, char var){
   for (int i = 0; i < cp->order; i++){
     if (i == cp->order){
       printf("(%g%+g)z ", creal(cp->polynomial[i]), cimag(cp->polynomial[i]));

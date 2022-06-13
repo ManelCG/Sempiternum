@@ -28,9 +28,11 @@ int complex_polynomial_get_order(ComplexPolynomial *cp);
 void complex_polynomial_set_member(ComplexPolynomial *cp, complex double, int);
 complex double complex_polynomial_get_member(ComplexPolynomial *cp, int);
 
-const complex double *complex_polynomial_get_polynomial(ComplexPolynomial *cp);
+const complex double *complex_polynomial_get_polynomial(const ComplexPolynomial *cp);
+
+const char *complex_function_get_exponent_str(int);
 
 //IO
-void complex_polynomial_print(ComplexPolynomial *cp);
+void complex_polynomial_print(ComplexPolynomial *cp, char var);
 
 #endif //COMPLEX_FUNCTION_H
