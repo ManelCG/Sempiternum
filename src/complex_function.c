@@ -19,6 +19,64 @@ typedef struct RootArrayMember{
 } RootArrayMember;
 
 
+ComplexPolynomial *complex_polynomial_copy(ComplexPolynomial **dest, ComplexPolynomial *src){
+  if (src != NULL){
+    int order = src->order;
+    ComplexPolynomial *new = complex_polynomial_new(NULL, order);
+    for (int i = 0; i <= order; i++){
+      new->polynomial[i] = src->polynomial[i];
+    }
+
+    if (dest != NULL){
+      *dest = new;
+    }
+    return new;
+  } else {
+    return NULL;
+  }
+}
+
+RootArrayMember *root_array_member_copy(RootArrayMember **dest, RootArrayMember *src){
+  if (src != NULL){
+    ComplexPolynomial *cpnew = complex_polynomial_copy(NULL, src->root);
+    RootArrayMember *new = root_array_member_new(NULL, cpnew, src->root->order);
+    new->next = src->next;
+
+    if (dest != NULL){
+      *dest = new;
+    }
+    return new;
+  } else {
+    return NULL;
+  }
+}
+
+RootArrayMember *root_array_copy(RootArrayMember **dest, RootArrayMember *src, int nroots){
+  if (src != NULL){
+    RootArrayMember *r = src;
+
+    RootArrayMember *new = root_array_member_copy(NULL, r);
+    RootArrayMember *ptr = new;
+
+    for (int root = 0; root < nroots; root++){
+      r = r->next;
+
+      RootArrayMember *newr = root_array_member_copy(NULL, r);
+      ptr->next = newr;
+
+      ptr = ptr->next;
+    }
+
+    if (dest != NULL){
+      *dest = new;
+    }
+    return new;
+  } else {
+    return NULL;
+  }
+}
+
+
 //If root is null, creates new with specified order. If root is not null, ignores order.
 RootArrayMember *root_array_member_new(RootArrayMember **dest, ComplexPolynomial *root, int order){
   RootArrayMember *new = malloc(sizeof(RootArrayMember));
