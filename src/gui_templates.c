@@ -159,7 +159,7 @@ void gui_templates_configure_roots_internal(GtkWidget *window, gpointer data){
     RootArrayMember *ram = complex_plane_root_array_member_get_by_index(cp_main, i);
 
     char buffer[1024];
-    char *buffer1 = g_strdup_printf("%02d: ", i);
+    char *buffer1 = g_strdup_printf("Root %2d: ", i);
     char *buffer2 = complex_plane_polynomial_to_str(complex_polynomial_get_polynomial(root_array_member_get_root(ram)), NULL, order, 'a', 'x');
 
     strcpy(buffer, buffer1);
