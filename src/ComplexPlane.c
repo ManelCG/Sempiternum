@@ -226,7 +226,8 @@ ComplexPlane *complex_plane_copy(ComplexPlane **dest, ComplexPlane *src){
   //TODO: Copy zoom_point1 & zoom_point2
 
   //TODO: Copy RAMs
-
+  new->nroots = src->nroots;
+  new->roots = root_array_copy(NULL, src->roots, src->nroots);
 
   if (dest != NULL){
     *dest = new;
