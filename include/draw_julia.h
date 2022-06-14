@@ -3,6 +3,7 @@
 
 #include <complex.h>
 #include <opencl_funcs.h>
+#include <complex_function.h>
 
 struct complexBI{
   double complex p;
@@ -43,6 +44,7 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
                                            complex double *polynomial_parameters_second_derivative,
                                            complex double *polynomial_critical_point,
                                            complex double numerical_method_a,
+                                           int nroots, RootArrayMember *roots,
                                            double Sx[2], double Sy[2], int color,
                                            struct OpenCL_Program **cl_prog, _Bool init_new_cl);
 

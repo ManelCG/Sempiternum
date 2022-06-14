@@ -13,6 +13,7 @@
 #include <lodepng.h>
 
 #include <ComplexPlane.h>
+#include <complex_function.h>
 
 #include <file_io.h>
 #include <draw_julia.h>
@@ -237,6 +238,7 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
                                            complex double *polynomial_parameters_second_derivative,
                                            complex double *polynomial_critical_point,
                                            complex double numerical_method_a,
+                                           int nroots, RootArrayMember *roots,
                                            double Sx[2], double Sy[2], int color,
                                            struct OpenCL_Program **cl_prog, _Bool init_new_cl){
 
@@ -278,6 +280,24 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
     polynomial_critical_point_imag[i] = cimag(polynomial_critical_point[i]);
   }
 
+  //Vectors for roots
+  double *root_vectors_real = calloc(sizeof(double) * nroots * (order + 1), 1);
+  double *root_vectors_imag = calloc(sizeof(double) * nroots * (order + 1), 1);
+  for (int i = 0; i < nroots; i++){
+    const ComplexPolynomial *cpol = root_array_member_get_root(roots);
+    const complex double *polynomial = complex_polynomial_get_polynomial(cpol);
+    complex_plane_format_arbitrary_polynomial(complex_polynomial_get_polynomial(cpol), NULL, order, 'a', 'x');
+    printf("Adding: ");
+    for (int j = 0; j < order+1; j++){
+      printf("%f + ", creal(polynomial[j]));
+      root_vectors_real[(i*(order+1)) + j] = creal(polynomial[j]);
+      root_vectors_imag[(i*(order+1)) + j] = cimag(polynomial[j]);
+    }
+    printf("\n");
+    roots = root_array_member_next(roots);
+  }
+
+
   struct OpenCL_Program *prog = cl_prog == NULL? NULL : *cl_prog;
 
   if (init_new_cl == true){
@@ -318,55 +338,61 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
 
   //Create all memory objects for Julia set Drawing
   //Memobjects for images and dmap
-  cl_mem mem_m      = clCreateBuffer(prog->context, CL_MEM_WRITE_ONLY,w*h*3,                    NULL, &(prog->ret));
-  cl_mem mem_N      = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int),              NULL, &(prog->ret));
-  cl_mem mem_h      = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int),              NULL, &(prog->ret));
-  cl_mem mem_w      = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int),              NULL, &(prog->ret));
-  cl_mem mem_order  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int),              NULL, &(prog->ret));
-  cl_mem mem_fntype = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int),              NULL, &(prog->ret));
-  cl_mem mem_parama = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*2,         NULL, &(prog->ret));
-  cl_mem mem_polr   = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_poli   = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_polrd  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_polid  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_polrd2 = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_polid2 = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_parr   = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_pari   = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_parrd  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_parid  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_parrd2 = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_parid2 = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_critr  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_criti  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_Sx     = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*2,         NULL, &(prog->ret));
-  cl_mem mem_Sy     = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*2,         NULL, &(prog->ret));
-  cl_mem mem_cs     = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int),              NULL, &(prog->ret));
+  cl_mem mem_m      = clCreateBuffer(prog->context, CL_MEM_WRITE_ONLY,w*h*3,                            NULL, &(prog->ret));
+  cl_mem mem_N      = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int),                      NULL, &(prog->ret));
+  cl_mem mem_h      = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int),                      NULL, &(prog->ret));
+  cl_mem mem_w      = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int),                      NULL, &(prog->ret));
+  cl_mem mem_order  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int),                      NULL, &(prog->ret));
+  cl_mem mem_fntype = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int),                      NULL, &(prog->ret));
+  cl_mem mem_parama = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*2,                 NULL, &(prog->ret));
+  cl_mem mem_polr   = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2),         NULL, &(prog->ret));
+  cl_mem mem_poli   = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2),         NULL, &(prog->ret));
+  cl_mem mem_polrd  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2),         NULL, &(prog->ret));
+  cl_mem mem_polid  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2),         NULL, &(prog->ret));
+  cl_mem mem_polrd2 = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2),         NULL, &(prog->ret));
+  cl_mem mem_polid2 = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2),         NULL, &(prog->ret));
+  cl_mem mem_parr   = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2),         NULL, &(prog->ret));
+  cl_mem mem_pari   = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2),         NULL, &(prog->ret));
+  cl_mem mem_parrd  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2),         NULL, &(prog->ret));
+  cl_mem mem_parid  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2),         NULL, &(prog->ret));
+  cl_mem mem_parrd2 = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2),         NULL, &(prog->ret));
+  cl_mem mem_parid2 = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2),         NULL, &(prog->ret));
+  cl_mem mem_critr  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2),         NULL, &(prog->ret));
+  cl_mem mem_criti  = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*(order+2),         NULL, &(prog->ret));
+  cl_mem mem_Sx     = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*2,                 NULL, &(prog->ret));
+  cl_mem mem_Sy     = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*2,                 NULL, &(prog->ret));
+  cl_mem mem_cs     = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int),                      NULL, &(prog->ret));
+  cl_mem mem_nroots = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int),                      NULL, &(prog->ret));
+  cl_mem mem_rootsr = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*nroots*(order+1),  NULL, &(prog->ret));
+  cl_mem mem_rootsi = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*nroots*(order+1),  NULL, &(prog->ret));
 
   //Write data to mem objects
-  clEnqueueWriteBuffer(prog->command_queue, mem_N,      CL_TRUE, 0, sizeof(int),              &N,                                           0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_h,      CL_TRUE, 0, sizeof(int),              &h,                                           0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_w,      CL_TRUE, 0, sizeof(int),              &w,                                           0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_order,  CL_TRUE, 0, sizeof(int),              &order,                                       0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_fntype, CL_TRUE, 0, sizeof(int),              &func_type,                                   0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_parama, CL_TRUE, 0, sizeof(double)*2,         &numerical_method_av,                         0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_polr,   CL_TRUE, 0, sizeof(double)*(order+2), polynomial_real,                              0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_poli,   CL_TRUE, 0, sizeof(double)*(order+2), polynomial_imag,                              0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_polrd,  CL_TRUE, 0, sizeof(double)*(order+2), polynomial_derivative_real,                   0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_polid,  CL_TRUE, 0, sizeof(double)*(order+2), polynomial_derivative_imag,                   0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_polrd2, CL_TRUE, 0, sizeof(double)*(order+2), polynomial_second_derivative_real,            0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_polid2, CL_TRUE, 0, sizeof(double)*(order+2), polynomial_second_derivative_imag,            0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_parr,   CL_TRUE, 0, sizeof(double)*(order+2), polynomial_parameters_real,                   0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_pari,   CL_TRUE, 0, sizeof(double)*(order+2), polynomial_parameters_imag,                   0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_parrd,  CL_TRUE, 0, sizeof(double)*(order+2), polynomial_parameters_derivative_real,        0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_parid,  CL_TRUE, 0, sizeof(double)*(order+2), polynomial_parameters_derivative_imag,        0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_parrd2, CL_TRUE, 0, sizeof(double)*(order+2), polynomial_parameters_second_derivative_real, 0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_parid2, CL_TRUE, 0, sizeof(double)*(order+2), polynomial_parameters_second_derivative_imag, 0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_critr,  CL_TRUE, 0, sizeof(double)*(order+2), polynomial_critical_point_real,               0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_criti,  CL_TRUE, 0, sizeof(double)*(order+2), polynomial_critical_point_imag,               0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_Sx,     CL_TRUE, 0, sizeof(double)*2,         Sx,                                           0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_Sy,     CL_TRUE, 0, sizeof(double)*2,         Sy,                                           0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_cs,     CL_TRUE, 0, sizeof(int),              &color,                                       0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_N,      CL_TRUE, 0, sizeof(int),                      &N,                                           0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_h,      CL_TRUE, 0, sizeof(int),                      &h,                                           0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_w,      CL_TRUE, 0, sizeof(int),                      &w,                                           0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_order,  CL_TRUE, 0, sizeof(int),                      &order,                                       0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_fntype, CL_TRUE, 0, sizeof(int),                      &func_type,                                   0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_parama, CL_TRUE, 0, sizeof(double)*2,                 &numerical_method_av,                         0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_polr,   CL_TRUE, 0, sizeof(double)*(order+2),         polynomial_real,                              0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_poli,   CL_TRUE, 0, sizeof(double)*(order+2),         polynomial_imag,                              0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_polrd,  CL_TRUE, 0, sizeof(double)*(order+2),         polynomial_derivative_real,                   0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_polid,  CL_TRUE, 0, sizeof(double)*(order+2),         polynomial_derivative_imag,                   0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_polrd2, CL_TRUE, 0, sizeof(double)*(order+2),         polynomial_second_derivative_real,            0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_polid2, CL_TRUE, 0, sizeof(double)*(order+2),         polynomial_second_derivative_imag,            0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_parr,   CL_TRUE, 0, sizeof(double)*(order+2),         polynomial_parameters_real,                   0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_pari,   CL_TRUE, 0, sizeof(double)*(order+2),         polynomial_parameters_imag,                   0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_parrd,  CL_TRUE, 0, sizeof(double)*(order+2),         polynomial_parameters_derivative_real,        0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_parid,  CL_TRUE, 0, sizeof(double)*(order+2),         polynomial_parameters_derivative_imag,        0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_parrd2, CL_TRUE, 0, sizeof(double)*(order+2),         polynomial_parameters_second_derivative_real, 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_parid2, CL_TRUE, 0, sizeof(double)*(order+2),         polynomial_parameters_second_derivative_imag, 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_critr,  CL_TRUE, 0, sizeof(double)*(order+2),         polynomial_critical_point_real,               0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_criti,  CL_TRUE, 0, sizeof(double)*(order+2),         polynomial_critical_point_imag,               0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_Sx,     CL_TRUE, 0, sizeof(double)*2,                 Sx,                                           0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_Sy,     CL_TRUE, 0, sizeof(double)*2,                 Sy,                                           0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_cs,     CL_TRUE, 0, sizeof(int),                      &color,                                       0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_nroots, CL_TRUE, 0, sizeof(int),                      &nroots,                                      0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_rootsr, CL_TRUE, 0, sizeof(double)*nroots*(order+1),  root_vectors_real,                            0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_rootsi, CL_TRUE, 0, sizeof(double)*nroots*(order+1),  root_vectors_imag,                            0, NULL, NULL);
 
 
   if (init_new_cl){
@@ -422,7 +448,10 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
   clSetKernelArg(prog->kernel, 20, sizeof(mem_criti),   (void *) &mem_criti);
   clSetKernelArg(prog->kernel, 21, sizeof(mem_Sx),      (void *) &mem_Sx);
   clSetKernelArg(prog->kernel, 22, sizeof(mem_Sy),      (void *) &mem_Sy);
-  clSetKernelArg(prog->kernel, 23, sizeof(mem_cs),      (void *)&mem_cs);
+  clSetKernelArg(prog->kernel, 23, sizeof(mem_cs),      (void *) &mem_cs);
+  clSetKernelArg(prog->kernel, 24, sizeof(mem_nroots),  (void *) &mem_nroots);
+  clSetKernelArg(prog->kernel, 25, sizeof(mem_rootsr),  (void *) &mem_rootsr);
+  clSetKernelArg(prog->kernel, 26, sizeof(mem_rootsi),  (void *) &mem_rootsi);
 
   fflush(stdout);
 
@@ -473,6 +502,8 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
   clReleaseMemObject(mem_criti);
   clReleaseMemObject(mem_Sx);
   clReleaseMemObject(mem_Sy);
+  clReleaseMemObject(mem_rootsr);
+  clReleaseMemObject(mem_rootsi);
 
   free(polynomial_real);
   free(polynomial_imag);
@@ -488,6 +519,8 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
   free(polynomial_parameters_second_derivative_imag);
   free(polynomial_critical_point_real);
   free(polynomial_critical_point_imag);
+  free(root_vectors_real);
+  free(root_vectors_imag);
 
 
   if (cl_prog == NULL){

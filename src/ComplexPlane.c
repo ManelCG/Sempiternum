@@ -1089,6 +1089,7 @@ void complex_plane_gen_plot(ComplexPlane *cp){
                                                cp->second_polynomial_parameters_derivative,
                                                cp->polynomial_critical_point,
                                                cp->numerical_method_a,
+                                               cp->nroots, cp->roots,
                                                cp->Sx, cp->Sy,
                                                cp->colorscheme,
                                                &(cp->cl), !cp->cl->init);

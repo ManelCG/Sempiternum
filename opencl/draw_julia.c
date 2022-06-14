@@ -87,7 +87,10 @@ __kernel void numerical_method(__global unsigned char *m,
                                __global double *polynomial_parameters_second_derivative_imag,
                                __global double *critical_real,   __global double *critical_imag,
                                __global double *Sx,              __global double *Sy,
-                               __global int *color);
+                               __global int *color,
+                               __global int *nrootsp,
+                               __global double *roots_real,
+                               __global double *roots_imag);
 
 //Utils
 __kernel void clone(__global unsigned char *result,
@@ -133,7 +136,7 @@ void color_with_iterations(int i, int N,
 void color_matrix_radial(__global unsigned char *m,
                          unsigned x, unsigned y, unsigned w,
                          double zreal, double zimag,
-                         int colorscheme);
+                         int colorscheme, float factor);
 
 
 
@@ -170,7 +173,7 @@ void color_with_iterations(int i, int N,
   }
 }
 
-void color_matrix_radial(__global unsigned char *m, unsigned x, unsigned y, unsigned w, double zreal, double zimag, int colorscheme){
+void color_matrix_radial(__global unsigned char *m, unsigned x, unsigned y, unsigned w, double zreal, double zimag, int colorscheme, float factor){
   const double PI = 3.141592;
   const double tol = 0.0000001;
   if (fabs(zreal) < tol && fabs(zimag) < tol){
@@ -195,8 +198,8 @@ void color_matrix_radial(__global unsigned char *m, unsigned x, unsigned y, unsi
   X = floor(X*255);
   C = floor(C*255);
 
-  int Xi = (int) X;
-  int Ci = (int) C;
+  int Xi = (int) (X * factor);
+  int Ci = (int) (C * factor);
 
   if (0 <= hp && hp < 1){
     m[(y*w + x)*3+0] = Ci;
@@ -578,8 +581,12 @@ __kernel void numerical_method(__global unsigned char *m,
                                __global double *polynomial_parameters_second_derivative_imag,
                                __global double *critical_real,   __global double *critical_imag,
                                __global double *Sx,              __global double *Sy,
-                               __global int *color){
+                               __global int *color,
+                               __global int *nrootsp,
+                               __global double *roots_real,
+                               __global double *roots_imag){
 
+  const double PI = 3.141592;
   int func_type = *func_type_P;
 
   const int w = *wp; const int h = *hp;
@@ -590,6 +597,7 @@ __kernel void numerical_method(__global unsigned char *m,
   const int x = get_global_id(1);
 
   int colorscheme = *color;
+  int nroots = *nrootsp;
 
   //Map x and y to range between -R and R
   double newx = (double) x / (double) w;
@@ -656,14 +664,33 @@ __kernel void numerical_method(__global unsigned char *m,
 
     // if (fabs(norm - old_norm) <= tol){ //Converges!
     if (fabs(oldz[0] - zr[0]) < tol && fabs(oldz[1] - zr[1]) < tol){
-      if (fabs(a[0] - zr[0]) < tol && fabs(a[1] - zr[1]) < tol){
-        m[(y*w + x)*3+0] = 128;
-        m[(y*w + x)*3+1] = 64;
-        m[(y*w + x)*3+2] = 32;
-      } else {
-        color_matrix_radial(m, x, y, w, zr[0], zr[1], colorscheme);
+      int colored = 0;
+      for (int root = 0; root < nroots; root++){
+        double root1, root2;
+        compute_polynomial_p(&root1, &root2, &roots_real[root*(order+1)], &roots_imag[root*(order+1)], 1, 0, a[0], a[1], order);
+
+        if (fabs(root1 - zr[0]) < tol && fabs(root2 - zr[1]) < tol){
+          float deg = ((float) root / (float) nroots) * 2*PI;
+          // deg = fmod(deg, PI);
+
+          int cord1 = cos(deg);
+          int cord2 = sin(deg);
+
+          color_matrix_radial(m, x, y, w, cord1, cord2, colorscheme, 0.3);
+
+          // m[(y*w + x)*3+0] = 128;
+          // m[(y*w + x)*3+1] = 64;
+          // m[(y*w + x)*3+2] = 32;
+
+          colored = 1;
+          return;
+        }
       }
-      return;
+
+      if (colored == 0){
+        color_matrix_radial(m, x, y, w, zr[0], zr[1], colorscheme, 1);
+        return;
+      }
     }
 
   }
@@ -781,7 +808,7 @@ __kernel void polynomial_fraction(__global unsigned char *m,
   }
 
   if (converged == 1){ //Color points
-    color_matrix_radial(m, x, y, w, z[0], z[1], colorscheme);
+    color_matrix_radial(m, x, y, w, z[0], z[1], colorscheme, 1);
   } else {
     m[(y*w + x)*3+0] = 0;
     m[(y*w + x)*3+1] = 0;
