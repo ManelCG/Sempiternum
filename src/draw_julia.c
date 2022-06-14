@@ -286,14 +286,10 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
   for (int i = 0; i < nroots; i++){
     const ComplexPolynomial *cpol = root_array_member_get_root(roots);
     const complex double *polynomial = complex_polynomial_get_polynomial(cpol);
-    complex_plane_format_arbitrary_polynomial(complex_polynomial_get_polynomial(cpol), NULL, order, 'a', 'x');
-    printf("Adding: ");
     for (int j = 0; j < order+1; j++){
-      printf("%f + ", creal(polynomial[j]));
       root_vectors_real[(i*(order+1)) + j] = creal(polynomial[j]);
       root_vectors_imag[(i*(order+1)) + j] = cimag(polynomial[j]);
     }
-    printf("\n");
     roots = root_array_member_next(roots);
   }
 
