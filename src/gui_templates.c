@@ -30,9 +30,9 @@ void destroy(GtkWidget *w, gpointer data){
 }
 
 void insert_text_event_int(GtkEditable *editable, const gchar *text, gint length, gint *position, gpointer data){
-  #ifdef DEBUG_GUI
+  #ifdef DEBUG_GUI_TEMPLATES
     printf("\n#####\ninsert_text_event_int called\n#####\n");
-  #endif //DEBUG_GUI
+  #endif //DEBUG_GUI_TEMPLATES
   for (int i = 0; i < length; i++){
     if (!isdigit(text[i])){
       g_signal_stop_emission_by_name(G_OBJECT(editable), "insert-text");
@@ -44,9 +44,9 @@ void insert_text_event_int(GtkEditable *editable, const gchar *text, gint length
 
 
 void insert_text_event_float(GtkEditable *editable, const gchar *text, gint length, gint *position, gpointer data){
-  #ifdef DEBUG_GUI
+  #ifdef DEBUG_GUI_TEMPLATES
     printf("\n#####\ninsert_text_event_float called\n#####\n");
-  #endif //DEBUG_GUI
+  #endif //DEBUG_GUI_TEMPLATES
   for (int i = 0; i < length; i++){
     if (!isdigit(text[i]) && !(text[i] == '.') && !(text[i] == '-')){
       g_signal_stop_emission_by_name(G_OBJECT(editable), "insert-text");
