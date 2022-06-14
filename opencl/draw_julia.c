@@ -622,6 +622,8 @@ __kernel void numerical_method(__global unsigned char *m,
 
   int ret;
 
+
+
   if (func_type == COMPLEX_PLANE_PARAMETER_SPACE){
     a[0] = newx; a[1] = newy;
     compute_polynomial_p(&z[0], &z[1], critical_real, critical_imag, 1, 0, a[0], a[1], order);
@@ -665,22 +667,18 @@ __kernel void numerical_method(__global unsigned char *m,
     // if (fabs(norm - old_norm) <= tol){ //Converges!
     if (fabs(oldz[0] - zr[0]) < tol && fabs(oldz[1] - zr[1]) < tol){
       int colored = 0;
+
       for (int root = 0; root < nroots; root++){
         double root1, root2;
         compute_polynomial_p(&root1, &root2, &roots_real[root*(order+1)], &roots_imag[root*(order+1)], 1, 0, a[0], a[1], order);
 
         if (fabs(root1 - zr[0]) < tol && fabs(root2 - zr[1]) < tol){
           float deg = ((float) root / (float) nroots) * 2*PI;
-          // deg = fmod(deg, PI);
 
-          int cord1 = cos(deg);
-          int cord2 = sin(deg);
+          double cord1 = cos(deg);
+          double cord2 = sin(deg);
 
-          color_matrix_radial(m, x, y, w, cord1, cord2, colorscheme, 0.3);
-
-          // m[(y*w + x)*3+0] = 128;
-          // m[(y*w + x)*3+1] = 64;
-          // m[(y*w + x)*3+2] = 32;
+          color_matrix_radial(m, x, y, w, cord1, cord2, colorscheme, 0.66);
 
           colored = 1;
           return;
