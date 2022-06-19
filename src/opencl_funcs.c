@@ -11,9 +11,10 @@ struct OpenCL_Program *get_opencl_info(){
   #ifdef DEBUG_OPENCL_FUNCS_C
   printf("Getting OpenCL info...\n");
   #endif //DEBUG_OPENCL_FUNCS_C
-  cl_int err_num;
+
+  cl_int err_num = 0;
   char str_buffer[1024];
-  cl_uint num_platforms_available;
+  cl_uint num_platforms_available = 0;
 
   cl_device_id cl_devices[1];
   err_num = clGetPlatformIDs(0, NULL, &num_platforms_available);
@@ -50,7 +51,7 @@ struct OpenCL_Program *get_opencl_info(){
     printf("Platform vendor: %s\n", str_buffer);
     #endif //DEBUG_OPENCL_FUNCS_C
 
-    cl_uint num_devices_available;
+    cl_uint num_devices_available = 0;
     clGetDeviceIDs(cl_platforms[i], CL_DEVICE_TYPE_ALL, 0, NULL, &num_devices_available);
     #ifdef DEBUG_OPENCL_FUNCS_C
     printf("Num devices available: %d\n", num_devices_available);

@@ -65,6 +65,7 @@ void complex_plane_free(ComplexPlane *cp){
   complex_plane_free_polynomial(cp);
   complex_plane_free_polynomial_parameters(cp);
 
+  free(cp->cl);
   // opencl_free(cp->cl);
 
   free(cp);
@@ -151,6 +152,7 @@ ComplexPlane *complex_plane_new(ComplexPlane **cp){
   new->pixel_stride = 3;
 
   new->ID = 0;
+  complex_plane_set_dimensions(new, 720, 480);
 
   new->polynomial = NULL;
   new->polynomial_derivative = NULL;
@@ -186,52 +188,130 @@ ComplexPlane *complex_plane_new(ComplexPlane **cp){
 }
 
 ComplexPlane *complex_plane_copy(ComplexPlane **dest, ComplexPlane *src){
+  #ifdef DEBUG_CP
+  printf("#####\ncomplex_plane_copy()\n");
+  printf("Running complex_plane_new...\n");
+  #endif
   ComplexPlane *new = complex_plane_new(NULL);
 
   new->ID = src->ID + 1;
+  #ifdef DEBUG_CP
+  printf("Set id to %d\n", new->ID);
+  #endif
 
+
+  #ifdef DEBUG_CP
+  printf("Setting dimensions...\n");
+  #endif
   complex_plane_set_stride(new, complex_plane_get_stride(src));
   complex_plane_set_dimensions(new, src->w, src->h);
 
+
+  #ifdef DEBUG_CP
+  printf("Setting iterations...\n");
+  #endif
   complex_plane_set_iterations(new, complex_plane_get_iterations(src));
   complex_plane_set_line_iterations(new, complex_plane_get_line_iterations(src));
 
+  #ifdef DEBUG_CP
+  printf("Setting center & spans\n");
+  #endif
   complex_plane_set_center(new, complex_plane_get_center(src));
   complex_plane_set_spanx(new, complex_plane_get_spanx(src));
   complex_plane_set_spany(new, complex_plane_get_spany(src));
 
+  #ifdef DEBUG_CP
+  printf("Plot type...\n");
+  #endif
   complex_plane_set_plot_type(new, complex_plane_get_plot_type(src));
   complex_plane_set_quadratic_parameter(new, complex_plane_get_quadratic_parameter(src));
 
+  #ifdef DEBUG_CP
+  printf("Function type...\n");
+  #endif
   complex_plane_set_function_type(new, complex_plane_get_function_type(src));
 
+  #ifdef DEBUG_CP
+  printf("Line values...\n");
+  #endif
   complex_plane_set_drawing_active(new, complex_plane_is_drawing_active(src));
   complex_plane_set_drawing_lines_active(new, complex_plane_is_drawing_lines_active(src));
 
+  #ifdef DEBUG_CP
+  printf("Polynomial madness...\n");
+  #endif
+
+  #ifdef DEBUG_CP
+  printf("Polynomial order...\n");
+  #endif
   complex_plane_set_polynomial_order(new, complex_plane_get_polynomial_order(src));
+
+  #ifdef DEBUG_CP
+  printf("Polynomial parameter...\n");
+  #endif
   complex_plane_set_polynomial_parameter(new, complex_plane_get_polynomial_parameter(src));
+
+  #ifdef DEBUG_CP
+  printf("Polynomials\n");
+  #endif
+  #ifdef DEBUG_CP
+  printf("1\n");
+  #endif
   complex_plane_copy_polynomial(new, src);
+  #ifdef DEBUG_CP
+  printf("2\n");
+  #endif
   copy_polynomial(src->polynomial, new->polynomial, complex_plane_get_polynomial_order(src));
+  #ifdef DEBUG_CP
+  printf("3\n");
+  #endif
   copy_polynomial(src->polynomial_derivative, new->polynomial_derivative, complex_plane_get_polynomial_order(src));
+  #ifdef DEBUG_CP
+  printf("4\n");
+  #endif
   copy_polynomial(src->second_polynomial_derivative, new->second_polynomial_derivative, complex_plane_get_polynomial_order(src));
+  #ifdef DEBUG_CP
+  printf("5\n");
+  #endif
   copy_polynomial(src->polynomial_parameters, new->polynomial_parameters, complex_plane_get_polynomial_order(src));
+  #ifdef DEBUG_CP
+  printf("6\n");
+  #endif
   copy_polynomial(src->polynomial_parameters_derivative, new->polynomial_parameters_derivative, complex_plane_get_polynomial_order(src));
+  #ifdef DEBUG_CP
+  printf("7\n");
+  #endif
   copy_polynomial(src->second_polynomial_parameters_derivative, new->second_polynomial_parameters_derivative, complex_plane_get_polynomial_order(src));
+  #ifdef DEBUG_CP
+  printf("8\n");
+  #endif
   copy_polynomial(src->polynomial_critical_point, new->polynomial_critical_point, complex_plane_get_polynomial_order(src));
 
+
+  #ifdef DEBUG_CP
+  printf("Numerical method a...\n");
+  #endif
   complex_plane_set_numerical_method_a(new, complex_plane_get_numerical_method_a(src));
 
+  #ifdef DEBUG_CP
+  printf("Colorscheme...\n");
+  #endif
   complex_plane_set_colorscheme(new, complex_plane_get_colorscheme(src));
 
   //TODO: Copy zoom_point1 & zoom_point2
 
-  //TODO: Copy RAMs
+  #ifdef DEBUG_CP
+  printf("RAMs\n");
+  #endif
   new->nroots = src->nroots;
   new->roots = root_array_copy(NULL, src->roots, src->nroots);
 
   if (dest != NULL){
     *dest = new;
   }
+  #ifdef DEBUG_CP
+  printf("Done! Returning new CP.\n#####\n");
+  #endif
   return new;
 }
 
@@ -459,10 +539,14 @@ int complex_plane_get_polynomial_parameter(ComplexPlane *cp){
   return cp->polynomial_parameter;
 }
 int copy_polynomial(complex double *src, complex double *dest, int order){
-  for (int i = 0; i <= order +1; i++){
-    dest[i] = src[i];
+  if (src != NULL){
+    for (int i = 0; i <= order +1; i++){
+      dest[i] = src[i];
+    }
+    return 0;
+  } else {
+    return -1;
   }
-  return 0;
 }
 int complex_plane_copy_polynomial(ComplexPlane *d, ComplexPlane *s){
   int order = complex_plane_get_polynomial_order(s);

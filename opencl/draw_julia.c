@@ -4,7 +4,10 @@
 #define COLORSCHEME_ITERATIONS_DEFAULT 0
 #define COLORSCHEME_ITERATIONS_BLUE 1
 #define COLORSCHEME_ITERATIONS_GREEN 2
-#define COLORSCHEME_ITERATIONS_GLITCH 3
+#define COLORSCHEME_ITERATIONS_BLOODRED 3
+#define COLORSCHEME_ITERATIONS_LEAFAGE 4
+#define COLORSCHEME_ITERATIONS_SEABLUE 5
+#define COLORSCHEME_ITERATIONS_GLITCH 6
 
 #ifdef cl_khr_fp64
   #pragma OPENCL EXTENSION cl_khr_fp64 : enable
@@ -147,6 +150,7 @@ void color_with_iterations(int i, int N,
                            __global unsigned char *r,
                            __global unsigned char *g,
                            __global unsigned char *b){
+  const double PI = 3.141592;
   double ni, n;
   switch (colorscheme){
     case COLORSCHEME_ITERATIONS_DEFAULT:
@@ -169,7 +173,26 @@ void color_with_iterations(int i, int N,
       *g = abs((int) floor(sin((double) i/50.0) * 255));
       *b = abs((int) floor(sin((double) i/100.0) * 255));
       break;
-
+    case COLORSCHEME_ITERATIONS_BLOODRED:
+      *r = (int) (((1.0-exp(-(((double) N/25)*((double)i/N))))/(1.0-exp(-2*PI*((double) N/25))))*255);
+      *g = 0;
+      *b = 0;
+      break;
+    case COLORSCHEME_ITERATIONS_LEAFAGE:
+      *r = (int) (((1.0-exp(-(((double) N/1000)*((double)i/N))))/(1.0-exp(-2*PI*((double) N/1000))))*255);
+      *g = (int) (((1.0-exp(-(((double) N/25)*((double)i/N))))/(1.0-exp(-2*PI*((double) N/25))))*255);
+      *b = (int) (((1.0-exp(-(((double) N/1000)*((double)i/N))))/(1.0-exp(-2*PI*((double) N/1000))))*255);
+      break;
+    case COLORSCHEME_ITERATIONS_SEABLUE:
+      *r = (int) (((1.0-exp(-(((double) N/500)*((double)i/N))))/(1.0-exp(-2*PI*((double) N/500))))*128);
+      *g = (int) (((1.0-exp(-(((double) N/500)*((double)i/N))))/(1.0-exp(-2*PI*((double) N/500))))*128);
+      *b = (int) (((1.0-exp(-(((double) N/15)*((double)i/N))))/(1.0-exp(-2*PI*((double) N/15))))*255);
+      break;
+    default:
+      *r = abs((int) floor(cos((double) i/200.0) * 255));
+      *g = abs((int) floor(sin((double) i/50.0) * 255));
+      *b = abs((int) floor(sin((double) i/200.0) * 255));
+      break;
   }
 }
 
