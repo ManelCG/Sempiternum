@@ -263,6 +263,9 @@ __kernel void rec_f(__global unsigned char *m,
   double c_abs = native_sqrt(pow(c[0], 2) +  pow(c[1],2));
   double R = (c_abs > 2)? c_abs: 2;
 
+  const int death_tol = 50;
+  double tol = 0.000001;
+
   int colorscheme = *color;
 
   int h = *hp, w = *wp, N = *Np;
@@ -271,6 +274,8 @@ __kernel void rec_f(__global unsigned char *m,
   const int y = get_global_id(0);
   const int x = get_global_id(1);
 
+  int death_counter = 0;
+
   //Map x and y to range between -R and R
   double newx = (double) x / (double) w;
   newx = newx * (Sx[1] - Sx[0]) + Sx[0];
@@ -278,18 +283,38 @@ __kernel void rec_f(__global unsigned char *m,
   newy = (double) newy / (double) h;
   newy = newy * (Sy[1] - Sy[0]) + Sy[0];
   double z[2] = {newx, newy};
-  double z_abs;
+  double z_abs = native_sqrt(pow(z[0], 2) + pow(z[1] , 2));
+  double old_z_abs;
+  double z_abs_diff = 0;
+  double old_z_abs_diff;
   double aux;
 
   for (int i = 0; i < N; i++){
     aux = (pow(z[0], 2) - pow(z[1], 2)) + c[0];
     z[1] = 2*z[0]*z[1] + c[1];
     z[0] = aux;
+    old_z_abs = z_abs;
     z_abs = native_sqrt(pow(z[0], 2) + pow(z[1] , 2));
 
+    //Diverges
     if (z_abs > R){
       color_with_iterations(i, N, colorscheme, &m[(y*w + x)*3+0], &m[(y*w + x)*3+1], &m[(y*w + x)*3+2]);
-      break;
+      return;
+    }
+
+    //Converges
+    old_z_abs_diff = z_abs_diff;
+    z_abs_diff = fabs(z_abs - old_z_abs);
+    if (z_abs_diff < tol && old_z_abs_diff >= z_abs_diff){
+      death_counter ++;
+    } else {
+      death_counter = 0;
+    }
+    if (death_counter >= death_tol){
+      m[(y*w + x)*3+0] = 0;
+      m[(y*w + x)*3+1] = 0;
+      m[(y*w + x)*3+2] = 0;
+      return;
     }
   }
   if (z_abs <= R){
@@ -310,6 +335,9 @@ __kernel void parameter_space(__global unsigned char *m,
   double z0_abs = native_sqrt(pow(z0[0], 2) +  pow(z0[1],2));
   double R = (z0_abs > 2)? z0_abs: 2;
 
+  const int death_tol = 50;
+  double tol = 0.0000000001;
+
   int h = *hp, w = *wp, N = *Np;
 
   int colorscheme = *color;
@@ -329,18 +357,39 @@ __kernel void parameter_space(__global unsigned char *m,
   double z[2];
   z[0] = z0[0];
   z[1] = z0[1];
-  double z_abs;
+  double z_abs = native_sqrt(pow(z[0], 2) + pow(z[1] , 2));
+  double old_z_abs;
+  double z_abs_diff = 0;
+  double old_z_abs_diff;
   double aux;
+  int death_counter = 0;
 
   for (int i = 0; i < N; i++){
     aux = (pow(z[0], 2) - pow(z[1], 2)) + c[0];
     z[1] = 2*z[0]*z[1] + c[1];
     z[0] = aux;
+    old_z_abs = z_abs;
     z_abs = native_sqrt(pow(z[0], 2) + pow(z[1] , 2));
 
+    //Diverges
     if (z_abs > R){
       color_with_iterations(i, N, colorscheme, &m[(y*w + x)*3+0], &m[(y*w + x)*3+1], &m[(y*w + x)*3+2]);
       break;
+    }
+
+    //Converges
+    old_z_abs_diff = z_abs_diff;
+    z_abs_diff = fabs(z_abs - old_z_abs);
+    if (z_abs_diff < tol && old_z_abs_diff >= z_abs_diff){
+      death_counter ++;
+    } else {
+      death_counter = 0;
+    }
+    if (death_counter >= death_tol){
+      m[(y*w + x)*3+0] = 0;
+      m[(y*w + x)*3+1] = 0;
+      m[(y*w + x)*3+2] = 0;
+      return;
     }
   }
   if (z_abs <= R){
