@@ -69,15 +69,47 @@ void draw_line(unsigned char *m, int x0, int y0, int x1, int y1, int w, int h){
   void plot_px(unsigned char *m, int x, int y, double c, int w, int h){
     int br = (int) floor(c*255);
     if (x >= 0 && x < w && y >= 0 && y < h){
-      m[(y*w + x)*3 + 0] = fmin(br + m[(y*w + x)*3 + 0] + (x%256)/5, 255);
-      m[(y*w + x)*3 + 1] = fmin(br + m[(y*w + x)*3 + 1] + (y%256)/5, 255);
-      m[(y*w + x)*3 + 2] = fmin(br + m[(y*w + x)*3 + 2] + (x%256)/5, 255);
+      m[(y*w + x)*3 + 0] = fmin(br + m[(y*w + x)*3 + 0], 255);
+      m[(y*w + x)*3 + 1] = fmin(br + m[(y*w + x)*3 + 1], 255);
+      m[(y*w + x)*3 + 2] = fmin(br + m[(y*w + x)*3 + 2], 255);
     }
   }
   int ipart(double x){return floor(x);}
   double round(double x){return ((double) ipart(x) + 0.5);}
   double fpart(double x){return (x - floor(x));}
   double rfpart(double x){return (1.0 - fpart(x));}
+
+  _Bool draw_dots = false, draw_lines = true;
+
+  //Draw circles
+  if (draw_dots){
+    for (int i = x0-1; i <= x0+1; i++){
+      if (i >= 0 && i < w){
+        for (int j = y0-1; j <= y0+1; j++){
+          if (j >= 0 && j < h){
+            m[(j*w +i)*3 +0] = 255;
+            m[(j*w +i)*3 +1] = 255;
+            m[(j*w +i)*3 +2] = 255;
+          }
+        }
+      }
+    }
+    for (int i = x1-1; i <= x1+1; i++){
+      if (i >= 0 && i < w){
+        for (int j = y1-1; j <= y1+1; j++){
+          if (j >= 0 && j < h){
+            m[(j*w +i)*3 +0] = 255;
+            m[(j*w +i)*3 +1] = 255;
+            m[(j*w +i)*3 +2] = 255;
+          }
+        }
+      }
+    }
+  }
+
+  if (!draw_lines){
+    return;
+  }
 
   _Bool steep = (abs(y1-y0) > abs(x1-x0));
   int aux;
