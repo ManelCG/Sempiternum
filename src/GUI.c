@@ -2119,7 +2119,6 @@ void draw_main_window(GtkWidget *widget, gpointer data){
               gtk_box_pack_end(GTK_BOX(polynomial_labels_vbox), a_power_label, false, false, 5);
             }
 
-
             if (critical != NULL){
               if (creal(critical[i]) != 0.0){
                 strbuf = g_strdup_printf("%.16g", creal(critical[i]));
@@ -2172,6 +2171,35 @@ void draw_main_window(GtkWidget *widget, gpointer data){
 
           //Populate parameter chosing combo box
         }
+
+        if (ftype == 3){
+          GtkWidget *polynomial_label, *critical_label, *parameter_label;
+          char *polynomial_str_buffer = complex_plane_polynomial_to_str(complex_plane_get_polynomial(cp), complex_plane_get_polynomial_parameters(cp), complex_plane_get_polynomial_order(cp), 'z', 'a');
+          char *polynomial_critical_buffer = complex_plane_polynomial_to_str(complex_plane_get_critical(cp), NULL, complex_plane_get_polynomial_order(cp), 'a', 'X');
+
+          char *parameter_str = g_strdup_printf("a = %g %+g i", creal(complex_plane_get_numerical_method_a(cp)), cimag(complex_plane_get_numerical_method_a(cp)));
+
+          char buffer_pol[strlen(polynomial_str_buffer)+16];
+          char buffer_crt[strlen(polynomial_critical_buffer)+16];
+
+          strcpy(buffer_pol, "P(z) = ");
+          strcat(buffer_pol, polynomial_str_buffer);
+          strcpy(buffer_crt, "z₀ = ");
+          strcat(buffer_crt, polynomial_critical_buffer);
+
+          polynomial_label = gtk_label_new(buffer_pol);
+          critical_label = gtk_label_new(buffer_crt);
+          parameter_label = gtk_label_new(parameter_str);
+
+          free(polynomial_str_buffer);
+          free(polynomial_critical_buffer);
+          free(parameter_str);
+
+          gtk_box_pack_end(GTK_BOX(polynomial_config_vbox), parameter_label, true, true, 0);
+          gtk_box_pack_end(GTK_BOX(polynomial_config_vbox), critical_label, true, true, 0);
+          gtk_box_pack_end(GTK_BOX(polynomial_config_vbox), polynomial_label, true, true, 0);
+        }
+
 
         //Create scrollbox for input values
         polynomial_scroll_box = gtk_scrolled_window_new(NULL, NULL);
