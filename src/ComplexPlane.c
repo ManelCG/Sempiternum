@@ -565,6 +565,9 @@ int complex_plane_copy_polynomial(ComplexPlane *d, ComplexPlane *s){
 const complex double *complex_plane_get_polynomial(ComplexPlane *cp){
   return cp->polynomial;
 }
+const complex double *complex_plane_get_polynomial_parameters(ComplexPlane *cp){
+  return cp->polynomial_parameters;
+}
 const complex double *complex_plane_get_critical(ComplexPlane *cp){
   return cp->polynomial_critical_point;
 }
@@ -988,10 +991,20 @@ char *complex_plane_polynomial_to_str(const complex double *polynomial, const co
     if (polynomial_parameters != NULL){
       if (polynomial_parameters[polynomial_order] != 0){
         if (polynomial_parameters[polynomial_order] == creal(polynomial_parameters[polynomial_order])){
-          if (printed == false){
-            sprintf(buffer, "%g%c ", creal(polynomial_parameters[polynomial_order]), cpar);
+          if (polynomial_parameters[polynomial_order] == 1){
+            if (printed == false){
+              sprintf(buffer, "%c ", cpar);
+            } else {
+              sprintf(buffer, "+ %c ", cpar);
+            }
+          } else if (polynomial_parameters[polynomial_order] == -1){
+            sprintf(buffer, "- %c ", cpar);
           } else {
-            sprintf(buffer, "%+g%c ", creal(polynomial_parameters[polynomial_order]), cpar);
+            if (printed == false){
+              sprintf(buffer, "%g%c ", creal(polynomial_parameters[polynomial_order]), cpar);
+            } else {
+              sprintf(buffer, "%+g%c ", creal(polynomial_parameters[polynomial_order]), cpar);
+            }
           }
           strcat(strret, buffer);
         } else if (polynomial_parameters[polynomial_order] == cimag(polynomial_parameters[polynomial_order])){

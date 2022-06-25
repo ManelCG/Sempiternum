@@ -132,6 +132,7 @@ _Bool complex_plane_polynomial_is_null(ComplexPlane *);
 int complex_plane_copy_polynomial(ComplexPlane *dest, ComplexPlane *src); //-1 if fail
 int copy_polynomial(complex double *src, complex double *dest, int order);
 const complex double *complex_plane_get_polynomial(ComplexPlane *);
+const complex double *complex_plane_get_polynomial_parameters(ComplexPlane *);
 const complex double *complex_plane_get_critical(ComplexPlane *cp);
 void complex_plane_print_polynomial(ComplexPlane *);
 void complex_plane_print_polynomial_derivative(ComplexPlane *);
