@@ -214,40 +214,68 @@ void color_matrix_radial(__global unsigned char *m, unsigned x, unsigned y, unsi
   theta = fmod(theta, 2*PI);
 
   //Theta en [0, 2PI]
-  double hp = theta / (PI/3);
-  double C = 1;
+  double hp;
+  double C;
+  double X;
 
-  double X = C * (1 - fabs(fmod(hp, 2) - 1));
-  X = floor(X*255);
-  C = floor(C*255);
+  int Xi;
+  int Ci;
 
-  int Xi = (int) (X * factor);
-  int Ci = (int) (C * factor);
+  // hp = theta / (PI/3);
+  // C = 1;
 
-  if (0 <= hp && hp < 1){
-    m[(y*w + x)*3+0] = Ci;
-    m[(y*w + x)*3+1] = Xi;
-    m[(y*w + x)*3+2] = 0;
-  } else if (1 <= hp && hp < 2){
-    m[(y*w + x)*3+0] = Xi;
-    m[(y*w + x)*3+1] = Ci;
-    m[(y*w + x)*3+2] = 0;
-  } else if (2 <= hp && hp < 3){
-    m[(y*w + x)*3+0] = 0;
-    m[(y*w + x)*3+1] = Ci;
-    m[(y*w + x)*3+2] = Xi;
-  } else if (3 <= hp && hp < 4){
-    m[(y*w + x)*3+0] = 0;
-    m[(y*w + x)*3+1] = Xi;
-    m[(y*w + x)*3+2] = Ci;
-  } else if (4 <= hp && hp < 5){
-    m[(y*w + x)*3+0] = Xi;
-    m[(y*w + x)*3+1] = 0;
-    m[(y*w + x)*3+2] = Ci;
-  } else if (5 <= hp && hp <= 6){
-    m[(y*w + x)*3+0] = Ci;
-    m[(y*w + x)*3+1] = 0;
-    m[(y*w + x)*3+2] = Xi;
+  // X = C * (1 - fabs(fmod(hp, 2) - 1));
+  // X = floor(X*255);
+  // C = floor(C*255);
+
+  // Xi = (int) (X * factor);
+  // Ci = (int) (C * factor);
+
+  switch(colorscheme){
+    case COLORSCHEME_ITERATIONS_BLUE:
+      m[(y*w + x)*3+0] = (int) floor(fabs(sin(theta/4))*255);
+      m[(y*w + x)*3+1] = 64;
+      // m[(y*w + x)*3+2] = (unsigned char) 255*factor;
+      m[(y*w + x)*3+2] = (int) floor(fabs(cos(theta/4))*255);
+      break;
+    case COLORSCHEME_ITERATIONS_DEFAULT:
+    default:
+      hp = theta / (PI/3);
+      C = 1;
+
+      X = C * (1 - fabs(fmod(hp, 2) - 1));
+      X = floor(X*255);
+      C = floor(C*255);
+
+      Xi = (int) (X * factor);
+      Ci = (int) (C * factor);
+
+      if (0 <= hp && hp < 1){
+        m[(y*w + x)*3+0] = Ci;
+        m[(y*w + x)*3+1] = Xi;
+        m[(y*w + x)*3+2] = 0;
+      } else if (1 <= hp && hp < 2){
+        m[(y*w + x)*3+0] = Xi;
+        m[(y*w + x)*3+1] = Ci;
+        m[(y*w + x)*3+2] = 0;
+      } else if (2 <= hp && hp < 3){
+        m[(y*w + x)*3+0] = 0;
+        m[(y*w + x)*3+1] = Ci;
+        m[(y*w + x)*3+2] = Xi;
+      } else if (3 <= hp && hp < 4){
+        m[(y*w + x)*3+0] = 0;
+        m[(y*w + x)*3+1] = Xi;
+        m[(y*w + x)*3+2] = Ci;
+      } else if (4 <= hp && hp < 5){
+        m[(y*w + x)*3+0] = Xi;
+        m[(y*w + x)*3+1] = 0;
+        m[(y*w + x)*3+2] = Ci;
+      } else if (5 <= hp && hp <= 6){
+        m[(y*w + x)*3+0] = Ci;
+        m[(y*w + x)*3+1] = 0;
+        m[(y*w + x)*3+2] = Xi;
+      }
+      break;
   }
 }
 
