@@ -178,10 +178,10 @@ void complex_plane_set_mandelbrot_parameters(ComplexPlane *);
 
 
 //---Complex plane image functions
-double *draw_sequence_lines(ComplexPlane *C, double point[2], int w, int h);
-double *draw_sequence_lines_polynomial(ComplexPlane *C, double point[2], int w, int h);
-double *draw_sequence_lines_newton(ComplexPlane *cp, double point[2], int w, int h);
-double *draw_sequence_lines_numerical_method(ComplexPlane *cp, double point[2], int w, int h);
+complex draw_sequence_lines(ComplexPlane *C, double point[2], int w, int h);
+complex draw_sequence_lines_polynomial(ComplexPlane *C, double point[2], int w, int h);
+complex draw_sequence_lines_newton(ComplexPlane *cp, double point[2], int w, int h);
+complex draw_sequence_lines_numerical_method(ComplexPlane *cp, double point[2], int w, int h);
 
 //---Numerical methods
 complex newton_method(const complex double *polynomial,
