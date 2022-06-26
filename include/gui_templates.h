@@ -15,7 +15,7 @@ void destroy(GtkWidget *w, gpointer data);
 void insert_text_event_int(GtkEditable *editable, const gchar *text, gint length, gint *position, gpointer data);
 void insert_text_event_float(GtkEditable *editable, const gchar *text, gint length, gint *position, gpointer data);
 
-void gui_templates_window_set_sempiternum_icon(GtkWidget *);
+void gui_templates_window_set_sempiternum_icon(GtkWindow *);
 
 
 #endif //__GUI_TEMPLATES_H_

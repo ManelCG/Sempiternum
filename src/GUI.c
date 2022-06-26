@@ -610,6 +610,7 @@ void save_plot_handler(GtkWidget *widget, gpointer data){
   complex_plane_copy(&cp, cp_old);
 
   GtkWindow *zoom_window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
+  gui_templates_window_set_sempiternum_icon(zoom_window);
   gtk_window_set_title(GTK_WINDOW(zoom_window), "Save new plot");
   gtk_window_set_resizable(GTK_WINDOW(zoom_window), false);
   // gtk_window_set_default_size(GTK_WINDOW(zoom_window), 720, 480);
@@ -782,6 +783,7 @@ void generate_video_zoom(GtkWidget *widget, gpointer data){
   complex_plane_free_plot(cp);
 
   GtkWindow *zoom_window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
+  gui_templates_window_set_sempiternum_icon(zoom_window);
   gtk_window_set_title(GTK_WINDOW(zoom_window), "Generate zoom video");
   gtk_window_set_resizable(GTK_WINDOW(zoom_window), false);
   // gtk_window_set_default_size(GTK_WINDOW(zoom_window), 720, 480);
@@ -2469,7 +2471,7 @@ int main (int argc, char *argv[]) {
   // main_data->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   GtkWidget *window_root = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
-
+  gui_templates_window_set_sempiternum_icon(GTK_WINDOW(window_root));
 
   gtk_window_set_title(GTK_WINDOW(window_root), "Sempiternum");
   gtk_window_set_default_size(GTK_WINDOW(window_root), w, h);

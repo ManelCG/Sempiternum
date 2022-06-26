@@ -29,10 +29,10 @@ void destroy(GtkWidget *w, gpointer data){
   gtk_widget_destroy(window);
 }
 
-void gui_templates_window_set_sempiternum_icon(GtkWidget *window){
+void gui_templates_window_set_sempiternum_icon(GtkWindow *window){
   GdkPixbuf *window_icon = gdk_pixbuf_new_from_file("assets/inapp_assets/about_picture.png", NULL);
   window_icon = gdk_pixbuf_scale_simple(window_icon, 16, 16, GDK_INTERP_NEAREST);
-  gtk_window_set_icon(GTK_WINDOW(window), window_icon);
+  gtk_window_set_icon(window, window_icon);
 }
 
 void insert_text_event_int(GtkEditable *editable, const gchar *text, gint length, gint *position, gpointer data){
@@ -227,6 +227,7 @@ void gui_templates_configure_roots(GtkWidget *w, gpointer data){
 
 void gui_templates_show_help_window(GtkWidget *w, gpointer data){
   GtkWindow *window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
+  gui_templates_window_set_sempiternum_icon(window);
   gtk_window_set_title(window, "Sempiternum documentation");
   gtk_window_set_resizable(window, false);
   gtk_container_set_border_width(GTK_CONTAINER(window), 15);
@@ -254,6 +255,7 @@ void combo_colorscheme_handler(GtkWidget *combo, gpointer data){
 void gui_templates_show_preferences_window(GtkWidget *w, gpointer data){
   ComplexPlane **planes = (ComplexPlane **) data;
   GtkWindow *window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
+  gui_templates_window_set_sempiternum_icon(window);
   gtk_window_set_resizable(window, false);
   gtk_window_set_title(window, "Sempiternum Preferences");
   gtk_window_set_default_size(GTK_WINDOW(window), 420, 600);
@@ -341,6 +343,7 @@ void gui_templates_show_preferences_window(GtkWidget *w, gpointer data){
 
 void gui_templates_show_about_window(GtkWidget *w, gpointer data){
   GtkWindow *window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
+  gui_templates_window_set_sempiternum_icon(window);
 
   gtk_window_set_title(window, "About Sempiternum");
   gtk_window_set_resizable(window, false);
