@@ -41,6 +41,11 @@ struct genVideoData{
   pthread_t thread;
 };
 
+struct mouseHandlerData{
+  ComplexPlane **planes;
+  GtkWidget *label_final_coords;
+};
+
 struct videoProgress{
   GtkWidget *preview_image;
   GtkWidget *progress_bar;
@@ -1379,7 +1384,9 @@ void draw_thumbnail_gui(GtkWidget *widget, double x, double y, gpointer data){
 void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data){
   GtkWindow *window = GTK_WINDOW(gtk_widget_get_toplevel(event_box));
 
-  ComplexPlane **planes = (ComplexPlane **) data;
+  struct mouseHandlerData *mousehandlerdata = (struct mouseHandlerData *) data;
+
+  ComplexPlane **planes = mousehandlerdata->planes;
   ComplexPlane *cp = planes[0];
   ComplexPlane *cp_thumb = planes[1];
 
@@ -1401,12 +1408,11 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
   gtk_label_set_text(GTK_LABEL(point_targeted), point);
   g_free(point);
 
-
   if (complex_plane_is_drawing_active(cp_thumb)){
     if (!complex_plane_polynomial_is_null(cp_thumb)){
       complex_plane_set_polynomial_member(cp_thumb, x + y*I, complex_plane_get_polynomial_parameter(cp));
     }
-    draw_thumbnail_gui(event_box, x, y, data);
+    draw_thumbnail_gui(event_box, x, y, (gpointer) planes);
   }
 
   switch (event->button){
@@ -1426,7 +1432,7 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
         }
         complex_plane_set_zoom_point1(cp, x, y);
 
-        draw_main_window(GTK_WIDGET(window), data);
+        draw_main_window(GTK_WIDGET(window), (gpointer) planes);
 
 
         #ifdef DEBUG_GUI
@@ -1458,7 +1464,7 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
         complex_plane_set_spany(cp, newspany);
         complex_plane_adjust_span_ratio(cp);
 
-        draw_from_options(event_box, data);
+        draw_from_options(event_box, (gpointer) planes);
 
         complex_plane_free_zoom_point1(cp);
         complex_plane_free_zoom_point2(cp);
@@ -1469,7 +1475,7 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
         break;
       }
       complex_plane_set_center(cp, x + y*I);
-      draw_from_options(event_box, data);
+      draw_from_options(event_box, (gpointer) planes);
       break;
     case 3:   //RIGHT MOUSE CLICKED -> Change parameters, redraw
       if (event->type == GDK_BUTTON_RELEASE){
@@ -1499,7 +1505,7 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
             }
           }
 
-          draw_from_options(event_box, data);
+          draw_from_options(event_box, (gpointer) planes);
 
           break;
         case 1:
@@ -1509,7 +1515,7 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
           complex_plane_set_polynomial_member(cp, x + y*I, cp_par);
           complex_plane_set_polynomial_parameter(cp, th_par);
           complex_plane_set_polynomial_parameter(cp_thumb, cp_par);
-          draw_from_options(event_box, data);
+          draw_from_options(event_box, (gpointer) planes);
           break;
         case 3:
           if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_PARAMETER_SPACE){
@@ -1532,7 +1538,7 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
             }
           }
 
-          draw_from_options(event_box, data);
+          draw_from_options(event_box, (gpointer) (gpointer) planes);
 
       }
       break;
@@ -1578,7 +1584,9 @@ void gui_draw_zoom_box(GtkWidget *event_box, GdkEventButton *event, gpointer dat
 }
 
 void draw_sequence(GtkWidget *window, GdkEventButton *event, gpointer data){
-  ComplexPlane **planes = (ComplexPlane **) data;
+  struct mouseHandlerData *mousehandlerdata = (struct mouseHandlerData *) data;
+
+  ComplexPlane **planes = mousehandlerdata->planes;
   ComplexPlane *cp = planes[0];
 
   int w = complex_plane_get_width(cp), h = complex_plane_get_height(cp);
@@ -1593,6 +1601,7 @@ void draw_sequence(GtkWidget *window, GdkEventButton *event, gpointer data){
   #endif
 
   double p[2] = {x, y};
+  complex final_coords = 0;
 
   complex_plane_free_drawn_plot(cp);
 
@@ -1601,24 +1610,29 @@ void draw_sequence(GtkWidget *window, GdkEventButton *event, gpointer data){
 
   switch(complex_plane_get_function_type(cp)){
     case 0:
-      draw_sequence_lines(cp, p, w, h);
+      final_coords = draw_sequence_lines(cp, p, w, h);
       break;
     case 1:
       if (complex_plane_get_polynomial_order(cp) != -1){
-        draw_sequence_lines_polynomial(cp, p, w, h);
+        final_coords = draw_sequence_lines_polynomial(cp, p, w, h);
       }
       break;
     case 2:
       if (complex_plane_get_polynomial_order(cp) != -1){
-        draw_sequence_lines_newton(cp, p, w, h);
+        final_coords = draw_sequence_lines_newton(cp, p, w, h);
       }
       break;
     case 3:
       if (complex_plane_get_polynomial_order(cp) != -1){
-        draw_sequence_lines_numerical_method(cp, p, w, h);
+        final_coords = draw_sequence_lines_numerical_method(cp, p, w, h);
       }
       break;
   }
+
+  char *final_coords_label_str = g_strdup_printf("zN = %f %+fi", creal(final_coords), cimag(final_coords));
+  GtkWidget *label_final_coords = mousehandlerdata->label_final_coords;
+  gtk_label_set_text(GTK_LABEL(label_final_coords), final_coords_label_str);
+  free(final_coords_label_str);
 
   clear_container(window);
 
@@ -1719,6 +1733,8 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   GtkWidget *combo_polynomial_parameter_thumb = gtk_combo_box_text_new();
 
   GtkWidget *plot_options_label;
+
+  GtkWidget *label_final_coords;
 
   //Menu
   GtkWidget *menu_menubar;
@@ -1954,6 +1970,8 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_draw_lines), complex_plane_is_drawing_lines_active(cp));
   g_signal_connect(check_draw_lines, "toggled", G_CALLBACK(toggle_draw_lines_handler), (gpointer) cp);
 
+  label_final_coords = gtk_label_new("zN = 0");
+
   //Reset viewport
   button_reset_view = gtk_button_new_with_label("Reset view");
   g_signal_connect(button_reset_view, "clicked", G_CALLBACK(reset_view_handler), (gpointer) cp);
@@ -1974,6 +1992,10 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_box_pack_start(GTK_BOX(options_box), plot_type_box, true, false, 0);
   gtk_box_pack_start(GTK_BOX(options_box), draw_apply_box, true, false, 0);
   gtk_box_pack_start(GTK_BOX(options_box), zoom_lines_box, true, false, 0);
+  if (complex_plane_is_drawing_lines_active(cp)) {
+    gtk_box_pack_start(GTK_BOX(options_box), label_final_coords, false, false, 0);
+  }
+
 
   //Accelerators
   accel_group = gtk_accel_group_new();
@@ -2388,9 +2410,15 @@ void draw_main_window(GtkWidget *widget, gpointer data){
    //Event box
    GtkWidget *event_box = gtk_event_box_new();
    gtk_container_add(GTK_CONTAINER(event_box), image);
-   g_signal_connect(G_OBJECT(event_box), "motion-notify-event", G_CALLBACK(cp_mouse_handler), (gpointer) planes);
-   g_signal_connect(G_OBJECT(event_box), "button-press-event", G_CALLBACK(cp_mouse_handler), (gpointer) planes);
-   g_signal_connect(G_OBJECT(event_box), "button-release-event", G_CALLBACK(cp_mouse_handler), (gpointer) planes);
+
+   struct mouseHandlerData *mousehandlerdata = malloc(sizeof(struct mouseHandlerData));
+
+   mousehandlerdata->planes = planes;
+   mousehandlerdata->label_final_coords = label_final_coords;
+
+   g_signal_connect(G_OBJECT(event_box), "motion-notify-event", G_CALLBACK(cp_mouse_handler), (gpointer) mousehandlerdata);
+   g_signal_connect(G_OBJECT(event_box), "button-press-event", G_CALLBACK(cp_mouse_handler), (gpointer) mousehandlerdata);
+   g_signal_connect(G_OBJECT(event_box), "button-release-event", G_CALLBACK(cp_mouse_handler), (gpointer) mousehandlerdata);
    gtk_widget_set_events(event_box, GDK_POINTER_MOTION_MASK);
 
    gtk_box_pack_start(GTK_BOX(hbox), event_box, false, true, 0);
