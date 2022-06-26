@@ -1456,7 +1456,7 @@ double complex_plane_thumbnail_get_span(ComplexPlane *cp){
 
 }
 
-void draw_sequence_lines(struct ComplexPlane *C, double point[2], int w, int h){
+double *draw_sequence_lines(struct ComplexPlane *C, double point[2], int w, int h){
   double c[2], p[2];
   int x, y, oldx, oldy;
 
@@ -1475,7 +1475,7 @@ void draw_sequence_lines(struct ComplexPlane *C, double point[2], int w, int h){
     x = (int) floor((p[0]                              - C->Sx[0])/(C->Sx[1]-C->Sx[0]) * w);
     y = (int) floor((-(p[1]-complex_plane_get_center_imag(C) - ((C->Sy[0]+C->Sy[1])/2)) - C->Sy[0])/(C->Sy[1]-C->Sy[0]) * h);
   } else {
-    return;
+    return NULL;
   }
 
   for (int i = 0; i < C->N_line; i++){
@@ -1494,6 +1494,9 @@ void draw_sequence_lines(struct ComplexPlane *C, double point[2], int w, int h){
       break;
     }
   }
+  double *coords = malloc(sizeof(double) * 2);
+  coords[0] = p[0]; coords[1] = p[1];
+  return coords;
 }
 
 complex complex_mul(complex a, complex b){
@@ -1590,7 +1593,7 @@ void complex_plane_reset_opencl(ComplexPlane *cp){
 }
 
 
-void draw_sequence_lines_polynomial(struct ComplexPlane *C,  double point[2], int w, int h){
+double *draw_sequence_lines_polynomial(struct ComplexPlane *C,  double point[2], int w, int h){
   complex param, z;
   int x, y, oldx, oldy;
 
@@ -1637,9 +1640,16 @@ void draw_sequence_lines_polynomial(struct ComplexPlane *C,  double point[2], in
       break;
     }
   }
+  double *coords = malloc(sizeof(double) * 2);
+  if (parameter == order + 1){
+    coords[0] = creal(param); coords[1] = cimag(param);
+  } else {
+    coords[0] = creal(z); coords[1] = cimag(z);
+  }
+  return coords;
 }
 
-void draw_sequence_lines_newton(ComplexPlane *C, double p[2], int w, int h){
+double *draw_sequence_lines_newton(ComplexPlane *C, double p[2], int w, int h){
   complex param, z;
   int parameter = C->polynomial_parameter;
   int x, y, oldx, oldy;
@@ -1695,10 +1705,19 @@ void draw_sequence_lines_newton(ComplexPlane *C, double p[2], int w, int h){
 
     draw_line(C->drawn_plot, x, y, oldx, oldy, w, h);
   }
+
+  double *coords = malloc(sizeof(double) * 2);
+  if (parameter == order + 1){
+    coords[0] = creal(param); coords[1] = cimag(param);
+  } else {
+    coords[0] = creal(z); coords[1] = cimag(z);
+  }
+  coords[0] = x; coords[1] = y;
+  return coords;
 }
 
 
-void draw_sequence_lines_numerical_method(ComplexPlane *cp, double p[2], int w, int h){
+double *draw_sequence_lines_numerical_method(ComplexPlane *cp, double p[2], int w, int h){
   complex double a, z;
 
   int plot_type = complex_plane_get_plot_type(cp);
@@ -1734,6 +1753,10 @@ void draw_sequence_lines_numerical_method(ComplexPlane *cp, double p[2], int w, 
 
     draw_line(cp->drawn_plot, x, y, oldx, oldy, w, h);
   }
+
+  double *coords = malloc(sizeof(double) * 2);
+  coords[0] = creal(z); coords[1] = cimag(z);
+  return coords;
 }
 
 complex newton_method(const complex double *polynomial,
