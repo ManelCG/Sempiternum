@@ -29,6 +29,12 @@ void destroy(GtkWidget *w, gpointer data){
   gtk_widget_destroy(window);
 }
 
+void gui_templates_window_set_sempiternum_icon(GtkWidget *window){
+  GdkPixbuf *window_icon = gdk_pixbuf_new_from_file("assets/inapp_assets/about_picture.png", NULL);
+  window_icon = gdk_pixbuf_scale_simple(window_icon, 16, 16, GDK_INTERP_NEAREST);
+  gtk_window_set_icon(GTK_WINDOW(window), window_icon);
+}
+
 void insert_text_event_int(GtkEditable *editable, const gchar *text, gint length, gint *position, gpointer data){
   #ifdef DEBUG_GUI_TEMPLATES
     printf("\n#####\ninsert_text_event_int called\n#####\n");
