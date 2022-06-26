@@ -40,12 +40,12 @@ main: $(OBJ) $(OBJ_cli)
 release: $(OBJ) $(OBJ_GUI)
 	mkdir -p $(BDIR)
 	mkdir -p $(ODIR)
-	$(CC) -o $(BDIR)/JuliaViewerGUI $^ $(CFLAGS) $(LIBS)
+	$(CC) -o $(BDIR)/sempiternum $^ $(CFLAGS) $(LIBS)
 
 debug: $(OBJ) $(OBJ_GUI)
 	mkdir -p $(BDIR)
 	mkdir -p $(ODIR)
-	$(CC) -o $(BDIR)/JuliaViewerGUI $^ $(CFLAGS) $(LIBS)
+	$(CC) -o $(BDIR)/sempiternum $^ $(CFLAGS) $(LIBS)
 
 .PHONY: clean
 clean:
