@@ -2469,9 +2469,13 @@ int main (int argc, char *argv[]) {
   // main_data->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   GtkWidget *window_root = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
+  GdkPixbuf *window_icon = gdk_pixbuf_new_from_file("assets/inapp_assets/about_picture.png", NULL);
+  window_icon = gdk_pixbuf_scale_simple(window_icon, 16, 16, GDK_INTERP_NEAREST);
+
   gtk_window_set_title(GTK_WINDOW(window_root), "Sempiternum");
   gtk_window_set_default_size(GTK_WINDOW(window_root), w, h);
   gtk_window_set_position(GTK_WINDOW(window_root), GTK_WIN_POS_CENTER);
+  gtk_window_set_icon(GTK_WINDOW(window_root), window_icon);
   g_signal_connect(window_root, "destroy",
                    G_CALLBACK(quit_app),
                    (gpointer) window_root);
