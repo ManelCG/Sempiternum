@@ -11,6 +11,10 @@ debug: BDIR = debug
 release: CC = $(CCCMD) -O2
 release: BDIR = build
 
+install: CC = $(CCCMD) -O2	-DMAKE_INSTALL
+install: SEMPITERNUM_DIR = /usr/share/sempiternum
+install: BDIR = $(SEMPITERNUM_DIR)/install
+
 ODIR=.obj
 LDIR=lib
 
@@ -46,6 +50,16 @@ debug: $(OBJ) $(OBJ_GUI)
 	mkdir -p $(BDIR)
 	mkdir -p $(ODIR)
 	$(CC) -o $(BDIR)/sempiternum $^ $(CFLAGS) $(LIBS)
+
+install: $(OBJ) $(OBJ_GUI)
+	mkdir -p $(SEMPITERNUM_DIR)
+	mkdir -p $(BDIR)
+	mkdir -p $(ODIR)
+	$(CC) -o $(BDIR)/sempiternum $^ $(CFLAGS) $(LIBS)
+	cp -r opencl/ $(SEMPITERNUM_DIR)
+	cp -r assets/ $(SEMPITERNUM_DIR)
+	ln -sf $(BDIR)/sempiternum /bin/sempiternum
+	cp assets/sempiternum.desktop /usr/share/applications/
 
 .PHONY: clean
 clean:
