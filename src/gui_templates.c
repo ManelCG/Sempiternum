@@ -11,6 +11,12 @@
 #define GUI_TEMPLATES_BUTTON_WIDTH 85
 //#define DEBUG_GUI_TEMPLATES
 
+#ifdef MAKE_INSTALL
+  #define ABOUT_PICTURE_PNG "/usr/share/sempiternum/assets/inapp_assets/about_picture.png"
+#else
+  #define ABOUT_PICTURE_PNG "assets/inapp_assets/about_picture.png"
+#endif
+
 //Internal function declarations
 void gui_templates_configure_roots_internal(GtkWidget *window, gpointer data);
 
@@ -30,7 +36,7 @@ void destroy(GtkWidget *w, gpointer data){
 }
 
 void gui_templates_window_set_sempiternum_icon(GtkWindow *window){
-  GdkPixbuf *window_icon = gdk_pixbuf_new_from_file("assets/inapp_assets/about_picture.png", NULL);
+  GdkPixbuf *window_icon = gdk_pixbuf_new_from_file(ABOUT_PICTURE_PNG, NULL);
   window_icon = gdk_pixbuf_scale_simple(window_icon, 16, 16, GDK_INTERP_NEAREST);
   gtk_window_set_icon(window, window_icon);
 }
@@ -365,7 +371,7 @@ void gui_templates_show_about_window(GtkWidget *w, gpointer data){
   GtkWidget *button_license;
   GtkWidget *button_close;
 
-  GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file("assets/inapp_assets/about_picture.png", NULL);
+  GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file(ABOUT_PICTURE_PNG, NULL);
   pixbuf = gdk_pixbuf_scale_simple(pixbuf, 150, 150, GDK_INTERP_NEAREST);
   GtkWidget *image = gtk_image_new_from_pixbuf(pixbuf);
 

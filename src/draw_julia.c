@@ -21,6 +21,12 @@
 
 // #define DEBUG_DRAW_JULIA_C
 
+#ifdef MAKE_INSTALL
+  #define DRAW_JULIA_CL "/usr/share/sempiternum/opencl/draw_julia.c"
+#else
+  #define DRAW_JULIA_CL "opencl/draw_julia.c"
+#endif
+
 unsigned char *draw_julia_polynomial_fraction
         (int N, int h, int w, int order,
          complex double *numerator, complex double *denominator,
@@ -58,7 +64,7 @@ unsigned char *draw_julia_polynomial_fraction
       prog = *cl_prog;
     }
     FILE *fp;
-    char *filename = "opencl/draw_julia.c";
+    char *filename = DRAW_JULIA_CL;
 
     fp = fopen(filename, "r");
     if (!fp){
@@ -304,7 +310,7 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
       prog = *cl_prog;
     }
     FILE *fp;
-    char *filename = "opencl/draw_julia.c";
+    char *filename = DRAW_JULIA_CL;
 
     fp = fopen(filename, "r");
     if (!fp){
@@ -557,7 +563,7 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
       prog = *cl_prog;
     }
     FILE *fp;
-    char *filename = "opencl/draw_julia.c";
+    char *filename = DRAW_JULIA_CL;
 
     fp = fopen(filename, "r");
     if (!fp){
@@ -740,7 +746,7 @@ unsigned char *draw_julia(int N, int h, int w,
       prog = *cl_prog;
     }
     FILE *fp;
-    char *filename = "opencl/draw_julia.c";
+    char *filename = DRAW_JULIA_CL;
 
     fp = fopen(filename, "r");
     if (!fp){

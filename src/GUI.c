@@ -2442,8 +2442,10 @@ void draw_main_window(GtkWidget *widget, gpointer data){
 
 int main (int argc, char *argv[]) {
   //cd to root folder
-  char *folder_buffer = get_root_folder(argv[0]);
-  chdir(folder_buffer); free(folder_buffer);
+  #ifndef MAKE_INSTALL
+    char *folder_buffer = get_root_folder(argv[0]);
+    chdir(folder_buffer); free(folder_buffer);
+  #endif //!MAKE_INSTALL
 
   ComplexPlane **planes = malloc(sizeof(ComplexPlane *) * 2);
 
