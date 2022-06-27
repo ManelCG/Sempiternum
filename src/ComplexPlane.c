@@ -155,6 +155,7 @@ ComplexPlane *complex_plane_new(ComplexPlane **cp){
   complex_plane_set_dimensions(new, 720, 480);
   complex_plane_set_default_spans(new);
   complex_plane_set_center(new, 0);
+  complex_plane_set_quadratic_parameter(new, 0);
 
   new->polynomial = NULL;
   new->polynomial_derivative = NULL;
