@@ -36,6 +36,7 @@ OBJ_GUI = $(patsubst %,$(ODIR)/%,$(_OBJ_GUI))
 
 
 $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
+	mkdir $(ODIR)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 main: $(OBJ) $(OBJ_cli)
