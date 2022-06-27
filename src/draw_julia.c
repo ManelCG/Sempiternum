@@ -22,7 +22,7 @@
 // #define DEBUG_DRAW_JULIA_C
 
 #ifdef MAKE_INSTALL
-  #define DRAW_JULIA_CL "/usr/share/sempiternum/opencl/draw_julia.c"
+  #define DRAW_JULIA_CL "/usr/lib/sempiternum/opencl/draw_julia.c"
 #else
   #define DRAW_JULIA_CL "opencl/draw_julia.c"
 #endif

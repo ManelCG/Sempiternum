@@ -12,7 +12,7 @@
 //#define DEBUG_GUI_TEMPLATES
 
 #ifdef MAKE_INSTALL
-  #define ABOUT_PICTURE_PNG "/usr/share/sempiternum/assets/inapp_assets/about_picture.png"
+  #define ABOUT_PICTURE_PNG "/usr/lib/sempiternum/assets/inapp_assets/about_picture.png"
 #else
   #define ABOUT_PICTURE_PNG "assets/inapp_assets/about_picture.png"
 #endif
