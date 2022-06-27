@@ -15,6 +15,8 @@ install: CC = $(CCCMD) -O2	-DMAKE_INSTALL
 install: SEMPITERNUM_DIR = /usr/share/sempiternum
 install: BDIR = $(SEMPITERNUM_DIR)/install
 
+archlinux: CC = $(CCCMD) -O2
+
 ODIR=.obj
 LDIR=lib
 
@@ -60,6 +62,15 @@ install: $(OBJ) $(OBJ_GUI)
 	cp -r assets/ $(SEMPITERNUM_DIR)
 	ln -sf $(BDIR)/sempiternum /bin/sempiternum
 	cp assets/sempiternum.desktop /usr/share/applications/
+
+archlinux: $(OBJ) $(OBJ_GUI)
+	mkdir -p $(BDIR)
+	mkdir -p $(ODIR)
+	$(CC) -o $(BDIR)/sempiternum $^ $(CFLAGS) $(LIBS)
+	cp -r opencl/ $(BDIR)
+	cp -r assets/ $(BDIR)
+
+
 
 .PHONY: clean
 clean:
