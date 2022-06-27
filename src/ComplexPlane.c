@@ -153,6 +153,9 @@ ComplexPlane *complex_plane_new(ComplexPlane **cp){
 
   new->ID = 0;
   complex_plane_set_dimensions(new, 720, 480);
+  complex_plane_set_default_spans(new);
+  complex_plane_set_center(new, 0);
+  complex_plane_set_quadratic_parameter(new, 0);
 
   new->polynomial = NULL;
   new->polynomial_derivative = NULL;
@@ -1738,7 +1741,7 @@ complex draw_sequence_lines_numerical_method(ComplexPlane *cp, double p[2], int 
         printf("Error: Newton's method returned infinity.\n");
       #endif
 
-        return;
+        return INFINITY;
     }
 
     x = (int) floor((creal(z) - cp->Sx[0])/(cp->Sx[1]-cp->Sx[0])*w);
