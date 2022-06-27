@@ -65,9 +65,9 @@ install: $(OBJ) $(OBJ_GUI)
 	cp assets/sempiternum.desktop /usr/share/applications/
 
 archlinux: $(OBJ) $(OBJ_GUI)
-	mkdir -p $(BDIR)
+	mkdir -p $(BDIR)/bin
 	mkdir -p $(ODIR)
-	$(CC) -o $(BDIR)/sempiternum $^ $(CFLAGS) $(LIBS)
+	$(CC) -o $(BDIR)/bin/sempiternum $^ $(CFLAGS) $(LIBS)
 	cp -r opencl/ $(BDIR)
 	cp -r assets/ $(BDIR)
 
