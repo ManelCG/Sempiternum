@@ -1741,7 +1741,7 @@ complex draw_sequence_lines_numerical_method(ComplexPlane *cp, double p[2], int 
         printf("Error: Newton's method returned infinity.\n");
       #endif
 
-        return;
+        return INFINITY;
     }
 
     x = (int) floor((creal(z) - cp->Sx[0])/(cp->Sx[1]-cp->Sx[0])*w);
