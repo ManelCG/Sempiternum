@@ -66,13 +66,13 @@ install: $(OBJ) $(OBJ_GUI)
 
 archlinux: $(OBJ) $(OBJ_GUI)
 	mkdir -p $(BDIR)/usr/share/sempiternum
+	mkdir -p $(BDIR)/usr/share/applications
 	mkdir -p $(BDIR)/usr/bin/
 	mkdir -p $(ODIR)
 	$(CC) -o $(BDIR)/usr/bin/sempiternum $^ $(CFLAGS) $(LIBS)
 	cp -r opencl/ $(BDIR)/usr/share/sempiternum/
 	cp -r assets/ $(BDIR)/usr/share/sempiternum/
-
-
+	cp assets/sempiternum.desktop $(BDIR)/usr/share/applications/
 
 .PHONY: clean
 clean:
