@@ -8,6 +8,15 @@
 #define COLORSCHEME_ITERATIONS_LEAFAGE 4
 #define COLORSCHEME_ITERATIONS_SEABLUE 5
 #define COLORSCHEME_ITERATIONS_GLITCH 6
+#define COLORSCHEME_ITERATIONS_SUPER 7
+#define COLORSCHEME_ITERATIONS_MEGA 8
+#define COLORSCHEME_ITERATIONS_GIGA 9
+#define COLORSCHEME_ITERATIONS_INFINITY 10
+#define COLORSCHEME_ITERATIONS_PRECISSION 11
+#define COLORSCHEME_ITERATIONS_BLACK 12
+#define COLORSCHEME_ITERATIONS_WHITE 13
+#define COLORSCHEME_ITERATIONS_TRANSCENDENTAL 14
+
 
 #ifdef cl_khr_fp64
   #pragma OPENCL EXTENSION cl_khr_fp64 : enable
@@ -151,22 +160,93 @@ void color_with_iterations(int i, int N,
                            __global unsigned char *g,
                            __global unsigned char *b){
   const double PI = 3.141592;
+  const double E =  2.718281;
+  const double PHI= 1.618033;
   double ni, n;
+
+  float trig_ratio_1 = 200, trig_ratio_2 = 50, trig_ratio_3 = 200;
+
+  if (i >= N){
+    switch(colorscheme){
+      case COLORSCHEME_ITERATIONS_WHITE:
+        *r = 255;
+        *g = 255;
+        *b = 255;
+        break;
+      default:
+        *r = 0;
+        *g = 0;
+        *b = 0;
+        break;
+    }
+    return;
+  }
+
+  switch(colorscheme){
+    case COLORSCHEME_ITERATIONS_DEFAULT:
+    case COLORSCHEME_ITERATIONS_BLUE:
+    case COLORSCHEME_ITERATIONS_GREEN:
+      trig_ratio_1 = 200;
+      trig_ratio_2 = 50;
+      trig_ratio_3 = 200;
+      break;
+    case COLORSCHEME_ITERATIONS_GLITCH:
+      trig_ratio_1 = 200;
+      trig_ratio_2 = 50;
+      trig_ratio_3 = 100;
+      break;
+    case COLORSCHEME_ITERATIONS_SUPER:
+      trig_ratio_1 = 100;
+      trig_ratio_2 = 25;
+      trig_ratio_3 = 100;
+      break;
+    case COLORSCHEME_ITERATIONS_MEGA:
+      trig_ratio_1 = 40;
+      trig_ratio_2 = 10;
+      trig_ratio_3 = 40;
+      break;
+    case COLORSCHEME_ITERATIONS_GIGA:
+      trig_ratio_1 = 20;
+      trig_ratio_2 = 5;
+      trig_ratio_3 = 20;
+      break;
+    case COLORSCHEME_ITERATIONS_INFINITY:
+      trig_ratio_1 = 4;
+      trig_ratio_2 = 1;
+      trig_ratio_3 = 4;
+      break;
+    case COLORSCHEME_ITERATIONS_PRECISSION:
+      trig_ratio_1 = 500;
+      trig_ratio_2 = 125;
+      trig_ratio_3 = 500;
+      break;
+    case COLORSCHEME_ITERATIONS_TRANSCENDENTAL:
+      trig_ratio_1 = PHI * 100;   //R
+      trig_ratio_2 = E   * 20;    //G
+      trig_ratio_3 = PI  * 250 ;  //B
+      break;
+  }
+
   switch (colorscheme){
     case COLORSCHEME_ITERATIONS_DEFAULT:
-      *r = abs((int) floor(cos((double) i/200.0) * 255));
-      *g = abs((int) floor(sin((double) i/50.0) * 255));
-      *b = abs((int) floor(sin((double) i/200.0) * 255));
+    case COLORSCHEME_ITERATIONS_SUPER:
+    case COLORSCHEME_ITERATIONS_MEGA:
+    case COLORSCHEME_ITERATIONS_GIGA:
+    case COLORSCHEME_ITERATIONS_INFINITY:
+    case COLORSCHEME_ITERATIONS_PRECISSION:
+      *r = abs((int) floor(cos((double) i/trig_ratio_1) * 255));
+      *g = abs((int) floor(sin((double) i/trig_ratio_2) * 255));
+      *b = abs((int) floor(sin((double) i/trig_ratio_3) * 255));
       break;
     case COLORSCHEME_ITERATIONS_BLUE:
-      *r = abs((int) floor(sin((double) i/200.0) * 255));
-      *g = abs((int) floor(sin((double) i/50.0) * 255));
-      *b = abs((int) floor(cos((double) i/200.0) * 255));
+      *r = abs((int) floor(sin((double) i/trig_ratio_1) * 255));
+      *g = abs((int) floor(sin((double) i/trig_ratio_2) * 255));
+      *b = abs((int) floor(cos((double) i/trig_ratio_3) * 255));
       break;
     case COLORSCHEME_ITERATIONS_GREEN:
-      *b = abs((int) floor(sin((double) i/200.0) * 255));
-      *r = abs((int) floor(sin((double) i/200.0) * 255));
-      *g = abs((int) floor(cos((double) i/50.0) * 255));
+      *r = abs((int) floor(sin((double) i/trig_ratio_1) * 255));
+      *g = abs((int) floor(cos((double) i/trig_ratio_2) * 255));
+      *b = abs((int) floor(sin((double) i/trig_ratio_3) * 255));
       break;
     case COLORSCHEME_ITERATIONS_GLITCH:
       *r = abs((int) floor(cos((double) i/200.0) * 255));
@@ -187,6 +267,21 @@ void color_with_iterations(int i, int N,
       *r = (int) (((1.0-exp(-(((double) N/500)*((double)i/N))))/(1.0-exp(-2*PI*((double) N/500))))*128);
       *g = (int) (((1.0-exp(-(((double) N/500)*((double)i/N))))/(1.0-exp(-2*PI*((double) N/500))))*128);
       *b = (int) (((1.0-exp(-(((double) N/15)*((double)i/N))))/(1.0-exp(-2*PI*((double) N/15))))*255);
+      break;
+    case COLORSCHEME_ITERATIONS_BLACK:
+      *r = 255;
+      *g = 0;
+      *b = 0;
+      break;
+    case COLORSCHEME_ITERATIONS_WHITE:
+      *r = 0;
+      *g = 0;
+      *b = 0;
+      break;
+    case COLORSCHEME_ITERATIONS_TRANSCENDENTAL:
+      *r = abs((int) floor(sin((double) i/trig_ratio_1) * 255));
+      *g = abs((int) floor(cos((double) i/trig_ratio_2) * 255));
+      *b = abs((int) floor(cos((double) i/trig_ratio_3) * 255));
       break;
     default:
       *r = abs((int) floor(cos((double) i/200.0) * 255));
@@ -339,16 +434,13 @@ __kernel void rec_f(__global unsigned char *m,
       death_counter = 0;
     }
     if (death_counter >= death_tol){
-      m[(y*w + x)*3+0] = 0;
-      m[(y*w + x)*3+1] = 0;
-      m[(y*w + x)*3+2] = 0;
+      color_with_iterations(N, N, colorscheme, &m[(y*w + x)*3+0], &m[(y*w + x)*3+1], &m[(y*w + x)*3+2]);
       return;
     }
   }
   if (z_abs <= R){
-      m[(y*w + x)*3+0] = 0;
-      m[(y*w + x)*3+1] = 0;
-      m[(y*w + x)*3+2] = 0;
+      color_with_iterations(N, N, colorscheme, &m[(y*w + x)*3+0], &m[(y*w + x)*3+1], &m[(y*w + x)*3+2]);
+      return;
   }
 }
 
@@ -414,16 +506,13 @@ __kernel void parameter_space(__global unsigned char *m,
       death_counter = 0;
     }
     if (death_counter >= death_tol){
-      m[(y*w + x)*3+0] = 0;
-      m[(y*w + x)*3+1] = 0;
-      m[(y*w + x)*3+2] = 0;
+      color_with_iterations(N, N, colorscheme, &m[(y*w + x)*3+0], &m[(y*w + x)*3+1], &m[(y*w + x)*3+2]);
       return;
     }
   }
   if (z_abs <= R){
-      m[(y*w + x)*3+0] = 0;
-      m[(y*w + x)*3+1] = 0;
-      m[(y*w + x)*3+2] = 0;
+      color_with_iterations(N, N, colorscheme, &m[(y*w + x)*3+0], &m[(y*w + x)*3+1], &m[(y*w + x)*3+2]);
+      return;
   }
 }
 
@@ -625,9 +714,7 @@ __kernel void polynomial(__global unsigned char *m,
     }
   }
   if (z_abs <= 10){
-      m[(y*w + x)*3+0] = 0;
-      m[(y*w + x)*3+1] = 0;
-      m[(y*w + x)*3+2] = 0;
+      color_with_iterations(N, N, colorscheme, &m[(y*w + x)*3+0], &m[(y*w + x)*3+1], &m[(y*w + x)*3+2]);
   }
 }
 

@@ -7,8 +7,16 @@
 #define COLORSCHEME_ITERATIONS_LEAFAGE 4
 #define COLORSCHEME_ITERATIONS_SEABLUE 5
 #define COLORSCHEME_ITERATIONS_GLITCH 6
+#define COLORSCHEME_ITERATIONS_SUPER 7
+#define COLORSCHEME_ITERATIONS_MEGA 8
+#define COLORSCHEME_ITERATIONS_GIGA 9
+#define COLORSCHEME_ITERATIONS_INFINITY 10
+#define COLORSCHEME_ITERATIONS_PRECISSION 11
+#define COLORSCHEME_ITERATIONS_BLACK 12
+#define COLORSCHEME_ITERATIONS_WHITE 13
+#define COLORSCHEME_ITERATIONS_TRANSCENDENTAL 14
 
-#define COLORSCHEME_NUM 7
+#define COLORSCHEME_NUM 15
 
 const char *complex_plane_colorschemes_get_name(int c){
   switch(c){
@@ -32,6 +40,30 @@ const char *complex_plane_colorschemes_get_name(int c){
       break;
     case COLORSCHEME_ITERATIONS_GLITCH:
       return "Glitch";
+      break;
+    case COLORSCHEME_ITERATIONS_SUPER:
+      return "Super";
+      break;
+    case COLORSCHEME_ITERATIONS_MEGA:
+      return "Mega";
+      break;
+    case COLORSCHEME_ITERATIONS_GIGA:
+      return "Giga";
+      break;
+    case COLORSCHEME_ITERATIONS_INFINITY:
+      return "Infinity";
+      break;
+    case COLORSCHEME_ITERATIONS_PRECISSION:
+      return "Precission";
+      break;
+    case COLORSCHEME_ITERATIONS_BLACK:
+      return "Pure Black";
+      break;
+    case COLORSCHEME_ITERATIONS_WHITE:
+      return "White on Black";
+      break;
+    case COLORSCHEME_ITERATIONS_TRANSCENDENTAL:
+      return "Transcendental";
       break;
     default:
       return "Colorscheme name not defined";
