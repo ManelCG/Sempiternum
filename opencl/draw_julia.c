@@ -865,7 +865,7 @@ __kernel void numerical_method(__global unsigned char *m,
           double cord1 = cos(deg);
           double cord2 = sin(deg);
 
-          color_matrix_radial(m, x, y, w, cord1, cord2, colorscheme, 0.66);
+          color_matrix_radial(m, x, y, w, cord1, cord2, colorscheme, (double) (N-i)/N);
 
           colored = 1;
           return;
@@ -873,7 +873,7 @@ __kernel void numerical_method(__global unsigned char *m,
       }
 
       if (colored == 0){
-        color_matrix_radial(m, x, y, w, zr[0], zr[1], colorscheme, 1);
+        color_matrix_radial(m, x, y, w, zr[0], zr[1], colorscheme, (double)(N-i)/N);
         return;
       }
     }
@@ -926,9 +926,10 @@ __kernel void polynomial_fraction(__global unsigned char *m,
   double z[2] = {numerator_real[order+1], numerator_imag[order+1]};
 
   int converged = 0;
+  int i = 0;
 
   double oldz[2];
-  for (int i = 0; i < N; i++){
+  for (i = 0; i < N; i++){
     double num0 = 0, num1 = 0;
     double den0 = 0, den1 = 0;
     double auxz0 = 0, auxz1 = 0;
@@ -993,7 +994,7 @@ __kernel void polynomial_fraction(__global unsigned char *m,
   }
 
   if (converged == 1){ //Color points
-    color_matrix_radial(m, x, y, w, z[0], z[1], colorscheme, 1);
+    color_matrix_radial(m, x, y, w, z[0], z[1], colorscheme, (double)(N-i)/N);
   } else {
     m[(y*w + x)*3+0] = 0;
     m[(y*w + x)*3+1] = 0;
