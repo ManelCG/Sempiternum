@@ -1631,10 +1631,19 @@ void draw_sequence(GtkWidget *window, GdkEventButton *event, gpointer data){
       break;
   }
 
-  char *final_coords_label_str = g_strdup_printf("zN = %f %+fi", creal(final_coords), cimag(final_coords));
+  char *final_coords_label_str;
+  const char *subscript = complex_function_get_subscript_str(complex_plane_get_line_iterations(cp));
+  if (creal(final_coords) == final_coords){
+    final_coords_label_str = g_strdup_printf("z%s = %g", subscript, creal(final_coords));
+  } else if (cimag(final_coords) == final_coords){
+    final_coords_label_str = g_strdup_printf("z%s = %gi", subscript, cimag(final_coords));
+  } else {
+    final_coords_label_str = g_strdup_printf("z%s = %g %+gi", subscript, creal(final_coords), cimag(final_coords));
+  }
   GtkWidget *label_final_coords = mousehandlerdata->label_final_coords;
   gtk_label_set_text(GTK_LABEL(label_final_coords), final_coords_label_str);
   free(final_coords_label_str);
+  free((void *) subscript);
 
   clear_container(window);
 
@@ -1972,7 +1981,11 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_draw_lines), complex_plane_is_drawing_lines_active(cp));
   g_signal_connect(check_draw_lines, "toggled", G_CALLBACK(toggle_draw_lines_handler), (gpointer) cp);
 
-  label_final_coords = gtk_label_new("zN = 0");
+  const char *subscript = complex_function_get_subscript_str(complex_plane_get_line_iterations(cp));
+  const char *label_final_coords_default_text = g_strdup_printf("z%s = 0", subscript);
+  label_final_coords = gtk_label_new(label_final_coords_default_text);
+  free((void *) subscript);
+  free((void *) label_final_coords_default_text);
 
   //Reset viewport
   button_reset_view = gtk_button_new_with_label("Reset view");
