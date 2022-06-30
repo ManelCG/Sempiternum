@@ -34,6 +34,7 @@ ComplexPolynomial *complex_polynomial_copy(ComplexPolynomial **dest, ComplexPoly
 const complex double *complex_polynomial_get_polynomial(const ComplexPolynomial *cp);
 
 const char *complex_function_get_exponent_str(int);
+const char *complex_function_get_subscript_str(int);
 
 //IO
 void complex_polynomial_print(ComplexPolynomial *cp, char var);

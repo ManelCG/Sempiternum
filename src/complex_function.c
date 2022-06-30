@@ -226,6 +226,51 @@ const char *complex_function_get_exponent_str(int exp){
   return ret;
 }
 
+const char *complex_function_get_subscript_str(int num){
+  int digits = floor(log10(num) + 1);
+  char str[digits+1];
+  char *ret = calloc(sizeof(char) * (2*digits +2), 1);
+
+  sprintf(str, "%d", num);
+
+  for (int i = 0; i < digits; i++){
+    switch(str[i]){
+      case '0':
+        strcat(ret,  "₀");
+        break;
+      case '1':
+        strcat(ret,  "₁");
+        break;
+      case '2':
+        strcat(ret,  "₂");
+        break;
+      case '3':
+        strcat(ret,  "₃");
+        break;
+      case '4':
+        strcat(ret,  "₄");
+        break;
+      case '5':
+        strcat(ret,  "₅");
+        break;
+      case '6':
+        strcat(ret,  "₆");
+        break;
+      case '7':
+        strcat(ret,  "₇");
+        break;
+      case '8':
+        strcat(ret,  "₈");
+        break;
+      case '9':
+        strcat(ret,  "₉");
+        break;
+    }
+  }
+
+  return ret;
+}
+
 
 //IO
 void complex_polynomial_print(ComplexPolynomial *cp, char var){
