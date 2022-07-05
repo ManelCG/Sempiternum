@@ -19,6 +19,8 @@
 #include <draw_julia.h>
 #include <image_manipulation.h>
 
+#include <custom_function.h>
+
 // #define DEBUG_DRAW_JULIA_C
 
 #ifdef MAKE_INSTALL
@@ -63,19 +65,8 @@ unsigned char *draw_julia_polynomial_fraction
       *cl_prog = get_opencl_info();
       prog = *cl_prog;
     }
-    FILE *fp;
-    char *filename = DRAW_JULIA_CL;
 
-    fp = fopen(filename, "r");
-    if (!fp){
-      fprintf(stderr, "Failed to load kernel.\n");
-      exit(1);
-    }
-
-    prog->src = (char *) calloc(MAX_SOURCE_SIZE, 1);
-    prog->src_size = fread(prog->src, 1, MAX_SOURCE_SIZE, fp);
-
-    fclose(fp);
+    draw_julia_load_opencl_src(prog);
 
     // #ifdef DEBUG_DRAW_JULIA_C
     // printf("Executing:\n------------------------\n%s\n------------------------\n", prog->src);
@@ -309,19 +300,8 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
       *cl_prog = get_opencl_info();
       prog = *cl_prog;
     }
-    FILE *fp;
-    char *filename = DRAW_JULIA_CL;
 
-    fp = fopen(filename, "r");
-    if (!fp){
-      fprintf(stderr, "Failed to load kernel.\n");
-      exit(1);
-    }
-
-    prog->src = (char *) calloc(MAX_SOURCE_SIZE, 1);
-    prog->src_size = fread(prog->src, 1, MAX_SOURCE_SIZE, fp);
-
-    fclose(fp);
+    draw_julia_load_opencl_src(prog);
 
     // #ifdef DEBUG_DRAW_JULIA_C
     // printf("Executing:\n------------------------\n%s\n------------------------\n", prog->src);
@@ -562,19 +542,8 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
       *cl_prog = get_opencl_info();
       prog = *cl_prog;
     }
-    FILE *fp;
-    char *filename = DRAW_JULIA_CL;
 
-    fp = fopen(filename, "r");
-    if (!fp){
-      fprintf(stderr, "Failed to load kernel.\n");
-      exit(1);
-    }
-
-    prog->src = (char *) calloc(MAX_SOURCE_SIZE, 1);
-    prog->src_size = fread(prog->src, 1, MAX_SOURCE_SIZE, fp);
-
-    fclose(fp);
+    draw_julia_load_opencl_src(prog);
 
     // #ifdef DEBUG_DRAW_JULIA_C
     // printf("Executing:\n------------------------\n%s\n------------------------\n", prog->src);
@@ -719,6 +688,207 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
   return m;
 }
 
+int draw_julia_load_opencl_src(struct OpenCL_Program *prog){
+  FILE *fp;
+  char *filename = DRAW_JULIA_CL;
+
+  //Load main OpenCL
+  fp = fopen(filename, "r");
+  if (!fp){
+    fprintf(stderr, "Failed to load kernel.\n");
+    exit(1);
+  }
+
+  size_t src_size = MAX_SOURCE_SIZE;
+
+  prog->src = (char *) calloc(src_size, 1);
+  prog->src_size = fread(prog->src, 1, src_size, fp);
+
+  fclose(fp);
+
+  int custom_n = custom_function_get_n();
+  char *custom_function_path = custom_function_get_path();
+  char **file_list = custom_function_get_file_list(true);
+
+  //Load custom OpenCL files
+  for (int i = 0; i < custom_n; i++){
+    char *custom_full_path = malloc(strlen(custom_function_path) + strlen(file_list[i]) + 16);
+    strcpy(custom_full_path, custom_function_path);
+    strcat(custom_full_path, file_list[i]);
+
+    FILE *fp = fopen(custom_full_path, "r");
+    if (!fp){
+      fprintf(stderr, "Failed to load custom kernel %s\n", custom_full_path);
+      exit(1);
+    }
+
+    char *custom_src = calloc(MAX_SOURCE_SIZE, 1);
+    fread(custom_src, 1, MAX_SOURCE_SIZE, fp);
+
+    if (strlen(prog->src) + strlen(custom_src) > src_size - 16){
+      src_size *= 2;
+      prog->src = realloc(prog->src, src_size);
+    }
+
+    strcat(prog->src, custom_src);
+
+    free(custom_full_path);
+    free(custom_src);
+  }
+
+  prog->src_size = strlen(prog->src);;
+
+  return 0;
+}
+
+unsigned char *draw_julia_custom_function(int N, int h, int w,
+                                          complex double param,
+                                          double Sx[2], double Sy[2],
+                                          int plot_type, int color,
+                                          const char *custom_function,
+                                          struct OpenCL_Program **cl_prog, _Bool init_new_cl){
+  unsigned char *m = calloc(h*w*3*sizeof(char), 1);
+
+  double c[2] = {creal(param), cimag(param)};
+
+  //Perform OpenCL program
+  struct OpenCL_Program *prog = cl_prog == NULL? NULL : *cl_prog;
+  if (init_new_cl == true || cl_prog == NULL){
+    if (cl_prog == NULL){
+      prog = get_opencl_info();
+    } else {
+      *cl_prog = get_opencl_info();
+      prog = *cl_prog;
+    }
+
+    draw_julia_load_opencl_src(prog);
+
+    #ifdef DEBUG_DRAW_JULIA_C
+    printf("Executing:\n------------------------\n%s\n------------------------\n", prog->src);
+    #endif
+
+    prog->context = clCreateContext(NULL, 1, &(prog->device), NULL, NULL, &(prog->ret));
+    #ifdef DEBUG_DRAW_JULIA_C
+    printf("OpenCL context created. Return code: %d\n", prog->ret);
+    #endif
+  }
+
+  prog->command_queue = clCreateCommandQueue(prog->context, prog->device, 0, &(prog->ret));
+  #ifdef DEBUG_DRAW_JULIA_C
+  printf("OpenCL CommandQueue created. Return code: %d\n", prog->ret);
+  #endif
+
+  //Create all memory objects for Julia set Drawing
+  //Memobjects for images and dmap
+  cl_mem mem_m = clCreateBuffer(prog->context, CL_MEM_WRITE_ONLY, w*h*3, NULL, &(prog->ret));
+  cl_mem mem_N = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,  sizeof(int), NULL, &(prog->ret));
+  cl_mem mem_h = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,  sizeof(int), NULL, &(prog->ret));
+  cl_mem mem_w = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,  sizeof(int), NULL, &(prog->ret));
+  cl_mem mem_c = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,  sizeof(double)*2, NULL, &(prog->ret));
+  cl_mem mem_Sx = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*2, NULL, &(prog->ret));
+  cl_mem mem_Sy = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*2, NULL, &(prog->ret));
+  cl_mem mem_pt = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int), NULL, &(prog->ret));
+  cl_mem mem_cs = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int), NULL, &(prog->ret));
+
+  //Write data to mem objects
+  clEnqueueWriteBuffer(prog->command_queue, mem_N, CL_TRUE, 0, sizeof(int), &N, 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_h, CL_TRUE, 0, sizeof(int), &h, 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_w, CL_TRUE, 0, sizeof(int), &w, 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_c, CL_TRUE, 0, sizeof(double)*2, c, 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_Sx, CL_TRUE, 0, sizeof(double)*2, Sx, 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_Sy, CL_TRUE, 0, sizeof(double)*2, Sy, 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_pt, CL_TRUE, 0, sizeof(int), &(plot_type), 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_cs, CL_TRUE, 0, sizeof(int), &color, 0, NULL, NULL);
+
+  if (init_new_cl){
+    prog->program = clCreateProgramWithSource(prog->context,
+                                              1,
+                                              (const char **)  &(prog->src),
+                                              (const size_t *) &(prog->src_size),
+                                              &(prog->ret));
+    clBuildProgram(prog->program, 1, &(prog->device), NULL, NULL, NULL);
+
+    #ifdef DEBUG_DRAW_JULIA_C
+      printf("OpenCL Program build. Return code: %d\n\n", prog->ret);
+      {
+        size_t log_size;
+        clGetProgramBuildInfo(prog->program, prog->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+
+        char *log = malloc(log_size);
+        clGetProgramBuildInfo(prog->program, prog->device, CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
+        printf("########\nProgram build log:\n%s\n########\n", log);
+      }
+    #endif
+
+  }
+
+  prog->kernel = clCreateKernel(prog->program, custom_function, &(prog->ret));
+
+  #ifdef DEBUG_DRAW_JULIA_C
+  printf("OpenCL Kernel created. Return code: %d\n", prog->ret);
+  printf("Kernel %s\n\n", plot_type);
+  #endif
+
+  clSetKernelArg(prog->kernel, 0, sizeof(mem_m),  (void *)&mem_m);
+  clSetKernelArg(prog->kernel, 1, sizeof(mem_N),  (void *)&mem_N);
+  clSetKernelArg(prog->kernel, 2, sizeof(mem_h),  (void *)&mem_h);
+  clSetKernelArg(prog->kernel, 3, sizeof(mem_w),  (void *)&mem_w);
+  clSetKernelArg(prog->kernel, 4, sizeof(mem_c),  (void *)&mem_c);
+  clSetKernelArg(prog->kernel, 5, sizeof(mem_Sx),  (void *)&mem_Sx);
+  clSetKernelArg(prog->kernel, 6, sizeof(mem_Sy),  (void *)&mem_Sy);
+  clSetKernelArg(prog->kernel, 7, sizeof(mem_pt),  (void *)&mem_pt);
+  clSetKernelArg(prog->kernel, 8, sizeof(mem_cs),  (void *)&mem_cs);
+
+  fflush(stdout);
+
+  const size_t worksize[] = {h, w};
+
+  clEnqueueNDRangeKernel(prog->command_queue,
+                         prog->kernel, 2, NULL,
+                         worksize,
+                         NULL,
+                         0, NULL, NULL);
+
+  clFlush(prog->command_queue);
+  clFinish(prog->command_queue);
+
+  clEnqueueReadBuffer(prog->command_queue,
+                      mem_m,
+                      CL_TRUE,
+                      0,
+                      w*h*3,
+                      m,
+                      0,
+                      NULL, NULL);
+
+  clReleaseCommandQueue(prog->command_queue);
+  clReleaseKernel(prog->kernel);
+  prog->init = true;
+  clReleaseMemObject(mem_m);
+  clReleaseMemObject(mem_N);
+  clReleaseMemObject(mem_h);
+  clReleaseMemObject(mem_w);
+  clReleaseMemObject(mem_c);
+  clReleaseMemObject(mem_Sx);
+  clReleaseMemObject(mem_Sy);
+  clReleaseMemObject(mem_pt);
+  clReleaseMemObject(mem_cs);
+
+
+  if (cl_prog == NULL){
+    clReleaseProgram(prog->program);
+    clReleaseDevice(prog->device);
+    clReleaseContext(prog->context);
+
+    free(prog->src);
+    free(prog);
+  }
+
+
+  return m;
+}
+
+
 unsigned char *draw_julia(int N, int h, int w,
                           complex double param,
                           double Sx[2], double Sy[2],
@@ -736,7 +906,6 @@ unsigned char *draw_julia(int N, int h, int w,
   double c[2] = {creal(param), cimag(param)};
 
   //Perform OpenCL program
-
   struct OpenCL_Program *prog = cl_prog == NULL? NULL : *cl_prog;
   if (init_new_cl == true || cl_prog == NULL){
     if (cl_prog == NULL){
@@ -745,19 +914,8 @@ unsigned char *draw_julia(int N, int h, int w,
       *cl_prog = get_opencl_info();
       prog = *cl_prog;
     }
-    FILE *fp;
-    char *filename = DRAW_JULIA_CL;
 
-    fp = fopen(filename, "r");
-    if (!fp){
-      fprintf(stderr, "Failed to load kernel.\n");
-      exit(1);
-    }
-
-    prog->src = (char *) calloc(MAX_SOURCE_SIZE, 1);
-    prog->src_size = fread(prog->src, 1, MAX_SOURCE_SIZE, fp);
-
-    fclose(fp);
+    draw_julia_load_opencl_src(prog);
 
     #ifdef DEBUG_DRAW_JULIA_C
     printf("Executing:\n------------------------\n%s\n------------------------\n", prog->src);
@@ -864,6 +1022,7 @@ unsigned char *draw_julia(int N, int h, int w,
   clReleaseMemObject(mem_c);
   clReleaseMemObject(mem_Sx);
   clReleaseMemObject(mem_Sy);
+  clReleaseMemObject(mem_cs);
 
   if (cl_prog == NULL){
     clReleaseProgram(prog->program);

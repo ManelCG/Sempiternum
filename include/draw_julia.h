@@ -14,6 +14,8 @@ struct complexBI{
   _Bool disregard;
 };
 
+int draw_julia_load_opencl_src(struct OpenCL_Program *cl_prog);
+
 unsigned char *draw_julia(int N, int h, int w,
                           complex double c, double Sx[2], double Sy[2],
                           int plot_type, int color,
@@ -47,6 +49,13 @@ unsigned char *draw_julia_numerical_method(int N, int h, int w,
                                            int nroots, RootArrayMember *roots,
                                            double Sx[2], double Sy[2], int color,
                                            struct OpenCL_Program **cl_prog, _Bool init_new_cl);
+
+unsigned char *draw_julia_custom_function(int N, int h, int w,
+                                          complex double c,
+                                          double Sx[2], double Sy[2],
+                                          int plot_type, int color,
+                                          const char *custom_function,
+                                          struct OpenCL_Program **cl_prog, _Bool init_new_cl);
 
 void draw_julia_zoom(int frames, int N, int h, int w,
                      complex double c, complex double p,
