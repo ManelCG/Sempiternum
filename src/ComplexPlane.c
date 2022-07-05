@@ -55,6 +55,8 @@ typedef struct ComplexPlane{
   int N, N_line;
 
   struct OpenCL_Program *cl;
+
+  const char *custom_function;
 } ComplexPlane;
 
 void complex_plane_free(ComplexPlane *cp){
@@ -182,6 +184,8 @@ ComplexPlane *complex_plane_new(ComplexPlane **cp){
   new->nroots = 0;
   new->roots = NULL;
 
+  new->custom_function = NULL;
+
   complex_plane_set_colorscheme(new, 0);
 
   if (cp != NULL){
@@ -289,6 +293,8 @@ ComplexPlane *complex_plane_copy(ComplexPlane **dest, ComplexPlane *src){
   printf("8\n");
   #endif
   copy_polynomial(src->polynomial_critical_point, new->polynomial_critical_point, complex_plane_get_polynomial_order(src));
+
+  new->custom_function = src->custom_function;
 
 
   #ifdef DEBUG_CP
@@ -1372,6 +1378,15 @@ void complex_plane_gen_plot(ComplexPlane *cp){
                                                &(cp->cl), !cp->cl->init);
       }
       break;
+    case 4:
+      cp->plot = draw_julia_custom_function(cp->N,
+                                            cp->h, cp->w,
+                                            cp->param,
+                                            cp->Sx, cp->Sy,
+                                            cp->plot_type, cp->colorscheme,
+                                            cp->custom_function,
+                                            &(cp->cl), !cp->cl->init);
+      break;
     default:
       cp->plot = calloc(complex_plane_get_size(cp), 1);
       break;
@@ -1771,4 +1786,12 @@ complex newton_method(const complex double *polynomial,
   num += complex_compute_polynomial_p(polynomial_param, a, z, order);
 
   return z - complex_div(num, den);
+}
+
+//--Custom functions
+const char *complex_plane_get_custom_function(ComplexPlane *cp){
+  return cp->custom_function;
+}
+void complex_plane_set_custom_function(ComplexPlane *cp, const char *cf){
+  cp->custom_function = cf;
 }

@@ -190,4 +190,8 @@ complex newton_method(const complex double *polynomial,
                       const complex double *polynomial_param_derivative,
                       complex z, complex a, int order);
 
+//---Custom functions
+const char *complex_plane_get_custom_function(ComplexPlane *cp);
+void  complex_plane_set_custom_function(ComplexPlane *cp, const char *cf);
+
 #endif //COMPLEXPLANE_H
