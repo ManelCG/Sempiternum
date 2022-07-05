@@ -12,8 +12,8 @@ release: CC = $(CCCMD) -O2
 release: BDIR = build
 
 install: CC = $(CCCMD) -O2	-DMAKE_INSTALL
-install: SEMPITERNUM_DIR = /usr/share/sempiternum
-install: BDIR = $(SEMPITERNUM_DIR)/install
+install: SEMPITERNUM_DIR = /usr/lib/sempiternum
+install: BDIR = $(SEMPITERNUM_DIR)/bin
 
 archlinux: CC = $(CCCMD) -O2 -DMAKE_INSTALL
 
@@ -61,7 +61,7 @@ install: $(OBJ) $(OBJ_GUI)
 	$(CC) -o $(BDIR)/sempiternum $^ $(CFLAGS) $(LIBS)
 	cp -r opencl/ $(SEMPITERNUM_DIR)
 	cp -r assets/ $(SEMPITERNUM_DIR)
-	ln -sf $(BDIR)/sempiternum /bin/sempiternum
+	ln -sf $(BDIR)/sempiternum /usr/bin/sempiternum
 	cp assets/sempiternum.desktop /usr/share/applications/
 
 archlinux: $(OBJ) $(OBJ_GUI)
