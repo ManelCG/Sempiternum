@@ -22,10 +22,10 @@ LDIR=lib
 
 LIBS = -lm -lOpenCL -lpthread
 
-_DEPS = lodepng.h draw_julia.h opencl_funcs.h file_io.h ComplexPlane.h image_manipulation.h gui_gen_video.h complex_function.h gui_templates.h complex_plane_colorschemes.h
+_DEPS = lodepng.h draw_julia.h opencl_funcs.h file_io.h ComplexPlane.h image_manipulation.h gui_gen_video.h complex_function.h gui_templates.h complex_plane_colorschemes.h custom_function.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = lodepng.o draw_julia.o opencl_funcs.o file_io.o ComplexPlane.o image_manipulation.o complex_function.o gui_templates.o complex_plane_colorschemes.o
+_OBJ = lodepng.o draw_julia.o opencl_funcs.o file_io.o ComplexPlane.o image_manipulation.o complex_function.o gui_templates.o complex_plane_colorschemes.o custom_function.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 _OBJ_cli = main.o
