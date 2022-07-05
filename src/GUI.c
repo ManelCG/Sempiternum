@@ -1510,6 +1510,7 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
               complex_plane_set_drawing_lines_active(cp, true);
             }
           } else if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_DYNAMIC_PLANE){
+            complex_plane_set_center(cp, complex_plane_get_quadratic_parameter(cp));
             complex_plane_set_quadratic_parameter(cp, 0);
 
             complex_plane_set_plot_type(cp, COMPLEX_PLANE_PARAMETER_SPACE);
