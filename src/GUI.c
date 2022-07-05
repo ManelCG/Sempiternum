@@ -20,6 +20,8 @@
 #include <gui_gen_video.h>
 #include <gui_templates.h>
 
+#include <custom_function.h>
+
 #define COMPLEX_PLANE_THUMBNAIL_ID 69
 #define USE_THREADS 1
 
@@ -508,6 +510,16 @@ void *render_video(void *data){
 void destroy_cp_from_gpointer(GtkWidget *widget, gpointer gp){
   ComplexPlane *cp = (ComplexPlane *) gp;
   complex_plane_free(cp);
+}
+void combo_custom_function_handler(GtkWidget *combo, gpointer data){
+  ComplexPlane **planes = (ComplexPlane **) data;
+  ComplexPlane *cp_main  = planes[0];
+  ComplexPlane *cp_thumb = planes[1];
+
+  const char *cf = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(combo));
+
+  complex_plane_set_custom_function(cp_main, cf);
+  complex_plane_set_custom_function(cp_thumb, cf);
 }
 void button_resetcl_handler(GtkWidget *widget, gpointer data){
   ComplexPlane *cp = (ComplexPlane *) data;
@@ -1486,6 +1498,7 @@ void cp_mouse_handler(GtkWidget *event_box, GdkEventButton *event, gpointer data
       complex_plane_set_default_spans(cp);
       complex_plane_set_center(cp, 0);
       switch (complex_plane_get_function_type(cp)){
+        case 4:
         case 0:
           if (complex_plane_get_plot_type(cp) == COMPLEX_PLANE_PARAMETER_SPACE){
             complex_plane_set_quadratic_parameter(cp, x + y*I);
@@ -1939,6 +1952,7 @@ void draw_main_window(GtkWidget *widget, gpointer data){
   gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_function_type), NULL, "Polynomial");
   gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_function_type), NULL, "Newton's Fractal");
   gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_function_type), NULL, "Newton's Method");
+  gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_function_type), NULL, "Custom function");
   gtk_combo_box_set_active(GTK_COMBO_BOX(combo_function_type), complex_plane_get_function_type(cp));
   gtk_widget_set_tooltip_text(combo_function_type, "Set type of function to plot");
   gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(input_plot_type), NULL, "Parameter space");
@@ -2301,6 +2315,33 @@ void draw_main_window(GtkWidget *widget, gpointer data){
 
       //Populate vbox
       gtk_box_pack_start(GTK_BOX(vbox), polynomial_config_vbox, true, false, 0);
+      break;
+    case 4:
+      GtkWidget *combo_custom_function;
+
+      combo_custom_function = gtk_combo_box_text_new();
+      g_signal_connect(combo_custom_function, "changed", G_CALLBACK(combo_custom_function_handler), (gpointer) planes);
+
+      int custom_n = custom_function_get_n();
+      char **file_list = custom_function_get_file_list(false);
+
+      const char *cp_custom_function = complex_plane_get_custom_function(cp);
+      int selected_entry = 0;
+
+      for (int i = 0; i < custom_n; i++){
+        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_custom_function), NULL, file_list[i]);
+
+        if (cp_custom_function != NULL){
+          if (strcmp(cp_custom_function, file_list[i]) == 0){
+            selected_entry = i;
+          }
+        }
+      }
+      free(file_list);
+
+      gtk_combo_box_set_active(GTK_COMBO_BOX(combo_custom_function), selected_entry);
+
+      gtk_box_pack_start(GTK_BOX(vbox), combo_custom_function, true, false, 0);
       break;
   }
   //Thumbnails
