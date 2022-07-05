@@ -378,7 +378,7 @@ void gui_templates_show_about_window(GtkWidget *w, gpointer data){
   label_app_name = gtk_label_new(NULL);
   gtk_label_set_markup(GTK_LABEL(label_app_name), "<b>Sempiternum</b>");
 
-  label_version = gtk_label_new("Beta June '22");
+  label_version = gtk_label_new(SEMPITERNUM_VERSION);
 
   label_description = gtk_label_new("Sempiternum represents the Julia sets resulting on the iteration\nof different rational functions on the complex plane.");
   gtk_label_set_justify(GTK_LABEL(label_description),GTK_JUSTIFY_CENTER);
