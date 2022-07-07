@@ -24,9 +24,11 @@
 // #define DEBUG_DRAW_JULIA_C
 
 #ifdef MAKE_INSTALL
-  #define DRAW_JULIA_CL "/usr/lib/sempiternum/opencl/draw_julia.c"
+  #define DRAW_JULIA_HEADERS_FOLDER "/usr/lib/sempiternum/opencl/draw_julia_headers/"
+  #define DRAW_JULIA_CL             "/usr/lib/sempiternum/opencl/draw_julia.c"
 #else
-  #define DRAW_JULIA_CL "opencl/draw_julia.c"
+  #define DRAW_JULIA_HEADERS_FOLDER "opencl/draw_julia_headers/"
+  #define DRAW_JULIA_CL             "opencl/draw_julia.c"
 #endif
 
 unsigned char *draw_julia_polynomial_fraction
@@ -688,55 +690,74 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
   return m;
 }
 
+void draw_julia_dump_folder_to_src(char **dest, char *folder, char **extensions, int extension_n, size_t *src_size){
+  int file_n = file_io_folder_get_file_n(folder, extensions, extension_n);
+  char **file_list = file_io_folder_get_file_list(folder, extensions, extension_n, true);
+
+  for (int i = 0; i < file_n; i++){
+    char *file_full_path = malloc(strlen(folder) + strlen(file_list[i]) + 16);
+    strcpy(file_full_path, folder);
+    strcat(file_full_path, "/");
+    strcat(file_full_path, file_list[i]);
+
+    FILE *fp = fopen(file_full_path, "r");
+    if (!fp){
+      fprintf(stderr, "Failed to load file %s\n", file_full_path);
+      exit(1);
+    }
+
+    char *file_src = calloc(MAX_SOURCE_SIZE, 1);
+    fread(file_src, 1, MAX_SOURCE_SIZE, fp);
+
+    if (strlen(*dest) + strlen(file_src) > *src_size - 16){
+      *src_size *= 2;
+      *dest = realloc(*dest, *src_size);
+    }
+
+    strcat(*dest, file_src);
+
+    free(file_full_path);
+    free(file_src);
+  }
+}
+
 int draw_julia_load_opencl_src(struct OpenCL_Program *prog){
+  //LOAD HEADERS
+  char *headers_extensions[1] = {".h"};
+
+  size_t src_size = MAX_SOURCE_SIZE;
+  prog->src = (char *) calloc(src_size, 1);
+
+  draw_julia_dump_folder_to_src(&prog->src, DRAW_JULIA_HEADERS_FOLDER, headers_extensions, 1, &src_size);
+
+  //LOAD MAIN OPENCL
   FILE *fp;
   char *filename = DRAW_JULIA_CL;
-
-  //Load main OpenCL
   fp = fopen(filename, "r");
   if (!fp){
     fprintf(stderr, "Failed to load kernel.\n");
     exit(1);
   }
 
-  size_t src_size = MAX_SOURCE_SIZE;
-
-  prog->src = (char *) calloc(src_size, 1);
-  prog->src_size = fread(prog->src, 1, src_size, fp);
-
+  size_t main_src_size = MAX_SOURCE_SIZE;
+  char *main_src = (char *) calloc(src_size, 1);
+  fread(main_src, 1, main_src_size, fp);
   fclose(fp);
 
-  int custom_n = custom_function_get_n();
-  char *custom_function_path = custom_function_get_path();
-  char **file_list = custom_function_get_file_list(true);
-
-  //Load custom OpenCL files
-  for (int i = 0; i < custom_n; i++){
-    char *custom_full_path = malloc(strlen(custom_function_path) + strlen(file_list[i]) + 16);
-    strcpy(custom_full_path, custom_function_path);
-    strcat(custom_full_path, file_list[i]);
-
-    FILE *fp = fopen(custom_full_path, "r");
-    if (!fp){
-      fprintf(stderr, "Failed to load custom kernel %s\n", custom_full_path);
-      exit(1);
-    }
-
-    char *custom_src = calloc(MAX_SOURCE_SIZE, 1);
-    fread(custom_src, 1, MAX_SOURCE_SIZE, fp);
-
-    if (strlen(prog->src) + strlen(custom_src) > src_size - 16){
-      src_size *= 2;
-      prog->src = realloc(prog->src, src_size);
-    }
-
-    strcat(prog->src, custom_src);
-
-    free(custom_full_path);
-    free(custom_src);
+  if (strlen(main_src) + strlen(prog->src) < src_size - 16){
+    src_size *= 2;
+    prog->src = realloc(prog->src, src_size);
   }
+  strcat(prog->src, main_src);
 
-  prog->src_size = strlen(prog->src);;
+  //LOAD CUSTOM OPENCL FILES
+  char *custom_extensions[2] = {".c", ".cl"};
+  char *custom_function_path = custom_function_get_path();
+  draw_julia_dump_folder_to_src(&prog->src, custom_function_path, custom_extensions, 2, &src_size);
+
+  free(custom_function_path);
+
+  prog->src_size = strlen(prog->src);
 
   return 0;
 }
