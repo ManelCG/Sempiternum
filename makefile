@@ -65,16 +65,19 @@ install: $(OBJ) $(OBJ_GUI)
 	cp -r assets/ $(SEMPITERNUM_DIR)
 	ln -sf $(BDIR)/sempiternum /usr/bin/sempiternum
 	cp assets/sempiternum.desktop /usr/share/applications/
+	cp assets/app_icon/256.png /usr/share/pixmaps/sempiternum.png
 
 archlinux: $(OBJ) $(OBJ_GUI)
 	mkdir -p $(BDIR)/usr/lib/sempiternum
 	mkdir -p $(BDIR)/usr/share/applications
+	mkdir -p $(BDIR)/usr/share/pixmaps
 	mkdir -p $(BDIR)/usr/bin/
 	mkdir -p $(ODIR)
 	$(CC) -o $(BDIR)/usr/bin/sempiternum $^ $(CFLAGS) $(LIBS)
 	cp -r opencl/ $(BDIR)/usr/lib/sempiternum/
 	cp -r assets/ $(BDIR)/usr/lib/sempiternum/
 	cp assets/sempiternum.desktop $(BDIR)/usr/share/applications/
+	cp assets/app_icon/256.png $(BDIR)/usr/share/pixmaps/sempiternum.png
 
 .PHONY: clean
 clean:
