@@ -76,3 +76,57 @@ char *get_root_folder(const char *exec_path){
   }
   return p;
 }
+
+char **file_io_folder_get_file_list(char *folder, char **extensions, int extension_n, _Bool leave_extension){
+  int nfiles = file_io_folder_get_file_n(folder, extensions, extension_n);
+  char **file_vector = malloc(sizeof(char *) * nfiles);
+
+  DIR *d;
+  struct dirent *dir;
+
+  d = opendir(folder);
+  int findex = 0;
+
+  if (d){
+    while ((dir = readdir(d)) != NULL){
+      if (strcmp(dir->d_name, ".") != 0 && strcmp(dir->d_name, "..") != 0){
+        for (int i = 0; i < extension_n; i++){
+          if (strlen(dir->d_name) > strlen(extensions[i]) && !strcmp(dir->d_name + strlen(dir->d_name) - strlen(extensions[i]), extensions[i])){
+            file_vector[findex] = dir->d_name;
+            if (!leave_extension){
+              dir->d_name[strlen(dir->d_name) - strlen(extensions[i])] = '\0';
+            }
+            findex++;
+          }
+        }
+      }
+    }
+    closedir(d);
+  }
+
+  return file_vector;
+}
+
+int file_io_folder_get_file_n(char *folder, char **extensions, int extension_n){
+  int nfiles = 0;
+
+  DIR *d;
+  struct dirent *dir;
+  d = opendir(folder);
+
+  if (d){
+    while ((dir = readdir(d)) != NULL){
+      if (strcmp(dir->d_name, ".") != 0 && strcmp(dir->d_name, "..") != 0){
+        for (int i = 0; i < extension_n; i++){
+          if (strlen(dir->d_name) > strlen(extensions[i]) && !strcmp(dir->d_name + strlen(dir->d_name) - strlen(extensions[i]), extensions[i])){
+            nfiles++;
+            break;
+          }
+        }
+      }
+    }
+    closedir(d);
+  }
+
+  return nfiles;
+}
