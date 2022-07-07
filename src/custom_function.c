@@ -6,6 +6,8 @@
 #include <errno.h>
 #include <dirent.h>
 
+#include <file_io.h>
+
 #include <custom_function.h>
 
 int mkdir_p(const char *path){
@@ -61,36 +63,8 @@ char *custom_function_get_path(){
 }
 
 char **custom_function_get_file_list(_Bool leave_extension){
-  int nfiles = custom_function_get_n();
-  char **file_vector = malloc(sizeof(char *) * nfiles);
-
-  DIR *d;
-  struct dirent *dir;
-  char *custom_function_path = custom_function_get_path();
-  d = opendir(custom_function_path);
-  int i = 0;
-
-  if (d){
-    while ((dir = readdir(d)) != NULL){
-      if (strcmp(dir->d_name, ".") != 0 && strcmp(dir->d_name, "..") != 0){
-        if (strlen(dir->d_name) > 2 && !strcmp(dir->d_name + strlen(dir->d_name) - 2, ".c")){
-          file_vector[i] = dir->d_name;
-          if (!leave_extension){
-            dir->d_name[strlen(dir->d_name)-2] = '\0';
-          }
-          i++;
-        } else if (strlen(dir->d_name) > 3 && !strcmp(dir->d_name + strlen(dir->d_name) - 3, ".cl")){
-          file_vector[i] = dir->d_name;
-          if (!leave_extension){
-            dir->d_name[strlen(dir->d_name)-3] = '\0';
-          }
-          i++;
-        }
-      }
-    }
-    closedir(d);
-  }
-
+  char *extensions[2] = {".cl", ".c"};
+  char **file_vector = file_io_folder_get_file_list(custom_function_get_path(), extensions, 2, leave_extension);
   return file_vector;
 }
 
@@ -98,24 +72,11 @@ int custom_function_get_n(){
   char *custom_function_path = custom_function_get_path();
   mkdir_p(custom_function_path);
 
-  int nfiles = 0;
+  char *extensions[2];
+  extensions[0] = ".c";
+  extensions[1] = ".cl";
 
-  DIR *d;
-  struct dirent *dir;
-  d = opendir(custom_function_path);
-
-  if (d){
-    while ((dir = readdir(d)) != NULL){
-      if (strcmp(dir->d_name, ".") != 0 && strcmp(dir->d_name, "..") != 0){
-        if ((strlen(dir->d_name) > 2 && !strcmp(dir->d_name + strlen(dir->d_name) - 2, ".c")) ||
-            (strlen(dir->d_name) > 3 && !strcmp(dir->d_name + strlen(dir->d_name) - 3, ".cl"))){
-          nfiles++;
-        }
-      }
-    }
-    closedir(d);
-  }
-
+  int nfiles = file_io_folder_get_file_n(custom_function_path, extensions, 2);
   free(custom_function_path);
   return nfiles;
 }
