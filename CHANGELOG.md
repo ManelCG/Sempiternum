@@ -8,6 +8,13 @@ This update is oriented towards the implementation of custom functions, and in g
 
 * The Custom Function mode is now added, which will look into the opencl/custom folder and load any .c or .cl files found there, appending them to the main OpenCL Code.
 
+### Changed
+
+* The ```draw_julia.c``` function now reads the contents of the ```opencl/draw_julia_headers/``` folder, then the main OpenCL file, then the custom files.
+
+* The main OpenCL file is now separated into multiple header files.
+
+* The ```draw_julia.c``` file now includes a ```draw_julia_load_opencl_src``` function, called by all of the other ```draw_julia*``` functions which loads the OpenCL source code. This makes the OpenCL loading process more centralized and easier to tweak.
 
 
 ## [0.1.0] - 27-Jul-2022
