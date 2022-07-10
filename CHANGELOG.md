@@ -6,7 +6,7 @@ This update is oriented towards the implementation of custom functions, and in g
 
 ### Added
 
-* The Custom Function mode is now added, which will look into the opencl/custom folder and load any .c or .cl files found there, appending them to the main OpenCL Code.
+* The Custom Function mode is now added, which will look into the opencl/custom folder and load any .h, .c or .cl files found in the headers or src folders respectively, appending them to the main OpenCL Code.
 
 ### Changed
 
