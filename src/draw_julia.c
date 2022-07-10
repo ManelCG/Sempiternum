@@ -730,6 +730,11 @@ int draw_julia_load_opencl_src(struct OpenCL_Program *prog){
 
   draw_julia_dump_folder_to_src(&prog->src, DRAW_JULIA_HEADERS_FOLDER, headers_extensions, 1, &src_size);
 
+  //LOAD CUSTOM OPENCL HEADERS
+  char *custom_headers_path = custom_function_get_headers_path();
+  draw_julia_dump_folder_to_src(&prog->src, custom_headers_path, headers_extensions, 1, &src_size);
+  free(custom_headers_path);
+
   //LOAD MAIN OPENCL
   FILE *fp;
   char *filename = DRAW_JULIA_CL;
@@ -754,7 +759,6 @@ int draw_julia_load_opencl_src(struct OpenCL_Program *prog){
   char *custom_extensions[2] = {".c", ".cl"};
   char *custom_function_path = custom_function_get_path();
   draw_julia_dump_folder_to_src(&prog->src, custom_function_path, custom_extensions, 2, &src_size);
-
   free(custom_function_path);
 
   prog->src_size = strlen(prog->src);

@@ -50,17 +50,34 @@ char *custom_function_get_path(){
   char *path = malloc(1024);
 
   #ifndef MAKE_INSTALL
-    sprintf(path, "./opencl/custom/");
+    sprintf(path, "./opencl/custom/src/");
   #else
     #ifdef __linux__
-      sprintf(path, "%s/.local/sempiternum/custom_opencl/", getenv("HOME"));
+      sprintf(path, "%s/.local/sempiternum/custom_opencl/src/", getenv("HOME"));
     #endif
     #ifdef _WIN32
-      sprintf(path, "%s/Desktop/sempiternum/custom_opencl/", getenv("HOMEPATH"));
+      sprintf(path, "%s/Desktop/sempiternum/custom_opencl/src/", getenv("HOMEPATH"));
     #endif
   #endif
   return path;
 }
+
+char *custom_function_get_headers_path(){
+  char *path = malloc(1024);
+
+  #ifndef MAKE_INSTALL
+    sprintf(path, "./opencl/custom/headers/");
+  #else
+    #ifdef __linux__
+      sprintf(path, "%s/.local/sempiternum/custom_opencl/headers/", getenv("HOME"));
+    #endif
+    #ifdef _WIN32
+      sprintf(path, "%s/Desktop/sempiternum/custom_opencl/headers/", getenv("HOMEPATH"));
+    #endif
+  #endif
+  return path;
+}
+
 
 char **custom_function_get_file_list(_Bool leave_extension){
   char *extensions[2] = {".cl", ".c"};

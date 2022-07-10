@@ -3,6 +3,7 @@
 
 int custom_function_get_n();
 char *custom_function_get_path();
+char *custom_function_get_headers_path();
 
 char **custom_function_get_file_list(_Bool leave_extension);
 
