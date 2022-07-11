@@ -384,10 +384,18 @@ void *render_video(void *data){
 
   if (action == GUI_ACTION_RENDER_VIDEO){
     printf("Will render video to mp4 format with ffmpeg\n");
+    #ifdef __unix__
     if (pipe(pipeFFMPEG) == -1){
       perror("Couldnt pipe");
       return NULL;
     }
+    #elif defined(_WIN32) || defined (WIN32)
+    if (_pipe(pipeFFMPEG) == -1){
+      perror("Couldnt pipe");
+      return NULL;
+    }
+    #endif
+
     if ((pidFFMPEG = fork()) == -1){
       perror("Couldnt fork");
       return NULL;
