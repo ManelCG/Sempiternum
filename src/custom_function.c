@@ -27,21 +27,38 @@ int mkdir_p(const char *path){
     if (*p == '/'){
       *p='\0';
 
+      #ifdef __unix__
       if (mkdir(_path, S_IRWXU) != 0){
         if (errno != EEXIST){
           return -1;
         }
       }
+      #elif defined(_WIN32) || defined (WIN32)
+      if (mkdir(_path) != 0){
+        if (errno != EEXIST){
+          return -1;
+        }
+      }
+      #endif
+
 
       *p = '/';
     }
   }
 
+  #ifdef __unix__
   if (mkdir(_path, S_IRWXU) != 0){
     if (errno != EEXIST){
       return -1;
     }
   }
+  #elif defined(_WIN32) || defined (WIN32)
+  if (mkdir(_path) != 0){
+    if (errno != EEXIST){
+      return -1;
+    }
+  }
+  #endif
 
   return 0;
 }
