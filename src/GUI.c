@@ -31,6 +31,7 @@
 #define GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE true
 
 #if defined(_WIN32) || defined (WIN32)
+#include <fork_for_windows.h>
 #define SIGUSR1 16
 #endif
 
