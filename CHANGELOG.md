@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.1.1] - UNRELEASED
+## [0.1.1] - 11-Jul-2022
 
 This update is oriented towards the implementation of custom functions, and in general, an optimization and improvement when it comes to loading the OpenCL source code.
 
@@ -17,7 +17,7 @@ This update is oriented towards the implementation of custom functions, and in g
 * The ```draw_julia.c``` file now includes a ```draw_julia_load_opencl_src``` function, called by all of the other ```draw_julia*``` functions which loads the OpenCL source code. This makes the OpenCL loading process more centralized and easier to tweak.
 
 
-## [0.1.0] - 27-Jul-2022
+## [0.1.0] - 27-Jun-2022
 
 First official Beta release!!! Yay!!!
 

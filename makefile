@@ -1,4 +1,4 @@
-SEMPITERNUM_VERSION = "0.1.1 Development"
+SEMPITERNUM_VERSION = "0.1.1"
 
 SDIR = src
 
