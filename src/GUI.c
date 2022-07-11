@@ -30,6 +30,10 @@
 
 #define GUI_DEACTIVATE_ORBITS_IN_PARAMETER_SPACE true
 
+#if defined(_WIN32) || defined (WIN32)
+#define SIGUSR1 16
+#endif
+
 // #define DEBUG_GUI
 
 struct genVideoData{
@@ -442,14 +446,21 @@ void *render_video(void *data){
   video_progress->total_frames = frames;
   gettimeofday(&video_progress->start_time, NULL);
 
+  #ifdef __unix__
   sigset_t set;
   sigemptyset(&set);
   sigaddset(&set, SIGUSR1);
   sigprocmask(SIG_BLOCK, &set, NULL);
+  #elif defined(_WIN32) || defined (WIN32)
+  _sigset_t set;
+  #endif
   int sig;
   for (int i = 1; i <= frames; i++){
     while (videodata->pause){
+      #ifdef __unix__
       sigwait(&set, &sig);
+      #elif defined(_WIN32) || defined (WIN32)
+      #endif
       video_progress->start_frame = i-1;
       gettimeofday(&video_progress->start_time, NULL);
 
