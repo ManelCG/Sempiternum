@@ -20,7 +20,7 @@ struct OpenCL_Program *get_opencl_info(){
   err_num = clGetPlatformIDs(0, NULL, &num_platforms_available);
 
   if (err_num != CL_SUCCESS){
-    perror("");
+    perror("Cannot fetch OpenCL devices");
     exit(EXIT_FAILURE);
   }
 
@@ -28,7 +28,7 @@ struct OpenCL_Program *get_opencl_info(){
   err_num = clGetPlatformIDs(num_platforms_available, cl_platforms, NULL);
 
   if (err_num != CL_SUCCESS){
-    perror("");
+    perror("Cannot fetch OpenCL platform information");
     exit(EXIT_FAILURE);
   }
 

@@ -62,9 +62,14 @@ int *parse_dimensions(char *dimensions){
 }
 
 char *get_root_folder(const char *exec_path){
+  #ifdef __unix__
   char *p = realpath(exec_path, NULL);
+  #elif defined(_WIN32) || defined (WIN32)
+  char *p = _fullpath(NULL, exec_path, 1024);
+  #endif
   int n_slashes = 0;
 
+  #ifdef __unix__
   for (int i = strlen(p); i >= 0; i--){
     if (p[i] == '/'){
       n_slashes++;
@@ -74,6 +79,17 @@ char *get_root_folder(const char *exec_path){
     }
     p[i] = '\0';
   }
+  #elif defined(_WIN32) || defined (WIN32)
+  for (int i = strlen(p); i >= 0; i--){
+    if (p[i] == '\\'){
+      n_slashes++;
+    }
+    if (n_slashes == 2){
+      break;
+    }
+    p[i] = '\0';
+  }
+  #endif
   return p;
 }
 
