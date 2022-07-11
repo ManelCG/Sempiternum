@@ -390,7 +390,7 @@ void *render_video(void *data){
       return NULL;
     }
     #elif defined(_WIN32) || defined (WIN32)
-    if (_pipe(pipeFFMPEG) == -1){
+    if (_pipe(pipeFFMPEG, 65535, 0) == -1){
       perror("Couldnt pipe");
       return NULL;
     }
