@@ -87,32 +87,19 @@ unsigned char *draw_julia_polynomial_fraction
 
   //Create all memory objects for Julia set Drawing
   //Memobjects for images and dmap
-  cl_mem mem_m = clCreateBuffer(prog->context, CL_MEM_WRITE_ONLY,
-                              w*h*3, NULL, &(prog->ret));
-  cl_mem mem_N = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(int), NULL, &(prog->ret));
-  cl_mem mem_h = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(int), NULL, &(prog->ret));
-  cl_mem mem_w = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(int), NULL, &(prog->ret));
-  cl_mem mem_order = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(int), NULL, &(prog->ret));
-  cl_mem mem_nr = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_ni = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_dr = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_di = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_pa = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(int), NULL, &(prog->ret));
-  cl_mem mem_Sx = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(double)*2, NULL, &(prog->ret));
-  cl_mem mem_Sy = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(double)*2, NULL, &(prog->ret));
-  cl_mem mem_cs = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(int), NULL, &(prog->ret));
+  cl_mem mem_m = clCreateBuffer(prog->context, CL_MEM_WRITE_ONLY,    w*h*3,                    NULL, &(prog->ret));
+  cl_mem mem_N = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,     sizeof(int),              NULL, &(prog->ret));
+  cl_mem mem_h = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,     sizeof(int),              NULL, &(prog->ret));
+  cl_mem mem_w = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,     sizeof(int),              NULL, &(prog->ret));
+  cl_mem mem_order = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int),              NULL, &(prog->ret));
+  cl_mem mem_nr = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,    sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_ni = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,    sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_dr = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,    sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_di = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,    sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_pa = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,    sizeof(int),              NULL, &(prog->ret));
+  cl_mem mem_Sx = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,    sizeof(double)*2,         NULL, &(prog->ret));
+  cl_mem mem_Sy = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,    sizeof(double)*2,         NULL, &(prog->ret));
+  cl_mem mem_cs = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,    sizeof(int),              NULL, &(prog->ret));
 
   //Write data to mem objects
   clEnqueueWriteBuffer(prog->command_queue, mem_N,     CL_TRUE, 0, sizeof(int), &N,                            0, NULL, NULL);
@@ -564,28 +551,17 @@ unsigned char *draw_julia_polynomial(int N, int h, int w,
 
   //Create all memory objects for Julia set Drawing
   //Memobjects for images and dmap
-  cl_mem mem_m = clCreateBuffer(prog->context, CL_MEM_WRITE_ONLY,
-                              w*h*3, NULL, &(prog->ret));
-  cl_mem mem_N = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(int), NULL, &(prog->ret));
-  cl_mem mem_h = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(int), NULL, &(prog->ret));
-  cl_mem mem_w = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(int), NULL, &(prog->ret));
-  cl_mem mem_order = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(int), NULL, &(prog->ret));
-  cl_mem mem_pr = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_pi = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(double)*(order+2), NULL, &(prog->ret));
-  cl_mem mem_pa = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(int), NULL, &(prog->ret));
-  cl_mem mem_Sx = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(double)*2, NULL, &(prog->ret));
-  cl_mem mem_Sy = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(double)*2, NULL, &(prog->ret));
-  cl_mem mem_cs = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,
-                              sizeof(int), NULL, &(prog->ret));
+  cl_mem mem_m = clCreateBuffer(prog->context,      CL_MEM_WRITE_ONLY, w*h*3,                   NULL, &(prog->ret));
+  cl_mem mem_N = clCreateBuffer(prog->context,      CL_MEM_READ_ONLY, sizeof(int),              NULL, &(prog->ret));
+  cl_mem mem_h = clCreateBuffer(prog->context,      CL_MEM_READ_ONLY, sizeof(int),              NULL, &(prog->ret));
+  cl_mem mem_w = clCreateBuffer(prog->context,      CL_MEM_READ_ONLY, sizeof(int),              NULL, &(prog->ret));
+  cl_mem mem_order = clCreateBuffer(prog->context,  CL_MEM_READ_ONLY, sizeof(int),              NULL, &(prog->ret));
+  cl_mem mem_pr = clCreateBuffer(prog->context,     CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_pi = clCreateBuffer(prog->context,     CL_MEM_READ_ONLY, sizeof(double)*(order+2), NULL, &(prog->ret));
+  cl_mem mem_pa = clCreateBuffer(prog->context,     CL_MEM_READ_ONLY, sizeof(int),              NULL, &(prog->ret));
+  cl_mem mem_Sx = clCreateBuffer(prog->context,     CL_MEM_READ_ONLY, sizeof(double)*2,         NULL, &(prog->ret));
+  cl_mem mem_Sy = clCreateBuffer(prog->context,     CL_MEM_READ_ONLY, sizeof(double)*2,         NULL, &(prog->ret));
+  cl_mem mem_cs = clCreateBuffer(prog->context,     CL_MEM_READ_ONLY, sizeof(int),              NULL, &(prog->ret));
 
   //Write data to mem objects
   clEnqueueWriteBuffer(prog->command_queue, mem_N,     CL_TRUE, 0, sizeof(int), &N,                           0, NULL, NULL);
@@ -805,25 +781,25 @@ unsigned char *draw_julia_custom_function(int N, int h, int w,
 
   //Create all memory objects for Julia set Drawing
   //Memobjects for images and dmap
-  cl_mem mem_m = clCreateBuffer(prog->context, CL_MEM_WRITE_ONLY, w*h*3, NULL, &(prog->ret));
-  cl_mem mem_N = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,  sizeof(int), NULL, &(prog->ret));
-  cl_mem mem_h = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,  sizeof(int), NULL, &(prog->ret));
-  cl_mem mem_w = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,  sizeof(int), NULL, &(prog->ret));
+  cl_mem mem_m = clCreateBuffer(prog->context, CL_MEM_WRITE_ONLY, w*h*3,            NULL, &(prog->ret));
+  cl_mem mem_N = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,  sizeof(int),      NULL, &(prog->ret));
+  cl_mem mem_h = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,  sizeof(int),      NULL, &(prog->ret));
+  cl_mem mem_w = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,  sizeof(int),      NULL, &(prog->ret));
   cl_mem mem_c = clCreateBuffer(prog->context, CL_MEM_READ_ONLY,  sizeof(double)*2, NULL, &(prog->ret));
   cl_mem mem_Sx = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*2, NULL, &(prog->ret));
   cl_mem mem_Sy = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(double)*2, NULL, &(prog->ret));
-  cl_mem mem_pt = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int), NULL, &(prog->ret));
-  cl_mem mem_cs = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int), NULL, &(prog->ret));
+  cl_mem mem_pt = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int),      NULL, &(prog->ret));
+  cl_mem mem_cs = clCreateBuffer(prog->context, CL_MEM_READ_ONLY, sizeof(int),      NULL, &(prog->ret));
 
   //Write data to mem objects
-  clEnqueueWriteBuffer(prog->command_queue, mem_N, CL_TRUE, 0, sizeof(int), &N, 0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_h, CL_TRUE, 0, sizeof(int), &h, 0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_w, CL_TRUE, 0, sizeof(int), &w, 0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_c, CL_TRUE, 0, sizeof(double)*2, c, 0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_Sx, CL_TRUE, 0, sizeof(double)*2, Sx, 0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_Sy, CL_TRUE, 0, sizeof(double)*2, Sy, 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_N,  CL_TRUE, 0, sizeof(int), &N, 0,           NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_h,  CL_TRUE, 0, sizeof(int), &h, 0,           NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_w,  CL_TRUE, 0, sizeof(int), &w, 0,           NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_c,  CL_TRUE, 0, sizeof(double)*2, c, 0,       NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_Sx, CL_TRUE, 0, sizeof(double)*2, Sx, 0,      NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_Sy, CL_TRUE, 0, sizeof(double)*2, Sy, 0,      NULL, NULL);
   clEnqueueWriteBuffer(prog->command_queue, mem_pt, CL_TRUE, 0, sizeof(int), &(plot_type), 0, NULL, NULL);
-  clEnqueueWriteBuffer(prog->command_queue, mem_cs, CL_TRUE, 0, sizeof(int), &color, 0, NULL, NULL);
+  clEnqueueWriteBuffer(prog->command_queue, mem_cs, CL_TRUE, 0, sizeof(int), &color, 0,       NULL, NULL);
 
   if (init_new_cl){
     prog->program = clCreateProgramWithSource(prog->context,
@@ -854,11 +830,11 @@ unsigned char *draw_julia_custom_function(int N, int h, int w,
   printf("Kernel %s\n\n", plot_type);
   #endif
 
-  clSetKernelArg(prog->kernel, 0, sizeof(mem_m),  (void *)&mem_m);
-  clSetKernelArg(prog->kernel, 1, sizeof(mem_N),  (void *)&mem_N);
-  clSetKernelArg(prog->kernel, 2, sizeof(mem_h),  (void *)&mem_h);
-  clSetKernelArg(prog->kernel, 3, sizeof(mem_w),  (void *)&mem_w);
-  clSetKernelArg(prog->kernel, 4, sizeof(mem_c),  (void *)&mem_c);
+  clSetKernelArg(prog->kernel, 0, sizeof(mem_m),   (void *)&mem_m);
+  clSetKernelArg(prog->kernel, 1, sizeof(mem_N),   (void *)&mem_N);
+  clSetKernelArg(prog->kernel, 2, sizeof(mem_h),   (void *)&mem_h);
+  clSetKernelArg(prog->kernel, 3, sizeof(mem_w),   (void *)&mem_w);
+  clSetKernelArg(prog->kernel, 4, sizeof(mem_c),   (void *)&mem_c);
   clSetKernelArg(prog->kernel, 5, sizeof(mem_Sx),  (void *)&mem_Sx);
   clSetKernelArg(prog->kernel, 6, sizeof(mem_Sy),  (void *)&mem_Sy);
   clSetKernelArg(prog->kernel, 7, sizeof(mem_pt),  (void *)&mem_pt);
